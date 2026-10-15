@@ -1,0 +1,31 @@
+{
+  "name": "linux-lab-desktop",
+  "version": "1.1.0",
+  "private": true,
+  "description": "A personal Linux practice lab with local exercise generation",
+  "author": "Linux Lab",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "desktop": "electron .",
+    "build:frontend": "pnpm --dir frontend build",
+    "build:backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-backend.ps1",
+    "build:windows": "pnpm build:frontend && pnpm build:backend && electron-builder --win nsis --x64 --publish never",
+    "pack:windows": "electron-builder --win --x64 --dir"
+  },
+  "devDependencies": { "electron": "44.7.2", "electron-builder": "26.15.3" },
+  "build": {
+    "appId": "local.linuxlab.desktop",
+    "productName": "Linux Lab",
+    "directories": { "output": "release/1.1.0" },
+    "files": ["desktop/**/*", "package.json"],
+    "extraResources": [
+      { "from": "backend-dist/linux-lab-server", "to": "backend" },
+      { "from": "frontend/dist", "to": "frontend/dist" },
+      { "from": "courses", "to": "courses" },
+      { "from": "docker/lab", "to": "docker/lab" },
+      { "from": "EXERCISE_FORMAT.md", "to": "EXERCISE_FORMAT.md" }
+    ],
+    "win": { "target": ["nsis"], "signExecutable": false, "icon": "desktop/icon.ico" },
+    "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "artifactName": "Linux-Lab-Setup-${version}.${ext}" }
+  }
+}

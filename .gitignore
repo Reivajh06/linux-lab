@@ -1,0 +1,16 @@
+node_modules/
+frontend/dist/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/
+.env
+test-results/
+playwright-report/
+backend-dist/
+backend-build/
+release/
+*.spec
+.pnpm-store/
+frontend/tsconfig.tsbuildinfo

@@ -1,0 +1,11 @@
+
+  L I N U X  L A B
+  Your space to learn by doing.
+
+  Editors     vi  |  vim  |  nano  |  gedit notes.txt &
+  Manuals     man ls  |  info coreutils  |  help cd
+  Admin       sudo -i  |  sudo useradd -m alex
+
+  You are learner. Your home is /home/learner.
+  Changes stay here until you recreate the environment.
+

@@ -1,0 +1,44 @@
+services:
+  lab-image:
+    image: linux-lab-environment:local
+    build:
+      context: ./docker/lab
+      dockerfile: Dockerfile
+    entrypoint: ["/bin/true"]
+    network_mode: none
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    depends_on:
+      lab-image:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${LAB_PORT:-8080}:8080"
+    volumes:
+      - lab-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      LAB_DATA_DIR: /data
+      LAB_IMAGE: linux-lab-environment:local
+      LAB_NETWORK: linux-lab-net
+      LAB_MEMORY: ${LAB_MEMORY:-2g}
+      LAB_CPUS: ${LAB_CPUS:-2}
+      LAB_PIDS: ${LAB_PIDS:-256}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-300}
+      OCR_LANGUAGES: ${OCR_LANGUAGES:-eng+spa}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [lab]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/courses',timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+networks:
+  lab:
+    name: linux-lab-net
+volumes:
+  lab-data:

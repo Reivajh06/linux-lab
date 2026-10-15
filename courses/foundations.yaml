@@ -1,0 +1,666 @@
+schema_version: 1
+id: linux-foundations
+version: '1.0'
+title: Linux Foundations
+description: Build confidence with files, editors, permissions, users, groups, and
+  everyday Linux commands.
+setup:
+- script: 'install -d -o learner -g learner /home/learner/lab /home/learner/lab/inputs
+
+    printf ''Linux is a place to explore\n'' > /home/learner/lab/inputs/message.txt
+
+    printf ''INFO start\nERROR disk full\nINFO waiting\nERROR timeout\n'' > /home/learner/lab/inputs/app.log
+
+    printf ''pear\napple\nbanana\napple\n'' > /home/learner/lab/inputs/fruit.txt
+
+    printf ''name=old\nmode=old\n'' > /home/learner/lab/inputs/settings.txt
+
+    chown -R learner:learner /home/learner/lab'
+  user: root
+  timeout: 15
+exercises:
+- id: find-your-feet
+  title: Find your feet
+  description: Find your current directory with `pwd`. Explore `/home/learner/lab`
+    with `ls -la`. Save the absolute path of your home directory to `/home/learner/lab/home-path.txt`.
+  tasks:
+  - id: task-1
+    description: Save your home path
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/home-path.txt
+      value: /home/learner
+      match: contains
+  tips:
+  - '`pwd` prints the current directory.'
+  - '`>` sends command output into a file.'
+  setup: []
+  sources: []
+- id: make-directories
+  title: A place for everything
+  description: 'Create a project tree: `/home/learner/lab/project/src` and `/home/learner/lab/project/docs`.'
+  tasks:
+  - id: task-1
+    description: Create the source directory
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/project/src
+      kind: directory
+  - id: task-2
+    description: Create the documentation directory
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/project/docs
+      kind: directory
+  tips:
+  - '`mkdir -p` creates missing parent directories.'
+  setup: []
+  sources: []
+- id: copy-and-move
+  title: Copy, move, keep
+  description: Copy `/home/learner/lab/inputs/message.txt` to `/home/learner/lab/copied.txt`.
+    Create `/home/learner/lab/renamed.txt` containing the same message, using `mv`
+    to practice renaming.
+  tasks:
+  - id: task-1
+    description: Keep a copy of the message
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/copied.txt
+      value: Linux is a place to explore
+      match: contains
+  - id: task-2
+    description: Save the renamed message
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/renamed.txt
+      value: Linux is a place to explore
+      match: contains
+  tips:
+  - '`cp` duplicates files; `mv` renames or relocates them.'
+  setup: []
+  sources: []
+- id: remove-safely
+  title: Clean up carefully
+  description: Remove only `/home/learner/lab/cleanup/obsolete.txt` and preserve `/home/learner/lab/cleanup/keep.txt`.
+  tasks:
+  - id: task-1
+    description: Remove the obsolete file
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/cleanup/obsolete.txt
+      kind: absent
+  - id: task-2
+    description: Keep the useful file unchanged
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/cleanup/keep.txt
+      value: keep me
+      match: contains
+  tips:
+  - Check a path with `ls` before removing it.
+  - Deleted files in this lab have no recycle bin.
+  setup:
+  - script: install -d -o learner -g learner /home/learner/lab/cleanup; printf 'obsolete'
+      > /home/learner/lab/cleanup/obsolete.txt; printf 'keep me' > /home/learner/lab/cleanup/keep.txt;
+      chown -R learner:learner /home/learner/lab/cleanup
+    user: root
+    timeout: 15
+  sources: []
+- id: hidden-files
+  title: What is hidden?
+  description: Create `/home/learner/lab/.practice-config` containing `theme=green`.
+    Use `ls -a` to find it.
+  tasks:
+  - id: task-1
+    description: Create the hidden configuration
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/.practice-config
+      value: theme=green
+      match: contains
+  tips:
+  - A leading dot hides a file from a plain `ls`.
+  setup: []
+  sources: []
+- id: links
+  title: One file, another doorway
+  description: Create a symbolic link `/home/learner/lab/message-link` pointing to
+    `/home/learner/lab/inputs/message.txt`.
+  tasks:
+  - id: task-1
+    description: Create a readable symbolic link
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/message-link
+      kind: symlink
+    - type: content
+      path: /home/learner/lab/message-link
+      value: Linux is a place to explore
+      match: contains
+  tips:
+  - Read `man ln` and look for the symbolic link option.
+  setup: []
+  sources: []
+- id: read-manuals
+  title: Read the manual
+  description: Explore `man ls`, `info coreutils`, and `help cd`. Write a short note
+    at `/home/learner/lab/manuals.txt` containing the terms `man`, `info`, and `help`.
+  tasks:
+  - id: task-1
+    description: Record three ways to get help
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/manuals.txt
+      value: man
+      match: contains
+    - type: content
+      path: /home/learner/lab/manuals.txt
+      value: info
+      match: contains
+    - type: content
+      path: /home/learner/lab/manuals.txt
+      value: help
+      match: contains
+  tips:
+  - Press `q` to leave a manual page.
+  - Bash built-ins such as `cd` are documented by `help`.
+  setup: []
+  sources: []
+- id: editor-vi
+  title: Meet vi
+  description: Use `vi /home/learner/lab/vi-note.txt` to create a note containing
+    `Learning with vi`. Save the file and return to the terminal. Evaluation checks
+    the saved result, not which editor you used.
+  tasks:
+  - id: task-1
+    description: Save your vi note
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/vi-note.txt
+      value: Learning with vi
+      match: contains
+  tips:
+  - 'In vi/Vim: press `i`, type, press Esc, then type `:wq` and Enter.'
+  setup: []
+  sources: []
+- id: editor-vim
+  title: A little Vim
+  description: Use `vim /home/learner/lab/vim-note.txt` to create a note containing
+    `Learning with vim`. Save the file and return to the terminal. Evaluation checks
+    the saved result, not which editor you used.
+  tasks:
+  - id: task-1
+    description: Save your vim note
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/vim-note.txt
+      value: Learning with vim
+      match: contains
+  tips:
+  - 'In vi/Vim: press `i`, type, press Esc, then type `:wq` and Enter.'
+  setup: []
+  sources: []
+- id: editor-nano
+  title: Keep it simple with nano
+  description: Use `nano /home/learner/lab/nano-note.txt` to create a note containing
+    `Learning with nano`. Save the file and return to the terminal. Evaluation checks
+    the saved result, not which editor you used.
+  tasks:
+  - id: task-1
+    description: Save your nano note
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/nano-note.txt
+      value: Learning with nano
+      match: contains
+  tips:
+  - 'In nano: Ctrl+O saves and Ctrl+X exits.'
+  setup: []
+  sources: []
+- id: editor-gedit
+  title: A graphical note with gedit
+  description: Use `gedit /home/learner/lab/gedit-note.txt` to create a note containing
+    `Learning with gedit`. Save the file and return to the terminal. Evaluation checks
+    the saved result, not which editor you used.
+  tasks:
+  - id: task-1
+    description: Save your gedit note
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/gedit-note.txt
+      value: Learning with gedit
+      match: contains
+  tips:
+  - Gedit opens in this same desktop. Save with Ctrl+S; use `&` to keep the shell
+    available.
+  setup: []
+  sources: []
+- id: grep-logs
+  title: Find the signal
+  description: Read `/home/learner/lab/inputs/app.log`. Save only the lines containing
+    `ERROR` to `/home/learner/lab/errors.log`.
+  tasks:
+  - id: task-1
+    description: Keep the error lines
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/errors.log
+      value: ERROR disk full
+      match: contains
+    - type: content
+      path: /home/learner/lab/errors.log
+      value: ERROR timeout
+      match: contains
+  - id: task-2
+    description: Exclude informational lines
+    points: 5
+    checks:
+    - script: '! grep -q INFO /home/learner/lab/errors.log'
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - '`grep` selects matching lines; `>` saves them.'
+  setup: []
+  sources: []
+- id: sort-and-count
+  title: Order out of repetition
+  description: Sort and deduplicate `/home/learner/lab/inputs/fruit.txt` into `/home/learner/lab/unique-fruit.txt`.
+    Save the number of unique fruits to `/home/learner/lab/fruit-count.txt`.
+  tasks:
+  - id: task-1
+    description: Save sorted unique fruit
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/unique-fruit.txt
+      value: 'apple
+
+        banana
+
+        pear
+
+        '
+      match: exact
+  - id: task-2
+    description: Count the unique fruit
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/fruit-count.txt
+      value: '3'
+      match: contains
+  tips:
+  - Pipes connect commands.
+  - Explore `sort`, `uniq`, and `wc -l`.
+  setup: []
+  sources: []
+- id: replace-text
+  title: A small transformation
+  description: Replace every `old` with `new` in `/home/learner/lab/inputs/settings.txt`
+    and save the result as `/home/learner/lab/settings.txt`.
+  tasks:
+  - id: task-1
+    description: Transform both settings
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/settings.txt
+      value: 'name=new
+
+        mode=new
+
+        '
+      match: exact
+  tips:
+  - '`sed` can substitute text without changing the input file.'
+  setup: []
+  sources: []
+- id: find-files
+  title: Find your files
+  description: Use `find` to locate `.txt` files under `/home/learner/lab/inputs`.
+    Save the list to `/home/learner/lab/found-files.txt`.
+  tasks:
+  - id: task-1
+    description: Record matching input paths
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/found-files.txt
+      value: /home/learner/lab/inputs/message.txt
+      match: contains
+    - type: content
+      path: /home/learner/lab/found-files.txt
+      value: /home/learner/lab/inputs/fruit.txt
+      match: contains
+  tips:
+  - 'Quote patterns so the shell does not expand them first: `''*.txt''`.'
+  setup: []
+  sources: []
+- id: private-file
+  title: Keep it private
+  description: Create `/home/learner/lab/private.txt` and set its permissions to `600`.
+  tasks:
+  - id: task-1
+    description: Only the owner can read or write
+    points: 5
+    checks:
+    - type: permissions
+      path: /home/learner/lab/private.txt
+      mode: '600'
+  tips:
+  - Read `man chmod`.
+  - Read, write, execute have values 4, 2, and 1.
+  setup: []
+  sources: []
+- id: shared-directory
+  title: A shared space
+  description: 'Create `/home/learner/lab/shared` with permissions `2770`: owner/group
+    full access, no access for others, and setgid.'
+  tasks:
+  - id: task-1
+    description: Set the shared-directory permissions
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/shared
+      kind: directory
+    - type: permissions
+      path: /home/learner/lab/shared
+      mode: '2770'
+  tips:
+  - The leading `2` sets setgid on a directory.
+  setup: []
+  sources: []
+- id: create-user
+  title: Welcome a new user
+  description: Create a user named `labalex` with home directory `/home/labalex` and
+    login shell `/bin/bash`.
+  tasks:
+  - id: task-1
+    description: Create the account with its home and shell
+    points: 5
+    checks:
+    - type: user
+      name: labalex
+      exists: true
+      shell: /bin/bash
+      home: /home/labalex
+    - type: path
+      path: /home/labalex
+      kind: directory
+  tips:
+  - Use `sudo` for account administration.
+  - Explore `useradd -m -s`.
+  setup: []
+  sources: []
+- id: create-group
+  title: A team of your own
+  description: Create a group called `labteam`.
+  tasks:
+  - id: task-1
+    description: Create the team group
+    points: 5
+    checks:
+    - type: group
+      name: labteam
+      exists: true
+  tips:
+  - Group definitions can be inspected with `getent group`.
+  setup: []
+  sources: []
+- id: group-membership
+  title: Join the team
+  description: Add `labmember` to the supplementary group `labpractice`. These accounts
+    are prepared for you and are independent of the other exercises.
+  tasks:
+  - id: task-1
+    description: Add the supplementary membership
+    points: 5
+    checks:
+    - type: membership
+      user: labmember
+      group: labpractice
+  tips:
+  - Use `usermod -aG` to append rather than replace supplementary groups.
+  - Inspect membership with `id labmember`.
+  setup:
+  - script: groupadd labpractice; useradd -m -s /bin/bash labmember
+    user: root
+    timeout: 15
+  sources: []
+- id: file-ownership
+  title: Who owns this?
+  description: Create `/home/learner/lab/owned.txt` owned by user `learner` and group
+    `labowners`. The group already exists.
+  tasks:
+  - id: task-1
+    description: Assign the owner and group
+    points: 5
+    checks:
+    - type: ownership
+      path: /home/learner/lab/owned.txt
+      owner: learner
+      group: labowners
+  tips:
+  - Use `chown user:group file`.
+  - Check your result with `ls -l`.
+  setup:
+  - script: groupadd labowners
+    user: root
+    timeout: 15
+  sources: []
+- id: remove-user
+  title: An account's last day
+  description: Remove the pre-created disposable account `labtemporary`. Other accounts
+    must remain available.
+  tasks:
+  - id: task-1
+    description: Remove the disposable user
+    points: 5
+    checks:
+    - type: user
+      name: labtemporary
+      exists: false
+  - id: task-2
+    description: Preserve the learner account
+    points: 5
+    checks:
+    - type: user
+      name: learner
+      exists: true
+  tips:
+  - Explore `userdel`; account changes require sudo.
+  setup:
+  - script: useradd -m labtemporary
+    user: root
+    timeout: 15
+  sources: []
+- id: process-snapshot
+  title: What's running?
+  description: Use `ps` to save a process listing into `/home/learner/lab/processes.txt`.
+    Include command names so the listing contains `supervisord`.
+  tasks:
+  - id: task-1
+    description: Save a useful process snapshot
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/processes.txt
+      value: supervisord
+      match: contains
+  tips:
+  - Try `ps aux` or `ps -ef`.
+  setup: []
+  sources: []
+- id: background-job
+  title: Let it run in the background
+  description: Start a `sleep` process as `learner` that remains running for a few
+    minutes. Evaluate before it finishes.
+  tasks:
+  - id: task-1
+    description: Keep a learner-owned sleep process running
+    points: 5
+    checks:
+    - type: process
+      name: sleep
+      user: learner
+  tips:
+  - Append `&` to run a command in the background.
+  - Use `sleep 600 &`, then inspect `jobs` and `ps`.
+  setup: []
+  sources: []
+- id: network-interfaces
+  title: Meet your network
+  description: Use `ip` to list network interfaces and save them to `/home/learner/lab/interfaces.txt`.
+    Include the loopback interface.
+  tasks:
+  - id: task-1
+    description: Record loopback interface information
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/interfaces.txt
+      value: 'lo:'
+      match: contains
+  tips:
+  - '`ip address` shows interfaces and addresses.'
+  - This container's network is separate from Windows.
+  setup: []
+  sources: []
+- id: local-hostname
+  title: A name for this machine
+  description: Save this environment's hostname to `/home/learner/lab/hostname.txt`.
+    Inspect `/etc/hosts` to see local name mappings.
+  tasks:
+  - id: task-1
+    description: Record the hostname
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/hostname.txt
+      value: linux-lab
+      match: contains
+  tips:
+  - '`hostname` works without Internet access.'
+  setup: []
+  sources: []
+- id: package-inventory
+  title: Know your tools
+  description: Use `dpkg-query` to record information about the installed `nano` package
+    in `/home/learner/lab/package-info.txt`.
+  tasks:
+  - id: task-1
+    description: Nano is installed
+    points: 5
+    checks:
+    - type: package
+      name: nano
+  - id: task-2
+    description: Record its package name
+    points: 5
+    checks:
+    - type: content
+      path: /home/learner/lab/package-info.txt
+      value: nano
+      match: contains
+  tips:
+  - '`dpkg-query -W nano` queries an installed package without downloading anything.'
+  setup: []
+  sources: []
+- id: archive
+  title: Pack it up
+  description: Create `/home/learner/lab/notes.tar.gz` containing `message.txt` from
+    the inputs folder. Preserve the original file.
+  tasks:
+  - id: task-1
+    description: Create a readable gzip archive with the message
+    points: 5
+    checks:
+    - script: tar -tzf /home/learner/lab/notes.tar.gz | grep -Eq '(^|/)message\.txt$'
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: task-2
+    description: Keep the original message
+    points: 5
+    checks:
+    - type: path
+      path: /home/learner/lab/inputs/message.txt
+      kind: file
+  tips:
+  - '`tar -czf` creates a gzip-compressed archive.'
+  - The `-C` option chooses the input directory.
+  setup: []
+  sources: []
+- id: first-script
+  title: Your first shell script
+  description: Create executable `/home/learner/lab/greet.sh` that prints `Hello,
+    Linux!` when run.
+  tasks:
+  - id: task-1
+    description: Make the script executable
+    points: 5
+    checks:
+    - type: permissions
+      path: /home/learner/lab/greet.sh
+      mode: '755'
+  - id: task-2
+    description: Print the greeting
+    points: 5
+    checks:
+    - script: /home/learner/lab/greet.sh
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+      stdout_contains: Hello, Linux!
+  tips:
+  - Start with `#!/bin/bash`.
+  - Use `chmod 755` to make your script executable.
+  setup: []
+  sources: []
+- id: script-arguments
+  title: Make it personal
+  description: Create `/home/learner/lab/welcome.sh`. Running `bash /home/learner/lab/welcome.sh
+    Ada` must print `Welcome, Ada`. Passing `Linus` must print `Welcome, Linus`.
+  tasks:
+  - id: task-1
+    description: Use the first argument
+    points: 5
+    checks:
+    - script: bash /home/learner/lab/welcome.sh Ada
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+      stdout_contains: Welcome, Ada
+    - script: bash /home/learner/lab/welcome.sh Linus
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+      stdout_contains: Welcome, Linus
+  tips:
+  - The first argument is available as `$1`.
+  - Use double quotes when expanding variables.
+  setup: []
+  sources: []
