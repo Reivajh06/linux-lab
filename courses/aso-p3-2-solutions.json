@@ -1,0 +1,7 @@
+{
+  "insertar": "printf %s 'Practicando vi\nEdición en consola\n' > /home/learner/aso/p32/nota.txt\nchown learner:learner /home/learner/aso/p32/nota.txt\n",
+  "sustituir": "printf %s 'servidor nuevo\nnuevo y nuevo\n' > /home/learner/aso/p32/sustituir.txt\nchown learner:learner /home/learner/aso/p32/sustituir.txt\n",
+  "borrar": "printf %s 'conservar primera\nconservar última\n' > /home/learner/aso/p32/borrar.txt\nchown learner:learner /home/learner/aso/p32/borrar.txt\n",
+  "copiar": "printf %s 'inicio\ncopiar esta línea\ncopiar esta línea\nfin\ncierre\n' > /home/learner/aso/p32/copiar.txt\nchown learner:learner /home/learner/aso/p32/copiar.txt\n",
+  "palabras": "printf %s 'Errata\nservicio activo\nquitar final\n' > /home/learner/aso/p32/palabras.txt\nchown learner:learner /home/learner/aso/p32/palabras.txt\n"
+}

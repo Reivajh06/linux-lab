@@ -6,6 +6,7 @@ RUN rm -f /etc/dpkg/dpkg.cfg.d/excludes && \
     locales sudo bash bash-completion coreutils util-linux passwd login adduser \
     vim vim-tiny nano gedit man-db manpages manpages-dev info less \
     findutils grep sed gawk diffutils file tree tar gzip bzip2 xz-utils zip unzip \
+    wamerican bc htop lsof \
     procps psmisc iproute2 iputils-ping dnsutils curl wget netcat-openbsd \
     python3 python3-venv ca-certificates openssh-client rsync acl \
     openbox xfce4-terminal tigervnc-standalone-server tigervnc-common \
@@ -25,7 +26,8 @@ COPY lab-terminal /usr/local/bin/lab-terminal
 COPY desktop.sh /usr/local/bin/lab-desktop
 COPY supervisord.conf /etc/supervisor/conf.d/lab.conf
 COPY welcome.txt /etc/motd
-RUN chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
+RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
+    chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
     install -d -o learner -g learner /home/learner/.config /home/learner/.config/openbox \
     /home/learner/.config/xfce4 /home/learner/.config/xfce4/terminal /home/learner/.config/gtk-3.0
 EXPOSE 6080

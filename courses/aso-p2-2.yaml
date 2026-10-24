@@ -1,0 +1,1037 @@
+schema_version: 1
+id: aso-p2-2
+version: '1.0'
+title: ASO Práctica 2.2 · Lectura, vectores y canales
+description: "Practica la lectura de ficheros, los argumentos de entrada, los vectores y los descriptores de fichero en bash. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p22/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p22
+
+    useradd -m -s /bin/bash p22_hogar
+
+    useradd -M -d /var/lib/p22_fuera -s /bin/sh p22_fuera
+
+    install -d -o learner -g learner /home/learner/aso/p22/datos /home/learner/aso/p22/vacio
+
+    printf %s ''A1
+
+    A2
+
+    A3
+
+    A4
+
+    A5
+
+    '' > /home/learner/aso/p22/datos/uno.txt
+
+    printf %s ''B1
+
+    B2
+
+    '' > ''/home/learner/aso/p22/datos/dos con espacios.txt''
+
+    chown -R learner:learner /home/learner/aso/p22
+
+    '
+  user: root
+exercises:
+- id: uid-gid
+  title: Laboratorio 1 · Comparar UID y GID
+  description: "Busca en /etc/passwd los usuarios cuyo UID coincide con su GID. Si se recibe -d, selecciona en su lugar aquellos cuyo UID y GID son distintos. Conserva el orden del fichero y cuenta los usuarios seleccionados.\n\nCrea el script ejecutable /home/learner/aso/p22/uid-gid.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/uid-gid.sh
+    usage: uid-gid.sh [-d]
+  input_requirements:
+  - description: "Cero argumentos o un único argumento con la opción -d."
+    error: uso
+  - description: "Si se recibe un argumento, es exactamente -d."
+    error: opcion
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea `nombre:UID:GID` por cada usuario seleccionado, en el orden de /etc/passwd, y termina con `Total: N`. Si no hay coincidencias, imprime únicamente `ningún usuario` y un salto de línea."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "Se ha recibido más de un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: uid-gid.sh [-d]'
+  - id: opcion
+    description: "Se ha recibido una opción distinta de -d."
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  examples:
+  - command: ./uid-gid.sh -d
+    stdout: 'sync:4:65534
+  
+      games:5:60
+  
+      Total: 2
+  
+      '
+    description: Salida ilustrativa; los usuarios, sus identificadores y el total dependen del sistema.
+    exit_code: 0
+  - command: ./uid-gid.sh -d extra
+    stderr: 'uso: uid-gid.sh [-d]
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Selecciona los usuarios con UID igual a GID"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''$3==$4 {print $1 ":" $3 ":" $4; n++} END {if(n) print "Total: " n; else
+          print "ningún usuario"}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Con -d selecciona los usuarios con UID distinto de GID"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -d
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''$3!=$4 {print $1 ":" $3 ":" $4; n++} END {if(n) print "Total: " n; else
+          print "ningún usuario"}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: uso
+    description: "Demasiados argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -d
+      - extra
+      requirement: uso
+  - id: opcion
+    description: "Opción -x → error de opción"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      requirement: opcion
+  tips:
+  - Lee /etc/passwd usando dos puntos como separador y lleva un contador de los usuarios seleccionados.
+- id: lineas
+  title: Laboratorio 2 · Contar líneas de varios ficheros
+  description: "Cuenta las líneas de los ficheros recibidos. Si el primer argumento es un directorio, busca dentro de él los nombres restantes; de lo contrario, utiliza el directorio actual. Procesa los nombres en el orden recibido: ante un fichero no válido, muestra su error y continúa con los demás; al finalizar, devuelve 4 si hubo alguno.\n\nCrea el script ejecutable /home/learner/aso/p22/lineas.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/lineas.sh
+    usage: lineas.sh [DIRECTORIO] FICHEROS...
+  input_requirements:
+  - description: "Al menos un nombre de fichero; si el primer argumento es un directorio, debe seguirle al menos un nombre de fichero."
+    error: uso
+  - description: "Cada nombre identifica un fichero regular y legible en el directorio utilizado; si alguno falla, se procesan los restantes."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea `N RUTA` por cada fichero regular y legible, con el número de líneas y la ruta utilizada separados por un único espacio, sin relleno ni cabecera. Conserva el orden de los argumentos y las rutas relativas; por ejemplo, `5 datos/uno.txt`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido argumentos o solo se ha indicado un directorio, sin nombres de fichero."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: lineas.sh [DIRECTORIO] FICHEROS...'
+  - id: fichero
+    description: "Algún nombre no corresponde a un fichero regular y legible. Informa de cada nombre no válido por stderr, continúa con los demás y devuelve 4 al finalizar."
+    exit_code: 4
+    stream: stderr
+    message: 'fichero no válido: NOMBRE'
+  examples:
+  - command: ./lineas.sh /home/learner/aso/p22/datos uno.txt 'dos con espacios.txt'
+    exit_code: 0
+    stdout: '5 /home/learner/aso/p22/datos/uno.txt
+  
+      2 /home/learner/aso/p22/datos/dos con espacios.txt
+  
+      '
+  - command: ./lineas.sh datos/uno.txt
+    exit_code: 0
+    stdout: '5 datos/uno.txt
+  
+      '
+  - command: ./lineas.sh
+    stderr: 'uso: lineas.sh [DIRECTORIO] FICHEROS...
+  
+      '
+    exit_code: 1
+  - command: ./lineas.sh /home/learner/aso/p22/datos ausente uno.txt
+    stdout: '5 /home/learner/aso/p22/datos/uno.txt
+  
+      '
+    stderr: 'fichero no válido: ausente
+  
+      '
+    exit_code: 4
+    description: Informa del fichero ausente y continúa con uno.txt.
+  evaluations:
+  - id: correcto-1
+    description: "Cuenta líneas dentro del directorio indicado y acepta nombres con espacios"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/datos
+      - uno.txt
+      - dos con espacios.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: '5 /home/learner/aso/p22/datos/uno.txt
+
+          2 /home/learner/aso/p22/datos/dos con espacios.txt
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Utiliza el directorio actual cuando se recibe una ruta de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso/p22/datos/uno.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: '5 aso/p22/datos/uno.txt
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: fichero
+    description: "Nombre inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ausente
+      requirement: fichero
+  - id: continuar
+    description: "Continúa contando líneas después de un fichero inexistente"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/datos
+      - ausente
+      - uno.txt
+      requirement: fichero
+      stdout:
+        match: exact
+        value: '5 /home/learner/aso/p22/datos/uno.txt
+
+          '
+  tips:
+  - Recorre los argumentos con "$@" para conservar nombres con espacios. La redirección de entrada permite
+    que wc cuente sin añadir el nombre del fichero.
+- id: bajo-directorio
+  title: Autónomo 1 · Directorios personales
+  description: "Muestra los usuarios cuyo directorio personal está situado bajo el directorio recibido, en el orden de /etc/passwd. El propio directorio no cuenta como descendiente: para /home se seleccionan rutas que empiezan por /home/. Acepta una barra final y, para /, selecciona los directorios personales con ruta absoluta.\n\nCrea el script ejecutable /home/learner/aso/p22/bajo-directorio.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/bajo-directorio.sh
+    usage: bajo-directorio.sh DIRECTORIO
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "DIRECTORIO es una ruta absoluta: empieza por /."
+    error: formato
+  - description: "DIRECTORIO existe y es un directorio."
+    error: directorio
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout un nombre de usuario por línea, en el orden de /etc/passwd, y termina con `Total: N`. Si no hay usuarios cuyo directorio personal cumpla la condición, imprime únicamente `ningún usuario` y un salto de línea."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: bajo-directorio.sh DIRECTORIO'
+  - id: formato
+    description: "La ruta recibida no empieza por / y, por tanto, no es absoluta."
+    exit_code: 2
+    stream: stderr
+    message: la ruta debe ser absoluta
+  - id: directorio
+    description: "La ruta recibida no existe o no corresponde a un directorio."
+    exit_code: 4
+    stream: stderr
+    message: el directorio no existe
+  examples:
+  - command: ./bajo-directorio.sh /home/learner/aso/p22/vacio
+    exit_code: 0
+    stdout: 'ningún usuario
+  
+      '
+  - command: ./bajo-directorio.sh
+    stderr: 'uso: bajo-directorio.sh DIRECTORIO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Acepta /home/ y selecciona sus directorios personales descendientes"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v d=/home ''index($6,d "/")==1 {print $1;n++} END {if(n) print "Total:
+          " n;else print "ningún usuario"}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Muestra «ningún usuario» para un directorio sin coincidencias"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/vacio
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'ningún usuario
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Ruta relativa → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - relativa
+      requirement: formato
+  - id: directorio
+    description: "Directorio inexistente → error de directorio"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/ausente
+      requirement: directorio
+  tips:
+  - 'Incluye la barra en la comparación del prefijo: /home/ no debe coincidir con /home2/.'
+- id: rango-uid
+  title: Autónomo 2 · Rango de UID
+  description: "Muestra los usuarios cuyo UID está comprendido entre MIN y MAX, incluidos ambos extremos, en el orden de /etc/passwd. Sin argumentos, utiliza los valores UID_MIN y UID_MAX definidos en /etc/login.defs.\n\nCrea el script ejecutable /home/learner/aso/p22/rango-uid.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/rango-uid.sh
+    usage: rango-uid.sh [MIN MAX]
+  input_requirements:
+  - description: "Cero argumentos o exactamente dos: MIN y MAX."
+    error: uso
+  - description: "MIN y MAX, si se indican, contienen uno o más dígitos decimales (0–9), sin signo."
+    error: formato
+  - description: "MIN es menor o igual que MAX."
+    error: rango
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout un nombre de usuario por línea, en el orden de /etc/passwd, y termina con `Total: N`. Si ningún UID está dentro del intervalo, imprime únicamente `ningún usuario` y un salto de línea."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "El número de argumentos es distinto de cero y de dos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: rango-uid.sh [MIN MAX]'
+  - id: formato
+    description: "Alguno de los límites está vacío o contiene caracteres distintos de los dígitos decimales."
+    exit_code: 2
+    stream: stderr
+    message: los límites deben ser enteros
+  - id: rango
+    description: "El límite mínimo es mayor que el máximo."
+    exit_code: 3
+    stream: stderr
+    message: rango no válido
+  examples:
+  - command: ./rango-uid.sh 0 0
+    exit_code: 0
+    stdout: 'root
+  
+      Total: 1
+  
+      '
+  - command: ./rango-uid.sh 1
+    stderr: 'uso: rango-uid.sh [MIN MAX]
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Obtiene el intervalo de UID de /etc/login.defs"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'lo=$(awk ''$1=="UID_MIN" {print $2;exit}'' /etc/login.defs)
+
+          hi=$(awk ''$1=="UID_MAX" {print $2;exit}'' /etc/login.defs)
+
+          awk -F: -v lo="$lo" -v hi="$hi" ''$3>=lo && $3<=hi {print $1;n++} END {if(n) print "Total: "
+          n;else print "ningún usuario"}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Incluye ambos extremos: el intervalo 0–0 selecciona root"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '0'
+      - '0'
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'root
+
+          Total: 1
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Un único límite → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      requirement: uso
+  - id: formato
+    description: "Límite con letras → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '5'
+      requirement: formato
+  - id: rango
+    description: "Mínimo mayor que máximo → error de rango"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '5'
+      - '1'
+      requirement: rango
+  - id: sin-coincidencias
+    description: "Muestra «ningún usuario» para el intervalo 50000–50001"
+    points: 2
+    checks:
+    - type: run
+      requirement: ok
+      args:
+      - '50000'
+      - '50001'
+      stdout:
+        match: exact
+        value: 'ningún usuario
+
+          '
+      stderr:
+        match: empty
+  tips:
+  - Al leer /etc/login.defs, ignora comentarios y busca las claves completas UID_MIN y UID_MAX.
+- id: shells
+  title: Autónomo 3 · Contar por intérprete
+  description: "Cuenta cuántos usuarios tienen asignado cada intérprete de comandos recibido, comparando su nombre con el último componente del campo shell de /etc/passwd. Procesa los argumentos en orden: si un nombre no es válido, muestra su error y continúa con los demás; devuelve 2 al finalizar si hubo alguno.\n\nCrea el script ejecutable /home/learner/aso/p22/shells.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/shells.sh
+    usage: shells.sh SHELLS...
+  input_requirements:
+  - description: "Uno o más nombres de intérprete de comandos."
+    error: uso
+  - description: "Cada nombre contiene una o más letras minúsculas ASCII (a–z), sin ruta ni otros caracteres; si alguno falla, se procesan los restantes."
+    error: formato
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea `NOMBRE: N` por cada argumento válido, en el orden recibido, donde N es el número de usuarios que tienen ese intérprete. Si no lo usa ningún usuario, imprime `NOMBRE: 0`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido ningún nombre de intérprete de comandos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: shells.sh SHELLS...'
+  - id: formato
+    description: "Algún nombre está vacío o contiene caracteres distintos de las letras a–z. Informa de cada nombre no válido por stderr, continúa con los demás y devuelve 2 al finalizar."
+    exit_code: 2
+    stream: stderr
+    message: 'intérprete no válido: NOMBRE'
+  examples:
+  - command: ./shells.sh zzzz
+    stdout: 'zzzz: 0
+  
+      '
+    description: El intérprete zzzz no está asignado a ningún usuario del entorno preparado.
+    exit_code: 0
+  - command: ./shells.sh
+    stderr: 'uso: shells.sh SHELLS...
+  
+      '
+    exit_code: 1
+  - command: ./shells.sh Bash zzzz
+    stdout: 'zzzz: 0
+  
+      '
+    stderr: 'intérprete no válido: Bash
+  
+      '
+    exit_code: 2
+    description: Rechaza las mayúsculas y continúa con el siguiente intérprete.
+  evaluations:
+  - id: correcto-1
+    description: "Cuenta usuarios por intérprete y devuelve cero para «zzzz»"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - bash
+      - nologin
+      - zzzz
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'for sh in bash nologin zzzz; do awk -F: -v sh="$sh" ''{n=split($7,a,"/");if(a[n]==sh)c++}
+          END {print sh ": " c+0}'' /etc/passwd; done'
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Intérprete con mayúscula → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - Bash
+      requirement: formato
+  - id: continuar
+    description: "Continúa contando después de un intérprete no válido"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - Bash
+      - zzzz
+      requirement: formato
+      stdout:
+        match: exact
+        value: 'zzzz: 0
+
+          '
+  tips:
+  - Separa el último componente de la ruta del intérprete antes de compararlo con el argumento.
+- id: alternas
+  title: Autónomo 4 · Líneas pares o impares
+  description: "Muestra las líneas pares de un fichero con -p o las impares con -i. La primera línea ocupa la posición 1; conserva el contenido y el orden de las líneas seleccionadas, sin añadirles números.\n\nCrea el script ejecutable /home/learner/aso/p22/alternas.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/alternas.sh
+    usage: alternas.sh -p|-i FICHERO
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "El primer argumento es -p para las líneas pares o -i para las impares."
+    error: opcion
+  - description: "FICHERO existe, es regular y se puede leer."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout solo las líneas seleccionadas del fichero, una por línea y en su orden original, sin añadir números de posición, cabeceras ni separadores."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: alternas.sh -p|-i FICHERO'
+  - id: opcion
+    description: "La opción recibida no es -p ni -i."
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  - id: fichero
+    description: "FICHERO no existe, no es regular o no se puede leer."
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe o no es legible
+  examples:
+  - command: ./alternas.sh -p datos/uno.txt
+    exit_code: 0
+    stdout: 'A2
+  
+      A4
+  
+      '
+  - command: ./alternas.sh -i datos/uno.txt
+    exit_code: 0
+    stdout: 'A1
+  
+      A3
+  
+      A5
+  
+      '
+  - command: ./alternas.sh
+    stderr: 'uso: alternas.sh -p|-i FICHERO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Con -p muestra las líneas pares"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -p
+      - /home/learner/aso/p22/datos/uno.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'A2
+
+          A4
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Con -i muestra las líneas impares"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -i
+      - /home/learner/aso/p22/datos/uno.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'A1
+
+          A3
+
+          A5
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: opcion
+    description: "Opción -x → error de opción"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      - /home/learner/aso/p22/datos/uno.txt
+      requirement: opcion
+  - id: fichero
+    description: "Fichero inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -p
+      - /home/learner/aso/p22/ausente
+      requirement: fichero
+  tips:
+  - Lleva un contador desde 1 y utiliza el resto de dividir entre 2 para distinguir las líneas pares de
+    las impares.
+- id: entrelazar
+  title: Autónomo 5 · Entrelazar ficheros
+  description: "Entrelaza las líneas de dos ficheros de texto: primero una línea del primero y después una del segundo, hasta que uno termine. A continuación muestra las líneas restantes del otro. Conserva las líneas vacías y acepta una última línea sin salto final.\n\nCrea el script ejecutable /home/learner/aso/p22/entrelazar.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/entrelazar.sh
+    usage: entrelazar.sh FICHERO1 FICHERO2
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "FICHERO1 y FICHERO2 existen, son ficheros regulares y se pueden leer."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout las líneas entrelazadas y después las restantes del fichero más largo, sin cabeceras ni separadores añadidos. Emite un salto de línea después de cada línea mostrada, incluida la última aunque no lo tuviera en el fichero original."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: entrelazar.sh FICHERO1 FICHERO2'
+  - id: fichero
+    description: "Al menos uno de los dos ficheros no existe, no es regular o no se puede leer."
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe o no es legible
+  examples:
+  - command: ./entrelazar.sh datos/uno.txt 'datos/dos con espacios.txt'
+    exit_code: 0
+    stdout: 'A1
+  
+      B1
+  
+      A2
+  
+      B2
+  
+      A3
+  
+      A4
+  
+      A5
+  
+      '
+  - command: 'printf ''\nX'' > corto
+  
+      printf ''1\n2\n3\n'' > largo
+  
+      ./entrelazar.sh corto largo'
+    exit_code: 0
+    stdout: '
+  
+      1
+  
+      X
+  
+      2
+  
+      3
+  
+      '
+    description: 'Crea dos entradas: la primera empieza con una línea vacía y termina sin salto de línea.'
+  - command: ./entrelazar.sh
+    stderr: 'uso: entrelazar.sh FICHERO1 FICHERO2
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Alterna líneas y conserva las restantes del fichero más largo"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/datos/uno.txt
+      - /home/learner/aso/p22/datos/dos con espacios.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'A1
+
+          B1
+
+          A2
+
+          B2
+
+          A3
+
+          A4
+
+          A5
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Conserva una línea vacía y una última línea sin salto final"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/corto
+      - /home/learner/aso/p22/largo
+      requirement: ok
+      prepare: 'printf %s ''
+
+        X'' > /home/learner/aso/p22/corto
+
+        printf %s ''1
+
+        2
+
+        3
+
+        '' > /home/learner/aso/p22/largo
+
+        '
+      stdout:
+        match: exact
+        value: '
+
+          1
+
+          X
+
+          2
+
+          3
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: fichero
+    description: "Segundo fichero inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/datos/uno.txt
+      - /home/learner/aso/p22/ausente
+      requirement: fichero
+  tips:
+  - Utiliza un descriptor de fichero distinto para cada entrada y comprueba por separado cuándo termina
+    cada una.
+- id: exclusivos
+  title: Autónomo 6 · Ficheros exclusivos
+  description: "Compara los nombres de los ficheros regulares contenidos directamente en dos directorios y muestra los que aparecen únicamente en uno de ellos. No recorras subdirectorios ni incluyas enlaces simbólicos; los ficheros con el mismo nombre en ambos directorios se consideran comunes, aunque su contenido sea distinto.\n\nCrea el script ejecutable /home/learner/aso/p22/exclusivos.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/exclusivos.sh
+    usage: exclusivos.sh DIRECTORIO1 DIRECTORIO2
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "DIRECTORIO1 y DIRECTORIO2 existen y son directorios."
+    error: directorio
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una ruta completa por línea: primero los ficheros exclusivos del primer directorio, ordenados por nombre, y después los del segundo, también ordenados por nombre. Si no hay ficheros exclusivos, deja stdout vacío."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: exclusivos.sh DIRECTORIO1 DIRECTORIO2'
+  - id: directorio
+    description: "Al menos una de las dos rutas no existe o no corresponde a un directorio."
+    exit_code: 4
+    stream: stderr
+    message: el directorio no existe
+  examples:
+  - command: 'mkdir -p dir-a dir-b
+  
+      touch dir-a/comun dir-a/solo-a dir-b/comun dir-b/solo-b
+  
+      ./exclusivos.sh /home/learner/aso/p22/dir-a /home/learner/aso/p22/dir-b'
+    exit_code: 0
+    stdout: '/home/learner/aso/p22/dir-a/solo-a
+  
+      /home/learner/aso/p22/dir-b/solo-b
+  
+      '
+    description: Con los directorios recién creados, cada uno contiene un fichero común y otro exclusivo.
+  - command: ./exclusivos.sh /home/learner/aso/p22/dir-a /home/learner/aso/p22/dir-a
+    exit_code: 0
+    stdout: ''
+    description: Con dir-a creado como en el ejemplo anterior, la comparación consigo mismo no produce salida.
+  - command: ./exclusivos.sh
+    stderr: 'uso: exclusivos.sh DIRECTORIO1 DIRECTORIO2
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Muestra los ficheros exclusivos y omite comunes y subdirectorios"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/dir-a
+      - /home/learner/aso/p22/dir-b
+      requirement: ok
+      prepare: 'install -d -o learner -g learner /home/learner/aso/p22/dir-a /home/learner/aso/p22/dir-b
+
+        touch /home/learner/aso/p22/dir-a/{comun,solo-a} /home/learner/aso/p22/dir-b/{comun,solo-b}
+
+        mkdir -p /home/learner/aso/p22/dir-a/subdirectorio
+
+        '
+      stdout:
+        match: exact
+        value: '/home/learner/aso/p22/dir-a/solo-a
+
+          /home/learner/aso/p22/dir-b/solo-b
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "No muestra ficheros al comparar un directorio consigo mismo"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/dir-a
+      - /home/learner/aso/p22/dir-a
+      requirement: ok
+      stdout:
+        match: exact
+        value: ''
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: directorio
+    description: "Segundo directorio inexistente → error de directorio"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/dir-a
+      - /home/learner/aso/p22/ausente
+      requirement: directorio
+  tips:
+  - Compara nombres, no contenidos. Limita la búsqueda al primer nivel y distingue los ficheros regulares
+    de los enlaces simbólicos.
+- id: shells-no-validos
+  title: Autónomo 7 · Validar intérpretes
+  description: "Comprueba si los intérpretes de comandos asignados en /etc/passwd aparecen en /etc/shells. Ignora las líneas vacías y los comentarios de /etc/shells. Sin argumentos, conserva las repeticiones y el orden de /etc/passwd; con -u, elimina las repeticiones y ordena alfabéticamente.\n\nCrea el script ejecutable /home/learner/aso/p22/shells-no-validos.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p22/shells-no-validos.sh
+    usage: shells-no-validos.sh [-u]
+  input_requirements:
+  - description: "Cero argumentos o un único argumento con la opción -u."
+    error: uso
+  - description: "Si se recibe un argumento, es exactamente -u."
+    error: opcion
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout la ruta de cada intérprete ausente de /etc/shells, una por línea. Sin argumentos, repite cada ruta por cada usuario que la use y conserva el orden de /etc/passwd; con -u, muestra cada ruta una sola vez y en orden alfabético. Si todos son válidos, deja stdout vacío."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "Se ha recibido más de un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: shells-no-validos.sh [-u]'
+  - id: opcion
+    description: "Se ha recibido una opción distinta de -u."
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  examples:
+  - command: ./shells-no-validos.sh -u
+    stdout: '/bin/sync
+  
+      /usr/sbin/nologin
+  
+      '
+    description: Salida ilustrativa; las rutas dependen de /etc/passwd y /etc/shells.
+    exit_code: 0
+  - command: ./shells-no-validos.sh -u extra
+    stderr: 'uso: shells-no-validos.sh [-u]
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Muestra los intérpretes no válidos con repeticiones"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: awk 'FILENAME=="/etc/shells" {if($0 !~ /^#/ && NF) valid[$0]=1;next} {n=split($0,a,":");if(!(a[7]
+          in valid))print a[7]}' /etc/shells /etc/passwd
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Con -u elimina repeticiones y ordena los intérpretes no válidos"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: awk 'FILENAME=="/etc/shells" {if($0 !~ /^#/ && NF) valid[$0]=1;next} {n=split($0,a,":");if(!(a[7]
+          in valid))print a[7]}' /etc/shells /etc/passwd | sort -u
+      stderr:
+        match: empty
+  - id: uso
+    description: "Demasiados argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      - extra
+      requirement: uso
+  - id: opcion
+    description: "Opción -x → error de opción"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      requirement: opcion
+  tips:
+  - Compara rutas completas con las líneas de /etc/shells; una coincidencia parcial no basta.

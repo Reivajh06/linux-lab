@@ -1,13 +1,14 @@
 # Linux Lab
 
 A Windows desktop app for learning Linux in real Docker containers. Includes a
-browser-rendered Linux desktop inside the app, 30 guided exercises, YAML course
-imports, PDF sources with local OCR, and natural-language exercise generation using
+browser-rendered Linux desktop inside the app, 30 guided foundation exercises,
+bundled ASO courses, YAML course imports, PDF sources with local OCR, text/HTML
+practice sheets, and natural-language exercise generation using
 your existing Ollama models.
 
 ## Windows application
 
-Install **Linux-Lab-Setup-1.1.0.exe** from `release/1.1.0/`, then launch **Linux Lab** from
+Install **Linux-Lab-Setup-1.2.0.exe** from `release/1.2.0/`, then launch **Linux Lab** from
 the Start menu or desktop shortcut. The installer includes the UI and Python
 backend; Node and Python are not required on the target computer.
 
@@ -52,12 +53,15 @@ The application is a personal local tool; no account or hosted service is needed
 - **Exercise Library:** imported and generated collections, their exercise lists,
   scores, YAML exports, and retained environments. **Recreate** starts clean after
   a confirmation; **Stop** preserves filesystem state.
-- **Evaluate exercise / Evaluate all:** checks Linux end state and awards task points.
+- **Evaluate exercise / Evaluate all:** checks Linux end state and awards evaluation points.
   Feedback includes failures, script errors, and timeouts. Results show their last
   evaluation time; they are not continuous monitoring.
-- **Sources:** upload PDF theory or practice notes, preview them, monitor indexing,
-  and retry extraction failures. Text pages use local extraction. Scanned pages
-  use local OCR. In the Windows app, OCR falls back to a disposable lab-image
+- **Sources:** upload PDF, `.txt`, `.md`, `.htm`, or `.html` theory and practice
+  sheets, preview them, monitor indexing, and retry extraction failures. Text/HTML
+  files become searchable pages of about 3000 characters without OCR; HTML scripts
+  and styles are removed. UTF-8 and older cp1252/Latin-1 encodings are supported.
+  PDF text pages use local extraction; scanned pages use local OCR. In the Windows
+  app, OCR falls back to a disposable lab-image
   container if Poppler/Tesseract are not installed locally. It receives a copy of
   the PDF, has no network or host-directory mounts, and is removed afterward.
 - **Exercise Chat:** select a local Ollama model, optional sources, an exercise
@@ -65,22 +69,45 @@ The application is a personal local tool; no account or hosted service is needed
   save, download, or import the YAML draft. Nothing runs during generation.
 
 Read [EXERCISE_FORMAT.md](EXERCISE_FORMAT.md) for the complete authoring contract.
+Exercises follow Description, Input requirements, Output requirements, optional
+Examples, and Evaluations. Scripting exercises declare a script path, link invalid
+inputs to stderr messages and distinct nonzero exit codes, and use `run` cases to
+check successful output and errors. Older YAML using `tasks` still imports;
+exports and generated drafts use `evaluations`.
+
+The `courses/` directory bundles Linux Foundations and the ASO collections
+`aso-p1-2`, `aso-p1-3`, `aso-p2-1`, `aso-p2-2`, `aso-p3-1`, and `aso-p3-2`.
+The systemd and Apache parts of ASO Práctica 3.2 need a VM with systemd;
+use a VM for those sections instead of the Ubuntu practice container.
 The bundled answer scripts in `courses/foundations-solutions.json` exist for
 acceptance testing; learners can use any valid solution.
 
 ## Local Ollama
 
 Install and run [Ollama](https://ollama.com/). The app discovers installed local
-models; it never pulls models automatically. It initially selects
-`gemma3:12b-it-qat` if installed, then remembers your selection. No quality or speed
+models; it never pulls models automatically. It restores your saved model when
+available, otherwise selects `gemma3:12b-it-qat` if installed or the first available
+local model. No quality or speed
 guarantee is implied by that default. Smaller models may need more revisions.
 
-Source retrieval uses local SQLite full-text search, so no embedding model or
-vector service is required. Selected page excerpts, the schema, the lab tool list,
-and authoring instructions form the model context. Citations must refer to supplied
+Source retrieval searches **all indexed sources by default**, using local SQLite
+full-text search; no embedding model or vector service is required. The source
+picker can restrict the search to specific documents or disable source grounding.
+Only relevant, bounded page excerpts enter the model context, together with the
+schema, lab tool list, and authoring instructions. Large libraries stay on disk.
+Citations must refer to supplied
 pages. General Linux knowledge supplements source topics for setup and checks.
 Review generated commands: schema validity does not prove teaching quality or that
 every check accurately captures the intended task.
+
+Generation runs one exercise at a time, with an 8192-token context ceiling by
+default and up to 2048 output tokens per response. A conservative byte-based token
+estimate budgets the prompt, draft, history, source excerpts, output, and repair margin.
+Oversized revisions preserve the existing draft and ask you to split the course.
+Set `OLLAMA_NUM_CTX` before launch to choose another context ceiling; increasing it
+also increases model memory use. For thinking models, the app discovers Ollama's
+supported controls and disables thinking when possible, or requests the low level.
+See the [Ollama chat API](https://docs.ollama.com/api/chat) for these controls.
 
 If Ollama is unavailable, refresh the model list and verify that
 `http://127.0.0.1:11434/api/tags` responds. Set `OLLAMA_BASE_URL` before launching
@@ -131,8 +158,8 @@ For the installer and unpacked executable:
 pnpm build:windows
 ```
 
-Outputs: `release/1.1.0/Linux-Lab-Setup-1.1.0.exe` and
-`release/1.1.0/win-unpacked/Linux Lab.exe`. PyInstaller bundles the backend, while
+Outputs: `release/1.2.0/Linux-Lab-Setup-1.2.0.exe` and
+`release/1.2.0/win-unpacked/Linux Lab.exe`. PyInstaller bundles the backend, while
 Electron provides a sandboxed Chromium UI. The local backend needs neither a
 terminal window nor a separately installed Python runtime. The default installer
 is unsigned; release distributors can add their own signing configuration.
@@ -184,12 +211,13 @@ Windows app, or use `.env` for Compose. Images and filesystem writes use Docker
 Desktop's disk allocation; clean up unused course environments through Recreate
 and manage Docker's storage as needed.
 
-PDF limits: 25 MB and 500 pages per upload. OCR includes English and Spanish.
+Source uploads allow 25 MB per file; PDFs also have a 500-page limit. Text, Markdown,
+and HTML use indexed text pages without OCR. PDF OCR includes English and Spanish.
 `OCR_LANGUAGES` can select installed language packs, e.g. `eng+spa`; add other
 Tesseract language packages to the relevant image before choosing them.
 
-Generation runs one local-model job at a time, in batches of at most 3 exercises,
-with at most 2 repair attempts per batch. `OLLAMA_TIMEOUT` defaults to 300 seconds
+Generation runs one local-model job at a time, with one exercise and at most
+2 repair attempts per batch. `OLLAMA_TIMEOUT` defaults to 300 seconds
 per model response. Cancelling preserves the last successful draft. OCR jobs and
 generation jobs interrupted by shutdown show retryable status at the next launch.
 

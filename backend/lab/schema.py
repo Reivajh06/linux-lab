@@ -109,7 +109,76 @@ class CommandCheck(Script):
     stdout_contains: str | None = None
 
 
-Check = Annotated[PathCheck | ContentCheck | PermissionsCheck | OwnershipCheck | UserCheck | GroupCheck | MembershipCheck | PackageCheck | ProcessCheck | CommandCheck, Field(discriminator="type")]
+class StreamExpectation(StrictModel):
+    """What a stream must look like. `from_command` computes the reference output in the lab at evaluation time."""
+    match: Literal["exact", "lines", "contains", "regex", "empty", "nonempty"] = "exact"
+    value: str | None = Field(default=None, max_length=30000)
+    from_command: str | None = Field(default=None, max_length=30000)
+
+    @model_validator(mode="after")
+    def operand(self):
+        if self.match in ("empty", "nonempty"):
+            if self.value is not None or self.from_command is not None:
+                raise ValueError(f"'{self.match}' takes no value or from_command")
+        elif (self.value is None) == (self.from_command is None):
+            raise ValueError(f"'{self.match}' needs exactly one of value or from_command")
+        if self.match == "regex":
+            if self.from_command is not None:
+                raise ValueError("regex expectations need a literal value")
+            try:
+                re.compile(self.value)
+            except re.error as exc:
+                raise ValueError(f"Invalid regular expression: {exc}") from exc
+        if self.from_command is not None:
+            valid_script(self.from_command)
+        return self
+
+
+class RunCheck(StrictModel):
+    """Run the learner's script (or any program) with arguments/stdin and compare exit status and streams."""
+    type: Literal["run"]
+    path: str | None = Field(default=None, max_length=4096)  # defaults to the exercise's script.path
+    args: list[Annotated[str, StringConstraints(max_length=4096)]] = Field(default_factory=list, max_length=50)
+    stdin: str | None = Field(default=None, max_length=100000)
+    cwd: str = Field(default="/home/learner", max_length=4096)
+    user: Literal["root", "learner"] = "learner"
+    timeout: int = Field(default=10, ge=1, le=60)
+    requirement: Id | None = None  # output requirement this case exercises; supplies the default exit code/streams
+    exit_code: int | None = Field(default=None, ge=0, le=255)
+    stdout: StreamExpectation | None = None
+    stderr: StreamExpectation | None = None
+    prepare: str | None = Field(default=None, max_length=30000)  # root script run before the case, e.g. to create input files
+
+    _prepare = field_validator("prepare")(lambda v: v if v is None else valid_script(v))
+
+
+Check = Annotated[PathCheck | ContentCheck | PermissionsCheck | OwnershipCheck | UserCheck | GroupCheck | MembershipCheck | PackageCheck | ProcessCheck | CommandCheck | RunCheck, Field(discriminator="type")]
+
+
+class ScriptDeliverable(StrictModel):
+    path: Annotated[str, StringConstraints(pattern=r"^/[^\x00]{1,4095}$")]
+    usage: str | None = Field(default=None, max_length=500)  # e.g. "letra.sh LETRA"
+
+
+class InputRequirement(StrictModel):
+    description: Text
+    error: Id | None = None  # id of the output requirement produced when this requirement is violated
+
+
+class OutputRequirement(StrictModel):
+    id: Id
+    description: Text
+    exit_code: int = Field(ge=0, le=255)
+    stream: Literal["stdout", "stderr"] = "stdout"
+    message: str | None = Field(default=None, max_length=2000)  # message shown to the user, informative only
+
+
+class Example(StrictModel):
+    command: Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+    stdout: str | None = Field(default=None, max_length=10000)
+    stderr: str | None = Field(default=None, max_length=10000)
+    exit_code: int | None = Field(default=None, ge=0, le=255)
+    description: str | None = Field(default=None, max_length=2000)
 
 
 class Reference(StrictModel):
@@ -136,18 +205,53 @@ class Exercise(StrictModel):
     id: Id
     title: Annotated[str, StringConstraints(min_length=1, max_length=200)]
     description: Text
-    tasks: list[Task] = Field(min_length=1, max_length=30)
+    script: ScriptDeliverable | None = None
+    input_requirements: list[InputRequirement] = Field(default_factory=list, max_length=30)
+    output_requirements: list[OutputRequirement] = Field(default_factory=list, max_length=30)
+    examples: list[Example] = Field(default_factory=list, max_length=20)
+    evaluations: list[Task] = Field(min_length=1, max_length=30)
     tips: list[Text] = Field(default_factory=list, max_length=20)
     setup: list[Script] = Field(default_factory=list, max_length=20)
     sources: list[Reference] = Field(default_factory=list, max_length=20)
     supplemental: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def legacy_tasks(cls, data):
+        # Collections written before schema 1.1 call evaluations "tasks".
+        if isinstance(data, dict) and "tasks" in data:
+            if "evaluations" in data:
+                raise ValueError("Use evaluations, not both evaluations and tasks")
+            data = {("evaluations" if k == "tasks" else k): v for k, v in data.items()}
+        return data
+
     @model_validator(mode="after")
-    def unique_tasks(self):
-        ids = [t.id for t in self.tasks]
+    def consistent(self):
+        ids = [t.id for t in self.evaluations]
         if len(ids) != len(set(ids)):
-            raise ValueError("Task IDs must be unique within an exercise")
+            raise ValueError("Evaluation IDs must be unique within an exercise")
+        outputs = {o.id: o for o in self.output_requirements}
+        if len(outputs) != len(self.output_requirements):
+            raise ValueError("Output requirement IDs must be unique within an exercise")
+        for requirement in self.input_requirements:
+            if requirement.error is not None:
+                if requirement.error not in outputs:
+                    raise ValueError(f"Input requirement refers to unknown output requirement '{requirement.error}'")
+                if outputs[requirement.error].exit_code == 0:
+                    raise ValueError(f"Output requirement '{requirement.error}' describes an error, so its exit_code must not be 0")
+        for task in self.evaluations:
+            for check in task.checks:
+                if check.type != "run":
+                    continue
+                if check.path is None and self.script is None:
+                    raise ValueError(f"Evaluation '{task.id}' runs a script, so set its path or the exercise's script.path")
+                if check.requirement is not None and check.requirement not in outputs:
+                    raise ValueError(f"Evaluation '{task.id}' refers to unknown output requirement '{check.requirement}'")
         return self
+
+    @property
+    def tasks(self):
+        return self.evaluations
 
 
 class Course(StrictModel):

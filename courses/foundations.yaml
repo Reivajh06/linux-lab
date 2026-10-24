@@ -23,7 +23,7 @@ exercises:
   title: Find your feet
   description: Find your current directory with `pwd`. Explore `/home/learner/lab`
     with `ls -la`. Save the absolute path of your home directory to `/home/learner/lab/home-path.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save your home path
     points: 5
@@ -40,7 +40,7 @@ exercises:
 - id: make-directories
   title: A place for everything
   description: 'Create a project tree: `/home/learner/lab/project/src` and `/home/learner/lab/project/docs`.'
-  tasks:
+  evaluations:
   - id: task-1
     description: Create the source directory
     points: 5
@@ -64,7 +64,7 @@ exercises:
   description: Copy `/home/learner/lab/inputs/message.txt` to `/home/learner/lab/copied.txt`.
     Create `/home/learner/lab/renamed.txt` containing the same message, using `mv`
     to practice renaming.
-  tasks:
+  evaluations:
   - id: task-1
     description: Keep a copy of the message
     points: 5
@@ -88,7 +88,7 @@ exercises:
 - id: remove-safely
   title: Clean up carefully
   description: Remove only `/home/learner/lab/cleanup/obsolete.txt` and preserve `/home/learner/lab/cleanup/keep.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Remove the obsolete file
     points: 5
@@ -118,7 +118,7 @@ exercises:
   title: What is hidden?
   description: Create `/home/learner/lab/.practice-config` containing `theme=green`.
     Use `ls -a` to find it.
-  tasks:
+  evaluations:
   - id: task-1
     description: Create the hidden configuration
     points: 5
@@ -135,7 +135,7 @@ exercises:
   title: One file, another doorway
   description: Create a symbolic link `/home/learner/lab/message-link` pointing to
     `/home/learner/lab/inputs/message.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Create a readable symbolic link
     points: 5
@@ -155,7 +155,7 @@ exercises:
   title: Read the manual
   description: Explore `man ls`, `info coreutils`, and `help cd`. Write a short note
     at `/home/learner/lab/manuals.txt` containing the terms `man`, `info`, and `help`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Record three ways to get help
     points: 5
@@ -182,7 +182,7 @@ exercises:
   description: Use `vi /home/learner/lab/vi-note.txt` to create a note containing
     `Learning with vi`. Save the file and return to the terminal. Evaluation checks
     the saved result, not which editor you used.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save your vi note
     points: 5
@@ -200,7 +200,7 @@ exercises:
   description: Use `vim /home/learner/lab/vim-note.txt` to create a note containing
     `Learning with vim`. Save the file and return to the terminal. Evaluation checks
     the saved result, not which editor you used.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save your vim note
     points: 5
@@ -218,7 +218,7 @@ exercises:
   description: Use `nano /home/learner/lab/nano-note.txt` to create a note containing
     `Learning with nano`. Save the file and return to the terminal. Evaluation checks
     the saved result, not which editor you used.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save your nano note
     points: 5
@@ -236,7 +236,7 @@ exercises:
   description: Use `gedit /home/learner/lab/gedit-note.txt` to create a note containing
     `Learning with gedit`. Save the file and return to the terminal. Evaluation checks
     the saved result, not which editor you used.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save your gedit note
     points: 5
@@ -254,7 +254,7 @@ exercises:
   title: Find the signal
   description: Read `/home/learner/lab/inputs/app.log`. Save only the lines containing
     `ERROR` to `/home/learner/lab/errors.log`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Keep the error lines
     points: 5
@@ -284,7 +284,7 @@ exercises:
   title: Order out of repetition
   description: Sort and deduplicate `/home/learner/lab/inputs/fruit.txt` into `/home/learner/lab/unique-fruit.txt`.
     Save the number of unique fruits to `/home/learner/lab/fruit-count.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save sorted unique fruit
     points: 5
@@ -316,7 +316,7 @@ exercises:
   title: A small transformation
   description: Replace every `old` with `new` in `/home/learner/lab/inputs/settings.txt`
     and save the result as `/home/learner/lab/settings.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Transform both settings
     points: 5
@@ -337,7 +337,7 @@ exercises:
   title: Find your files
   description: Use `find` to locate `.txt` files under `/home/learner/lab/inputs`.
     Save the list to `/home/learner/lab/found-files.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Record matching input paths
     points: 5
@@ -357,7 +357,7 @@ exercises:
 - id: private-file
   title: Keep it private
   description: Create `/home/learner/lab/private.txt` and set its permissions to `600`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Only the owner can read or write
     points: 5
@@ -374,7 +374,7 @@ exercises:
   title: A shared space
   description: 'Create `/home/learner/lab/shared` with permissions `2770`: owner/group
     full access, no access for others, and setgid.'
-  tasks:
+  evaluations:
   - id: task-1
     description: Set the shared-directory permissions
     points: 5
@@ -393,7 +393,7 @@ exercises:
   title: Welcome a new user
   description: Create a user named `labalex` with home directory `/home/labalex` and
     login shell `/bin/bash`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Create the account with its home and shell
     points: 5
@@ -414,7 +414,7 @@ exercises:
 - id: create-group
   title: A team of your own
   description: Create a group called `labteam`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Create the team group
     points: 5
@@ -430,7 +430,7 @@ exercises:
   title: Join the team
   description: Add `labmember` to the supplementary group `labpractice`. These accounts
     are prepared for you and are independent of the other exercises.
-  tasks:
+  evaluations:
   - id: task-1
     description: Add the supplementary membership
     points: 5
@@ -450,7 +450,7 @@ exercises:
   title: Who owns this?
   description: Create `/home/learner/lab/owned.txt` owned by user `learner` and group
     `labowners`. The group already exists.
-  tasks:
+  evaluations:
   - id: task-1
     description: Assign the owner and group
     points: 5
@@ -471,7 +471,7 @@ exercises:
   title: An account's last day
   description: Remove the pre-created disposable account `labtemporary`. Other accounts
     must remain available.
-  tasks:
+  evaluations:
   - id: task-1
     description: Remove the disposable user
     points: 5
@@ -497,7 +497,7 @@ exercises:
   title: What's running?
   description: Use `ps` to save a process listing into `/home/learner/lab/processes.txt`.
     Include command names so the listing contains `supervisord`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Save a useful process snapshot
     points: 5
@@ -514,7 +514,7 @@ exercises:
   title: Let it run in the background
   description: Start a `sleep` process as `learner` that remains running for a few
     minutes. Evaluate before it finishes.
-  tasks:
+  evaluations:
   - id: task-1
     description: Keep a learner-owned sleep process running
     points: 5
@@ -531,7 +531,7 @@ exercises:
   title: Meet your network
   description: Use `ip` to list network interfaces and save them to `/home/learner/lab/interfaces.txt`.
     Include the loopback interface.
-  tasks:
+  evaluations:
   - id: task-1
     description: Record loopback interface information
     points: 5
@@ -549,7 +549,7 @@ exercises:
   title: A name for this machine
   description: Save this environment's hostname to `/home/learner/lab/hostname.txt`.
     Inspect `/etc/hosts` to see local name mappings.
-  tasks:
+  evaluations:
   - id: task-1
     description: Record the hostname
     points: 5
@@ -566,7 +566,7 @@ exercises:
   title: Know your tools
   description: Use `dpkg-query` to record information about the installed `nano` package
     in `/home/learner/lab/package-info.txt`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Nano is installed
     points: 5
@@ -589,7 +589,7 @@ exercises:
   title: Pack it up
   description: Create `/home/learner/lab/notes.tar.gz` containing `message.txt` from
     the inputs folder. Preserve the original file.
-  tasks:
+  evaluations:
   - id: task-1
     description: Create a readable gzip archive with the message
     points: 5
@@ -615,7 +615,7 @@ exercises:
   title: Your first shell script
   description: Create executable `/home/learner/lab/greet.sh` that prints `Hello,
     Linux!` when run.
-  tasks:
+  evaluations:
   - id: task-1
     description: Make the script executable
     points: 5
@@ -642,7 +642,7 @@ exercises:
   title: Make it personal
   description: Create `/home/learner/lab/welcome.sh`. Running `bash /home/learner/lab/welcome.sh
     Ada` must print `Welcome, Ada`. Passing `Linus` must print `Welcome, Linus`.
-  tasks:
+  evaluations:
   - id: task-1
     description: Use the first argument
     points: 5

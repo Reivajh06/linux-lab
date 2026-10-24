@@ -137,10 +137,37 @@ class Runtime:
                 pass
         return self.get(environment_id)
 
+    def _repair_desktop_launchers(self, container):
+        # Older Windows builds copied the extensionless launcher with CRLF,
+        # making its shebang refer to a nonexistent /bin/bash\r interpreter.
+        repair = container.exec_run(["python3", "-c", (
+            "from pathlib import Path\n"
+            "for name in ('lab-terminal', 'lab-desktop'):\n"
+            "    path = Path('/usr/local/bin') / name\n"
+            "    data = path.read_bytes()\n"
+            "    if b'\\r\\n' in data:\n"
+            "        path.write_bytes(data.replace(b'\\r\\n', b'\\n'))\n"
+            "        print(name)\n"
+        )], user="root")
+        if repair.exit_code:
+            raise LabError("Could not repair the Linux desktop launchers: " + repair.output.decode(errors="replace"))
+        repaired = repair.output.decode().splitlines()
+        if "lab-desktop" in repaired:
+            result = container.exec_run(["supervisorctl", "restart", "desktop"], user="root")
+            if result.exit_code:
+                raise LabError("Could not restart the repaired desktop: " + result.output.decode(errors="replace"))
+        elif "lab-terminal" in repaired and container.exec_run(["pgrep", "-x", "xfce4-terminal"]).exit_code:
+            container.exec_run(["bash", "-c", "exec /usr/local/bin/lab-terminal >/tmp/linux-lab-terminal.log 2>&1"],
+                               user="learner", detach=True, environment={"HOME": "/home/learner"})
+
     def _start(self, environment_id):
         row = self.get(environment_id)
-        if row["state"] == "error" and row["container_id"]:
-            raise LabError("Setup failed previously. Recreate the environment to run setup from a clean state.")
+        if (row["state"] == "error" and row["container_id"] and row["course_key"] and not row["setup_done"]
+                and (row["error"] or "").startswith(("Setup step ", "Setup failed previously."))):
+            message = row["error"]
+            if "Recreate" not in message:
+                message += " Recreate the environment to run setup from a clean state."
+            raise LabError(message)
         if row["container_id"]:
             container = self.container(environment_id)
             if container.status != "running":
@@ -167,6 +194,7 @@ class Runtime:
             except DockerException as exc:
                 raise LabError(f"Cannot create lab container: {exc}") from exc
             self.db.execute("UPDATE environments SET container_id=?,state='starting' WHERE id=?", (container.id, environment_id))
+        self._repair_desktop_launchers(container)
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
             container.reload()

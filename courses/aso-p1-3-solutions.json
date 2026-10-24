@@ -1,0 +1,6 @@
+{
+  "cuentas": "useradd -m -s /bin/bash jefe\nprintf 'jefe:ASO-jefe-2026!\n' | chpasswd\nuseradd -m -s /bin/bash trabajador1\nprintf 'trabajador1:ASO-trabajador1-2026!\n' | chpasswd\nuseradd -m -s /bin/bash trabajador2\nprintf 'trabajador2:ASO-trabajador2-2026!\n' | chpasswd\nuseradd -m -s /bin/bash trabajador3\nprintf 'trabajador3:ASO-trabajador3-2026!\n' | chpasswd",
+  "caducidad": "chage -M 60 -W 4 -I 2 -E -1 jefe\nchage -M 60 -W 4 -I 2 -E 2026-12-15 trabajador1\nchage -M 60 -W 4 -I 2 -E 2026-12-15 trabajador2\nchage -M 60 -W 4 -I 2 -E 2026-12-15 trabajador3",
+  "empresa": "groupadd empresa\nusermod -aG empresa jefe\nusermod -aG empresa trabajador1\nusermod -aG empresa trabajador2\nusermod -aG empresa trabajador3\ngpasswd -A jefe empresa",
+  "trabajo": "mkdir -p /home/trabajo\nchown jefe:empresa /home/trabajo\nchmod 1770 /home/trabajo"
+}

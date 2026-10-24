@@ -1,0 +1,1032 @@
+schema_version: 1
+id: aso-p1-2
+version: '1.0'
+title: ASO Práctica 1.2 · Filtros, tuberías y expresiones regulares
+description: "Practica los filtros, las tuberías y las expresiones regulares con ficheros del sistema, un diccionario y datos de portátiles. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p12/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p12
+
+    printf %s '',Company,TypeName,Inches,ScreenResolution,Cpu,Ram,Memory,Gpu,OpSys,Weight,Price
+
+    0,Razer,Notebook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,400
+
+    1,Dell,Gaming,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,473
+
+    2,HP,Ultrabook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,546
+
+    3,Lenovo,Notebook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Linux,1.8kg,619
+
+    4,Asus,2 in 1 Convertible,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,692
+
+    5,Acer,Notebook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,765
+
+    6,Apple,Gaming,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,838
+
+    7,Razer,Ultrabook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,911
+
+    8,Razer,Notebook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,984
+
+    9,Dell,2 in 1 Convertible,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Linux,1.8kg,1057
+
+    10,HP,Notebook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,1130
+
+    11,Lenovo,Gaming,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,1203
+
+    12,Asus,Ultrabook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,1276
+
+    13,Acer,Notebook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,1349
+
+    14,Apple,2 in 1 Convertible,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,1422
+
+    15,Razer,Notebook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Linux,1.8kg,1495
+
+    16,Razer,Gaming,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,1568
+
+    17,Dell,Ultrabook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,1641
+
+    18,HP,Notebook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,1714
+
+    19,Lenovo,2 in 1 Convertible,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,1787
+
+    20,Asus,Notebook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,1860
+
+    21,Acer,Gaming,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Linux,1.8kg,1933
+
+    22,Apple,Ultrabook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,2006
+
+    23,Razer,Notebook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,2079
+
+    24,Razer,2 in 1 Convertible,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,2152
+
+    25,Dell,Notebook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,2225
+
+    26,HP,Gaming,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,2298
+
+    27,Lenovo,Ultrabook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Linux,1.8kg,2371
+
+    28,Asus,Notebook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,2444
+
+    29,Acer,2 in 1 Convertible,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,2517
+
+    30,Apple,Notebook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,2590
+
+    31,Razer,Gaming,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,2663
+
+    32,Razer,Ultrabook,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,2736
+
+    33,Dell,Notebook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Linux,1.8kg,2809
+
+    34,HP,2 in 1 Convertible,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,2882
+
+    35,Lenovo,Notebook,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Windows 10,1.8kg,2955
+
+    36,Asus,Gaming,13.3,1920x1080,Intel Core i7 2.8GHz,8GB,256GB SSD,Integrated,Linux,1.8kg,3028
+
+    37,Acer,Ultrabook,15.6,1920x1080,AMD Ryzen 5,16GB,256GB SSD,Integrated,Windows 10,1.8kg,3101
+
+    38,Apple,Notebook,17.3,1920x1080,Intel Core i5 2.5GHz,8GB,256GB SSD,Integrated,Windows 10,1.8kg,3174
+
+    39,Razer,2 in 1 Convertible,14,1920x1080,Samsung Cortex A72,16GB,256GB SSD,Integrated,Linux,1.8kg,3247''
+    > /home/learner/aso/p12/laptop_data.csv
+
+    install -d -o learner -g learner /home/learner/aso/p12/boot-muestra
+
+    touch /home/learner/aso/p12/boot-muestra/{System.map,Vmlinuz,config,initrd,ABC}
+
+    printf %s ''hola # comentario
+
+    mundo sin comentario
+
+    # línea completa
+
+    hola hola-mundo hola
+
+    Contactos: hola-mundo_2026@gmail.com y aso@ulpgc.es
+
+    '' > /home/learner/aso/p12/texto.txt
+
+    chown -R learner:learner /home/learner/aso/p12
+
+    '
+  user: root
+exercises:
+- id: ayuda-expansiones
+  title: 1–6 · Ayuda, expansiones y canales
+  description: 'Consulta man passwd y man 5 passwd, la ayuda breve de ls y help cd. Practica Ctrl+A, Ctrl+E
+    y Ctrl+R en la terminal. En /home/learner/aso/p12/ayuda.txt escribe las secciones de manual del comando
+    y del formato de passwd como «comando: 1» y «formato: 5». Crea vacíos tema1.txt a tema5.txt mediante
+    expansión de llaves. Con comodines, guarda sus nombres (solo el nombre base, en orden) en temas.txt.
+    Usa redirecciones para escribir «primera» y añadir «segunda» en canales.txt, una línea por palabra.'
+  evaluations:
+  - id: manuales
+    description: "Registra las secciones del manual de passwd: comando y formato"
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p12/ayuda.txt
+      value: 'comando: 1'
+    - type: content
+      path: /home/learner/aso/p12/ayuda.txt
+      value: 'formato: 5'
+  - id: expansion
+    description: "Crea tema1.txt a tema5.txt"
+    points: 2
+    checks:
+    - type: path
+      path: /home/learner/aso/p12/tema1.txt
+    - type: path
+      path: /home/learner/aso/p12/tema2.txt
+    - type: path
+      path: /home/learner/aso/p12/tema3.txt
+    - type: path
+      path: /home/learner/aso/p12/tema4.txt
+    - type: path
+      path: /home/learner/aso/p12/tema5.txt
+  - id: comodines
+    description: "Guarda los cinco nombres de tema ordenados en temas.txt"
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p12/temas.txt
+      value: 'tema1.txt
+
+        tema2.txt
+
+        tema3.txt
+
+        tema4.txt
+
+        tema5.txt
+
+        '
+      match: exact
+  - id: canales
+    description: "Escribe «primera» y añade «segunda» en canales.txt"
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p12/canales.txt
+      value: 'primera
+
+        segunda
+
+        '
+      match: exact
+  tips:
+  - 'Consulta man bash: busca Brace Expansion y Redirections.'
+- id: filtros-1
+  title: 7 · Filtros 1–5
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **filtros-01** — Mostrar el primer y el quinto campo de todas las líneas de /etc/passwd, separados
+    por dos puntos. Guarda el comando en /home/learner/aso/p12/filtros-01.sh.
+
+
+    **filtros-02** — Mostrar los bytes 1–3 y 5–8 de todas las líneas de /etc/passwd. Guarda el comando
+    en /home/learner/aso/p12/filtros-02.sh.
+
+
+    **filtros-03** — Mostrar /etc/passwd sustituyendo los dos puntos por espacios. Guarda el comando en
+    /home/learner/aso/p12/filtros-03.sh.
+
+
+    **filtros-04** — Mostrar todas las líneas de /etc/passwd excepto la primera. Guarda el comando en
+    /home/learner/aso/p12/filtros-04.sh.
+
+
+    **filtros-05** — Mostrar las tres primeras líneas de /etc/passwd, ordenadas alfabéticamente entre
+    ellas. Guarda el comando en /home/learner/aso/p12/filtros-05.sh.'
+  evaluations:
+  - id: filtros-01
+    description: Mostrar el primer y el quinto campo de todas las líneas de /etc/passwd, separados por
+      dos puntos.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-01.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f1,5 /etc/passwd'
+  - id: filtros-02
+    description: Mostrar los bytes 1–3 y 5–8 de todas las líneas de /etc/passwd.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-02.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: cut -b1-3,5-8 /etc/passwd
+  - id: filtros-03
+    description: Mostrar /etc/passwd sustituyendo los dos puntos por espacios.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-03.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tr ':' ' ' < /etc/passwd
+  - id: filtros-04
+    description: Mostrar todas las líneas de /etc/passwd excepto la primera.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-04.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /etc/passwd
+  - id: filtros-05
+    description: Mostrar las tres primeras líneas de /etc/passwd, ordenadas alfabéticamente entre ellas.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-05.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: head -n 3 /etc/passwd | sort
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: filtros-2
+  title: 7 · Filtros 6–10
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **filtros-06** — Mostrar todos los nombres de cuentas del sistema ordenados alfabéticamente. Guarda
+    el comando en /home/learner/aso/p12/filtros-06.sh.
+
+
+    **filtros-07** — Numerar las líneas de /etc/passwd que contienen bash (formato de nl). Guarda el comando
+    en /home/learner/aso/p12/filtros-07.sh.
+
+
+    **filtros-08** — Contar las líneas de /etc/passwd que contienen bash. Guarda el comando en /home/learner/aso/p12/filtros-08.sh.
+
+
+    **filtros-09** — Mostrar las líneas que contienen bash ordenadas numéricamente por UID. Guarda el
+    comando en /home/learner/aso/p12/filtros-09.sh.
+
+
+    **filtros-10** — Mostrar los campos primero y quinto separados por dos puntos y ordenar por el segundo
+    campo de la salida. Guarda el comando en /home/learner/aso/p12/filtros-10.sh.'
+  evaluations:
+  - id: filtros-06
+    description: Mostrar todos los nombres de cuentas del sistema ordenados alfabéticamente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-06.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f1 /etc/passwd | sort'
+  - id: filtros-07
+    description: Numerar las líneas de /etc/passwd que contienen bash (formato de nl).
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-07.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep bash /etc/passwd | nl
+  - id: filtros-08
+    description: Contar las líneas de /etc/passwd que contienen bash.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-08.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -c bash /etc/passwd
+  - id: filtros-09
+    description: Mostrar las líneas que contienen bash ordenadas numéricamente por UID.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-09.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'grep bash /etc/passwd | sort -t: -k3,3n'
+  - id: filtros-10
+    description: Mostrar los campos primero y quinto separados por dos puntos y ordenar por el segundo
+      campo de la salida.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-10.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f1,5 /etc/passwd | sort -t: -k2,2'
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: filtros-3
+  title: 7 · Filtros 11–15
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **filtros-11** — Mostrar los campos primero y quinto de las líneas que contienen root; ordenar por
+    el primer campo. Guarda el comando en /home/learner/aso/p12/filtros-11.sh.
+
+
+    **filtros-12** — Mostrar los campos primero, tercero y quinto separados por dos puntos y ordenar por
+    UID numérico. Guarda el comando en /home/learner/aso/p12/filtros-12.sh.
+
+
+    **filtros-13** — Mostrar los campos primero, tercero y quinto separados por dos puntos y ordenar por
+    nombre ignorando el primer carácter. Guarda el comando en /home/learner/aso/p12/filtros-13.sh.
+
+
+    **filtros-14** — Mostrar los GID utilizados más de una vez, ordenados numéricamente, uno por línea.
+    Guarda el comando en /home/learner/aso/p12/filtros-14.sh.
+
+
+    **filtros-15** — Contar cuántos shells distintos aparecen en /etc/passwd. Guarda el comando en /home/learner/aso/p12/filtros-15.sh.'
+  evaluations:
+  - id: filtros-11
+    description: Mostrar los campos primero y quinto de las líneas que contienen root; ordenar por el
+      primer campo.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-11.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'grep root /etc/passwd | cut -d: -f1,5 | sort -t: -k1,1'
+  - id: filtros-12
+    description: Mostrar los campos primero, tercero y quinto separados por dos puntos y ordenar por UID
+      numérico.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-12.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f1,3,5 /etc/passwd | sort -t: -k2,2n'
+  - id: filtros-13
+    description: Mostrar los campos primero, tercero y quinto separados por dos puntos y ordenar por nombre
+      ignorando el primer carácter.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-13.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f1,3,5 /etc/passwd | sort -t: -k1.2,1'
+  - id: filtros-14
+    description: Mostrar los GID utilizados más de una vez, ordenados numéricamente, uno por línea.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-14.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f4 /etc/passwd | sort -n | uniq -d'
+  - id: filtros-15
+    description: Contar cuántos shells distintos aparecen en /etc/passwd.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/filtros-15.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f7 /etc/passwd | sort -u | wc -l'
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: regex-1
+  title: 8 · Expresiones regulares 1–5
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **regex-01** — Palabras que empiezan por vocal (mayúscula o minúscula). Guarda el comando en /home/learner/aso/p12/regex-01.sh.
+
+
+    **regex-02** — Palabras de exactamente cinco letras ASCII; excluye apóstrofos. Guarda el comando en
+    /home/learner/aso/p12/regex-02.sh.
+
+
+    **regex-03** — Palabras de una a cuatro letras ASCII; excluye apóstrofos. Guarda el comando en /home/learner/aso/p12/regex-03.sh.
+
+
+    **regex-04** — Palabras que contienen dos vocales consecutivas. Guarda el comando en /home/learner/aso/p12/regex-04.sh.
+
+
+    **regex-05** — Palabras que terminan en ing o ed. Guarda el comando en /home/learner/aso/p12/regex-05.sh.'
+  evaluations:
+  - id: regex-01
+    description: Palabras que empiezan por vocal (mayúscula o minúscula).
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-01.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[AEIOUaeiou]' /usr/share/dict/words
+  - id: regex-02
+    description: Palabras de exactamente cinco letras ASCII; excluye apóstrofos.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-02.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[A-Za-z]{5}$' /usr/share/dict/words
+  - id: regex-03
+    description: Palabras de una a cuatro letras ASCII; excluye apóstrofos.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-03.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[A-Za-z]{1,4}$' /usr/share/dict/words
+  - id: regex-04
+    description: Palabras que contienen dos vocales consecutivas.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-04.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '[AEIOUaeiou]{2}' /usr/share/dict/words
+  - id: regex-05
+    description: Palabras que terminan en ing o ed.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-05.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '(ing|ed)$' /usr/share/dict/words
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: regex-2
+  title: 8 · Expresiones regulares 6–9
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **regex-06** — Palabras que empiezan por vocal y terminan en tion. Guarda el comando en /home/learner/aso/p12/regex-06.sh.
+
+
+    **regex-07** — Palabras que empiezan por vocal, terminan en tion y tienen como máximo ocho letras.
+    Guarda el comando en /home/learner/aso/p12/regex-07.sh.
+
+
+    **regex-08** — Palabras que no contienen vocales (sin distinguir mayúsculas). Guarda el comando en
+    /home/learner/aso/p12/regex-08.sh.
+
+
+    **regex-09** — Palabras en las que sh aparece al menos dos veces. Guarda el comando en /home/learner/aso/p12/regex-09.sh.'
+  evaluations:
+  - id: regex-06
+    description: Palabras que empiezan por vocal y terminan en tion.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-06.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[AEIOUaeiou].*tion$' /usr/share/dict/words
+  - id: regex-07
+    description: Palabras que empiezan por vocal, terminan en tion y tienen como máximo ocho letras.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-07.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[AEIOUaeiou][A-Za-z]{0,3}tion$' /usr/share/dict/words
+  - id: regex-08
+    description: Palabras que no contienen vocales (sin distinguir mayúsculas).
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-08.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E '^[^AEIOUaeiou]+$' /usr/share/dict/words
+  - id: regex-09
+    description: Palabras en las que sh aparece al menos dos veces.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/regex-09.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -E 'sh.*sh' /usr/share/dict/words
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: csv-1
+  title: 9 · Portátiles 1–5
+  description: "Trabaja con /home/learner/aso/p12/laptop_data.csv, una muestra de 40 portátiles. La primera columna es un índice sin nombre y ningún campo contiene comas.\n\nCada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar. Para ordenar usa la configuración regional del contenedor.\n\n**csv-01** — Lista de marcas distintas ordenada alfabéticamente. Guarda el comando en /home/learner/aso/p12/csv-01.sh.\n\n**csv-02** — Número de marcas distintas. Guarda el comando en /home/learner/aso/p12/csv-02.sh.\n\n**csv-03** — Número de portátiles por marca, de mayor a menor; formato de uniq -c, desempate por marca. Guarda el comando en /home/learner/aso/p12/csv-03.sh.\n\n**csv-04** — Pares marca,tamaño distintos, ordenados por marca y tamaño numérico. Guarda el comando en /home/learner/aso/p12/csv-04.sh.\n\n**csv-05** — Número de portátiles con CPU Intel. Guarda el comando en /home/learner/aso/p12/csv-05.sh."
+  evaluations:
+  - id: csv-01
+    description: Lista de marcas distintas ordenada alfabéticamente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-01.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | cut -d, -f2 | sort -u
+  - id: csv-02
+    description: Número de marcas distintas.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-02.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | cut -d, -f2 | sort -u | wc -l
+  - id: csv-03
+    description: Número de portátiles por marca, de mayor a menor; formato de uniq -c, desempate por marca.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-03.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | cut -d, -f2 | sort | uniq -c
+          | sort -k1,1nr -k2,2
+  - id: csv-04
+    description: Pares marca,tamaño distintos, ordenados por marca y tamaño numérico.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-04.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | cut -d, -f2,4 | sort -t, -k1,1
+          -k2,2n | uniq
+  - id: csv-05
+    description: Número de portátiles con CPU Intel.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-05.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | awk -F, '$6 ~ /^Intel/ {n++}
+          END {print n+0}'
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: csv-2
+  title: 9 · Portátiles 6–10
+  description: "Trabaja con /home/learner/aso/p12/laptop_data.csv, una muestra de 40 portátiles. La primera columna es un índice sin nombre y ningún campo contiene comas.\n\nCada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar. Para ordenar usa la configuración regional del contenedor.\n\n**csv-06** — Número de portátiles con CPU no Intel. Guarda el comando en /home/learner/aso/p12/csv-06.sh.\n\n**csv-07** — Los tres tipos más comunes: cantidad y tipo, de mayor a menor; desempate por tipo. Guarda el comando en /home/learner/aso/p12/csv-07.sh.\n\n**csv-08** — Las cinco filas completas más caras, precio descendente. Guarda el comando en /home/learner/aso/p12/csv-08.sh.\n\n**csv-09** — Las cinco filas Razer más caras, precio descendente. Guarda el comando en /home/learner/aso/p12/csv-09.sh.\n\n**csv-10** — Las cinco filas Intel Core i7 más baratas, precio ascendente. Guarda el comando en /home/learner/aso/p12/csv-10.sh."
+  evaluations:
+  - id: csv-06
+    description: Número de portátiles con CPU no Intel.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-06.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | awk -F, '$6 !~ /^Intel/ {n++}
+          END {print n+0}'
+  - id: csv-07
+    description: 'Los tres tipos más comunes: cantidad y tipo, de mayor a menor; desempate por tipo.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-07.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | cut -d, -f3 | sort | uniq -c
+          | sort -k1,1nr -k2,2 | head -n 3
+  - id: csv-08
+    description: Las cinco filas completas más caras, precio descendente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-08.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | sort -t, -k13,13nr | head -n
+          5
+  - id: csv-09
+    description: Las cinco filas Razer más caras, precio descendente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-09.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | awk -F, '$2=="Razer"' | sort
+          -t, -k13,13nr | head -n 5
+  - id: csv-10
+    description: Las cinco filas Intel Core i7 más baratas, precio ascendente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/csv-10.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: tail -n +2 /home/learner/aso/p12/laptop_data.csv | awk -F, '$6 ~ /^Intel Core i7/'
+          | sort -t, -k13,13n | head -n 5
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomos-1
+  title: 10 · Autónomos 1–5
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **autonomo-01** — Guardar el listado recursivo de /etc en listado.txt y los errores de acceso en errores.txt,
+    ambos dentro de /home/learner/aso/p12. No mostrar nada en pantalla. Los errores de acceso son previstos:
+    termina con código 0 tras guardar ambos canales. Guarda el comando en /home/learner/aso/p12/autonomo-01.sh.
+
+
+    **autonomo-02** — Mostrar la sexta línea de /etc/passwd. Guarda el comando en /home/learner/aso/p12/autonomo-02.sh.
+
+
+    **autonomo-03** — Enumerar los shells sin repeticiones, ordenados alfabéticamente. Guarda el comando
+    en /home/learner/aso/p12/autonomo-03.sh.
+
+
+    **autonomo-04** — Contar los elementos de /home/learner/aso/p12/boot-muestra cuyo nombre contiene
+    al menos una mayúscula; adaptación de /boot. Guarda el comando en /home/learner/aso/p12/autonomo-04.sh.
+
+
+    **autonomo-05** — Listar alfabéticamente los usuarios cuyo shell no es /bin/bash. Guarda el comando
+    en /home/learner/aso/p12/autonomo-05.sh.'
+  evaluations:
+  - id: autonomo-01
+    description: Guardar el listado recursivo de /etc en listado.txt y los errores de acceso en errores.txt,
+      ambos dentro de /home/learner/aso/p12. No mostrar nada en pantalla.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-01.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: empty
+    - type: command
+      script: 'work=$(mktemp -d)
+
+        ls -R /etc > "$work/out" 2> "$work/err"
+
+        cmp /home/learner/aso/p12/listado.txt "$work/out" && cmp /home/learner/aso/p12/errores.txt "$work/err"
+
+        rc=$?
+
+        rm -f "$work/out" "$work/err"
+
+        rmdir "$work"
+
+        exit "$rc"'
+      user: learner
+  - id: autonomo-02
+    description: Mostrar la sexta línea de /etc/passwd.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-02.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: sed -n '6p' /etc/passwd
+  - id: autonomo-03
+    description: Enumerar los shells sin repeticiones, ordenados alfabéticamente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-03.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'cut -d: -f7 /etc/passwd | sort -u'
+  - id: autonomo-04
+    description: "Cuenta los nombres con mayúsculas en boot-muestra"
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-04.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: find /home/learner/aso/p12/boot-muestra -mindepth 1 -maxdepth 1 -printf '%f\n' |
+          grep -c '[A-Z]'
+  - id: autonomo-05
+    description: Listar alfabéticamente los usuarios cuyo shell no es /bin/bash.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-05.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''$7!="/bin/bash" {print $1}'' /etc/passwd | sort'
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomos-2
+  title: 10 · Autónomos 6–8 y 10
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **autonomo-06** — Contar dispositivos directamente en /dev y subdirectorios. Dos líneas: bloque: N
+    y caracter: N. Guarda el comando en /home/learner/aso/p12/autonomo-06.sh.
+
+
+    **autonomo-07** — Mostrar texto.txt sin los comentarios desde # hasta fin de línea, conservando líneas
+    y espacios restantes. Guarda el comando en /home/learner/aso/p12/autonomo-07.sh.
+
+
+    **autonomo-08** — Mostrar nombres de ficheros regulares homónimos directamente en /usr/bin y /etc,
+    uno por línea y ordenados. Los enlaces simbólicos no cuentan. Guarda el comando en /home/learner/aso/p12/autonomo-08.sh.
+
+
+    **autonomo-10** — Extraer los correos habituales de texto.txt en orden de aparición, uno por línea;
+    admitir guiones, puntos y guiones bajos. Guarda el comando en /home/learner/aso/p12/autonomo-10.sh.'
+  evaluations:
+  - id: autonomo-06
+    description: 'Contar dispositivos directamente en /dev y subdirectorios. Dos líneas: bloque: N y caracter:
+      N.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-06.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: 'printf ''bloque: %s\n'' "$(find /dev -type b 2>/dev/null | wc -l)"
+
+          printf ''caracter: %s\n'' "$(find /dev -type c 2>/dev/null | wc -l)"'
+  - id: autonomo-07
+    description: 'Mostrar texto.txt sin los comentarios desde # hasta fin de línea, conservando líneas
+      y espacios restantes.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-07.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: sed 's/#.*//' /home/learner/aso/p12/texto.txt
+  - id: autonomo-08
+    description: Mostrar nombres de ficheros regulares homónimos directamente en /usr/bin y /etc, uno
+      por línea y ordenados. Los enlaces simbólicos no cuentan.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-08.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: comm -12 <(find /usr/bin -maxdepth 1 -type f -printf '%f\n' | sort) <(find /etc
+          -maxdepth 1 -type f -printf '%f\n' | sort)
+  - id: autonomo-10
+    description: Extraer los correos habituales de texto.txt en orden de aparición, uno por línea; admitir
+      guiones, puntos y guiones bajos.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p12/autonomo-10.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: lines
+        from_command: grep -Eo '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' /home/learner/aso/p12/texto.txt
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomo-09
+  title: 10.9 · Apariciones de una palabra
+  description: "Cuenta cuántas veces aparece PALABRA como palabra completa en FICHERO, distinguiendo mayúsculas y minúsculas. Cuenta por separado las apariciones de una misma línea; por ejemplo, «hola-mundo» contiene una aparición de «hola».\n\nCrea el script ejecutable /home/learner/aso/p12/autonomo-09.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p12/autonomo-09.sh
+    usage: autonomo-09.sh PALABRA FICHERO
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "PALABRA contiene una o más letras ASCII (a–z o A–Z), sin espacios ni otros caracteres."
+    error: formato
+  - description: "FICHERO existe, es regular y se puede leer."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout solo el número total de apariciones de PALABRA, seguido de un salto de línea; si no aparece, imprime `0`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: autonomo-09.sh PALABRA FICHERO'
+  - id: formato
+    description: "PALABRA está vacía o contiene algún carácter que no es una letra ASCII."
+    exit_code: 2
+    stream: stderr
+    message: la palabra debe contener solo letras
+  - id: fichero
+    description: "FICHERO no existe, no es regular o no se puede leer."
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe o no es legible
+  examples:
+  - command: ./autonomo-09.sh hola texto.txt
+    exit_code: 0
+    stdout: '5
+  
+      '
+  - command: ./autonomo-09.sh zzzz texto.txt
+    exit_code: 0
+    stdout: '0
+  
+      '
+  - command: ./autonomo-09.sh
+    stderr: 'uso: autonomo-09.sh PALABRA FICHERO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Cuenta las cinco apariciones completas de «hola»"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - hola
+      - /home/learner/aso/p12/texto.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: '5
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Devuelve cero cuando no aparece «zzzz»"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - zzzz
+      - /home/learner/aso/p12/texto.txt
+      requirement: ok
+      stdout:
+        match: exact
+        value: '0
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Un punto en PALABRA → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ho.la
+      - /home/learner/aso/p12/texto.txt
+      requirement: formato
+  - id: fichero
+    description: "Fichero inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - hola
+      - /home/learner/aso/p12/ausente
+      requirement: fichero
+  tips:
+  - 'Cuenta coincidencias completas, no líneas: una misma línea puede contener varias apariciones de la
+    palabra.'

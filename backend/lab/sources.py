@@ -1,4 +1,4 @@
-"""Local, page-preserving PDF extraction and lexical retrieval."""
+"""Local PDF/text extraction and page-based lexical retrieval."""
 import asyncio
 import hashlib
 import json
@@ -11,11 +11,98 @@ import io
 import tarfile
 import shutil
 from pathlib import Path
+from html.parser import HTMLParser
 
 import pdfplumber
 from pypdf import PdfReader
 
 from .db import now, uid
+
+
+def decode_text(data):
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+
+class PlainHTML(HTMLParser):
+    blocks = {"p", "div", "section", "article", "header", "footer", "blockquote",
+              "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "pre", "code", "tr"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts, self.hidden, self.verbatim = [], 0, 0
+
+    def paragraph_break(self):
+        if not self.parts or not self.parts[-1].endswith("\n\n"):
+            self.parts.append("\n\n")
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("style", "script"):
+            self.hidden += 1
+        if self.hidden:
+            return
+        if tag in self.blocks:
+            self.paragraph_break()
+        elif tag == "br":
+            self.parts.append("\n")
+        if tag in ("pre", "code"):
+            self.verbatim += 1
+
+    def handle_endtag(self, tag):
+        if tag in ("style", "script"):
+            self.hidden = max(0, self.hidden - 1)
+            return
+        if self.hidden:
+            return
+        if tag in ("pre", "code"):
+            self.verbatim = max(0, self.verbatim - 1)
+        if tag in self.blocks:
+            self.paragraph_break()
+
+    def handle_data(self, data):
+        if not self.hidden:
+            if not self.verbatim and not data.strip() and (not self.parts or self.parts[-1].endswith("\n")):
+                return
+            self.parts.append(data if self.verbatim else re.sub(r"\s+", " ", data))
+
+
+def source_text(data, filename):
+    text = decode_text(data).replace("\r\n", "\n").replace("\r", "\n")
+    # Some practice sheets have an HTML extension but contain only plain text.
+    if Path(filename).suffix.lower() in (".htm", ".html") and re.search(r"</?[a-zA-Z][^>]*>", text):
+        parser = PlainHTML()
+        parser.feed(text)
+        parser.close()
+        text = "".join(parser.parts)
+    return text.strip("\n")
+
+
+def text_pages(text, size=3000):
+    """Pack paragraphs into pages; split oversized paragraphs at lines/words."""
+    pages, current = [], ""
+    for paragraph in re.split(r"\n[ \t]*\n+", text):
+        if not paragraph.strip():
+            continue
+        if current and len(current) + len(paragraph) + 2 > size:
+            pages.append(current)
+            current = ""
+        while len(paragraph) > size:
+            boundary = paragraph.rfind("\n", 0, size + 1)
+            if boundary <= 0:
+                boundary = paragraph.rfind(" ", 0, size + 1)
+            if boundary <= 0:
+                boundary = size
+            pages.append(paragraph[:boundary])
+            # Drop only the chosen separator, preserving code indentation.
+            paragraph = paragraph[boundary + (paragraph[boundary] in "\n "):]
+        if paragraph:
+            current = current + "\n\n" + paragraph if current else paragraph
+    if current:
+        pages.append(current)
+    return pages
 
 
 class SourceService:
@@ -24,21 +111,28 @@ class SourceService:
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancelled: dict[str, threading.Event] = {}
 
-    def path(self, source_id):
-        return self.db.directory / "sources" / f"{source_id}.pdf"
+    def path(self, source_id, filename=None):
+        if filename is None:
+            row = self.db.one("SELECT filename FROM sources WHERE id=?", (source_id,))
+            filename = row["filename"] if row else "source.pdf"
+        suffix = ".pdf" if Path(filename).suffix.lower() == ".pdf" else ".txt"
+        return self.db.directory / "sources" / f"{source_id}{suffix}"
 
     async def add(self, filename, data):
         if len(data) > 25 * 1024 * 1024:
-            raise ValueError("PDF exceeds the 25 MB limit")
-        if not data.startswith(b"%PDF-"):
+            raise ValueError("Source exceeds the 25 MB limit")
+        filename = Path(filename.replace("\\", "/")).name
+        extension = Path(filename).suffix.lower()
+        if extension not in (".pdf", ".txt", ".md", ".htm", ".html"):
+            raise ValueError("Upload a PDF, TXT, MD, HTM, or HTML document")
+        if extension == ".pdf" and not data.startswith(b"%PDF-"):
             raise ValueError("Upload a valid PDF document")
         digest = hashlib.sha256(data).hexdigest()
         existing = self.db.one("SELECT id FROM sources WHERE hash=?", (digest,))
         if existing:
-            raise ValueError("This PDF is already in the Sources library")
+            raise ValueError("This document is already in the Sources library")
         source_id = uid()
-        filename = Path(filename.replace("\\", "/")).name
-        self.path(source_id).write_bytes(data)
+        self.path(source_id, filename).write_bytes(data)
         self.db.execute("INSERT INTO sources(id,hash,title,filename,state,created_at) VALUES(?,?,?,?,?,?)", (source_id, digest, Path(filename).stem, filename, "indexing", now()))
         self.start(source_id)
         return self.db.one("SELECT * FROM sources WHERE id=?", (source_id,))
@@ -105,6 +199,8 @@ class SourceService:
 
     def index(self, source_id, event):
         path = self.path(source_id)
+        if path.suffix != ".pdf":
+            return self.index_text(source_id, path, event)
         reader = PdfReader(path)
         if reader.is_encrypted:
             raise ValueError("Password-protected PDFs are not supported. Upload an unlocked copy.")
@@ -147,7 +243,29 @@ class SourceService:
             raise ValueError("No readable text could be extracted. Check OCR dependencies and document quality.")
         self.db.execute("UPDATE sources SET state='ready' WHERE id=?", (source_id,))
 
+    def index_text(self, source_id, path, event):
+        row = self.db.one("SELECT filename FROM sources WHERE id=?", (source_id,))
+        pages = text_pages(source_text(path.read_bytes(), row["filename"]))
+        if not pages:
+            raise ValueError("No readable text could be extracted from this document")
+        with self.db.connect() as con:
+            con.execute("DELETE FROM pages WHERE source_id=?", (source_id,))
+            con.execute("DELETE FROM chunks WHERE source_id=?", (source_id,))
+            con.execute("UPDATE sources SET pages=? WHERE id=?", (len(pages), source_id))
+        for number, text in enumerate(pages, 1):
+            if event.is_set():
+                return
+            words = text.split()
+            with self.db.connect() as con:
+                con.execute("INSERT INTO pages VALUES(?,?,?,0)", (source_id, number, text))
+                for start in range(0, len(words), 280):
+                    con.execute("INSERT INTO chunks(source_id,page,content) VALUES(?,?,?)", (source_id, number, " ".join(words[start:start + 350])))
+                con.execute("UPDATE sources SET indexed_pages=? WHERE id=?", (number, source_id))
+        if not event.is_set():
+            self.db.execute("UPDATE sources SET state='ready' WHERE id=?", (source_id,))
+
     async def remove(self, source_id):
+        path = self.path(source_id)
         if source_id in self.cancelled:
             self.cancelled[source_id].set()
         task = self.tasks.get(source_id)
@@ -157,27 +275,65 @@ class SourceService:
             con.execute("DELETE FROM chunks WHERE source_id=?", (source_id,))
             con.execute("DELETE FROM pages WHERE source_id=?", (source_id,))
             con.execute("DELETE FROM sources WHERE id=?", (source_id,))
-        self.path(source_id).unlink(missing_ok=True)
+        path.unlink(missing_ok=True)
 
-    def retrieve(self, query, source_ids, limit=8):
+    def selected_sources(self, source_ids=None):
+        # None means the entire ready library; [] explicitly disables source grounding.
+        if source_ids is None:
+            return [s['id'] for s in self.db.all("SELECT id FROM sources WHERE state='ready' ORDER BY created_at,id")]
         if not source_ids:
             return []
         marks = ",".join("?" for _ in source_ids)
-        sources = self.db.all(f"SELECT id,hash,title,state FROM sources WHERE id IN ({marks})", source_ids)
+        sources = self.db.all(f"SELECT id,state FROM sources WHERE id IN ({marks})", source_ids)
         if len(sources) != len(set(source_ids)) or any(s["state"] != "ready" for s in sources):
             raise ValueError("Select sources that have finished indexing")
+        return list(dict.fromkeys(source_ids))
+
+    def retrieve(self, query, source_ids=None, limit=8, max_bytes=12000, offset=0):
+        source_ids = self.selected_sources(source_ids)
+        if not source_ids or limit < 1 or max_bytes < 256:
+            return []
+        marks = ",".join("?" for _ in source_ids)
+        sources = self.db.all(f"SELECT id,hash,title FROM sources WHERE id IN ({marks}) ORDER BY created_at,id", source_ids)
         tokens = list(dict.fromkeys(re.findall(r"[^\W_]{3,}", query.lower())))[:32]
         # Build FTS expressions ourselves: never interpret user query syntax.
         expression = " OR ".join('"' + t + '"' for t in tokens)
         rows = []
         if expression:
-            rows = self.db.all(f"SELECT source_id,page,content FROM chunks WHERE chunks MATCH ? AND source_id IN ({marks}) ORDER BY bm25(chunks) LIMIT ?", [expression, *source_ids, limit])
+            ranked = self.db.all(f"SELECT source_id,page,content FROM chunks WHERE chunks MATCH ? AND source_id IN ({marks}) ORDER BY bm25(chunks) LIMIT ?", [expression, *source_ids, limit * 8])
+            # Prefer different documents before taking more passages from the same PDF.
+            seen, extra = set(), []
+            for row in ranked:
+                if row['source_id'] in seen:
+                    extra.append(row)
+                else:
+                    rows.append(row)
+                    seen.add(row['source_id'])
+            rows.extend(extra)
         # Even a request like 'make exercises from this' should get source context.
         if not rows:
-            for source in sources:
-                rows.extend(self.db.all("SELECT source_id,page,content FROM chunks WHERE source_id=? ORDER BY page,rowid LIMIT ?", (source["id"], max(1, limit // len(sources)))))
+            # Rotate generic requests across documents between exercise batches.
+            shift = offset % len(sources)
+            for source in (sources[shift:] + sources[:shift])[:limit]:
+                rows.extend(self.db.all("SELECT source_id,page,content FROM chunks WHERE source_id=? ORDER BY page,rowid LIMIT 1", (source["id"],)))
         lookup = {s["id"]: s for s in sources}
-        return [{**r, "document_hash": lookup[r["source_id"]]["hash"], "title": lookup[r["source_id"]]["title"]} for r in rows[:limit]]
+        excerpts = []
+        for row in rows[:limit]:
+            item = {**row, 'document_hash': lookup[row['source_id']]['hash'], 'title': lookup[row['source_id']]['title']}
+            # Share a fixed byte budget across passages, including citation metadata.
+            remaining = max_bytes - len(json.dumps(excerpts, ensure_ascii=False).encode()) - 2
+            item['content'] = ''
+            allowance = min(2400, remaining // max(1, min(limit, len(rows)) - len(excerpts)))
+            overhead = len(json.dumps(item, ensure_ascii=False).encode()) + 2
+            if allowance <= overhead + 40:
+                break
+            item['content'] = row['content'].encode()[:allowance - overhead].decode('utf-8', errors='ignore')
+            # JSON escaping may expand source text (e.g. quotes and backslashes).
+            while item['content'] and len(json.dumps(excerpts + [item], ensure_ascii=False).encode()) > max_bytes:
+                item['content'] = item['content'][:-40]
+            if item['content']:
+                excerpts.append(item)
+        return excerpts
 
     def resolve(self, references):
         resolved = []

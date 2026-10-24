@@ -1,0 +1,172 @@
+schema_version: 1
+id: aso-p3-2
+version: '1.0'
+title: ASO Práctica 3.2 · Edición con vi
+description: 'Adaptación del apartado 2 de ULPGC ASO. Los contenedores no tienen systemd, systemctl, httpd
+  ni firewalld. La administración de servicios, Apache, cortafuegos, drop-ins y cgroups de los apartados
+  1 y 3–7 requieren una VM completa y no se incluyen. Aquí se practica vi: inserción, navegación, sustituciones,
+  borrado, copia, búsqueda y guardado. La evaluación observa el fichero final, no puede determinar qué
+  editor o teclas se utilizaron.'
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p32
+
+    printf %s ''servidor viejo
+
+    viejo y viejo
+
+    '' > /home/learner/aso/p32/sustituir.txt
+
+    printf %s ''conservar primera
+
+    borrar una
+
+    borrar dos
+
+    borrar tres
+
+    conservar última
+
+    '' > /home/learner/aso/p32/borrar.txt
+
+    printf %s ''inicio
+
+    copiar esta línea
+
+    fin
+
+    '' > /home/learner/aso/p32/copiar.txt
+
+    printf %s ''Xerrata
+
+    servicio parado
+
+    quitar palabra final
+
+    '' > /home/learner/aso/p32/palabras.txt
+
+    chown -R learner:learner /home/learner/aso/p32
+
+    '
+  user: root
+exercises:
+- id: insertar
+  title: 2 · Insertar y guardar
+  description: 'Crea nota.txt con dos líneas: «Practicando vi» y «Edición en consola». Practica i, Esc,
+    :w y :x.
+
+
+    Trabaja en /home/learner/aso/p32/nota.txt. Guarda y sal del editor.'
+  evaluations:
+  - id: contenido
+    description: Contenido guardado
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p32/nota.txt
+      value: 'Practicando vi
+
+        Edición en consola
+
+        '
+      match: exact
+  tips:
+  - Consulta man vi y vimtutor.
+- id: sustituir
+  title: 2.1 · Sustitución global
+  description: 'En sustituir.txt reemplaza todas las apariciones de «viejo» por «nuevo», incluso cuando
+    aparecen varias en una línea. Practica la sustitución global.
+
+
+    Trabaja en /home/learner/aso/p32/sustituir.txt. Guarda y sal del editor.'
+  evaluations:
+  - id: contenido
+    description: Contenido guardado
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p32/sustituir.txt
+      value: 'servidor nuevo
+
+        nuevo y nuevo
+
+        '
+      match: exact
+  tips:
+  - Consulta :help :substitute dentro de Vim.
+- id: borrar
+  title: 2.1 · Borrar líneas
+  description: 'En borrar.txt elimina las tres líneas que comienzan por «borrar». Conserva únicamente
+    la primera y la última línea. Practica dd y su repetición numérica.
+
+
+    Trabaja en /home/learner/aso/p32/borrar.txt. Guarda y sal del editor.'
+  evaluations:
+  - id: contenido
+    description: Contenido guardado
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p32/borrar.txt
+      value: 'conservar primera
+
+        conservar última
+
+        '
+      match: exact
+  tips:
+  - Consulta :help dd dentro de Vim.
+- id: copiar
+  title: 2.1 · Copiar, pegar y abrir línea
+  description: 'En copiar.txt duplica «copiar esta línea» justo debajo de ella y añade «cierre» debajo
+    de «fin». Practica yy, p y o.
+
+
+    Trabaja en /home/learner/aso/p32/copiar.txt. Guarda y sal del editor.'
+  evaluations:
+  - id: contenido
+    description: Contenido guardado
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p32/copiar.txt
+      value: 'inicio
+
+        copiar esta línea
+
+        copiar esta línea
+
+        fin
+
+        cierre
+
+        '
+      match: exact
+  tips:
+  - Consulta :help yy y :help o dentro de Vim.
+- id: palabras
+  title: 2.1 · Caracteres, palabras y búsqueda
+  description: 'En palabras.txt elimina la X inicial con x y cambia la e de errata por E con r. Sustituye
+    «parado» por «activo» con cw. En la última línea borra la palabra «palabra» y su espacio siguiente
+    con dw, dejando «quitar final». Practica /, n, N, u y Ctrl+R antes de guardar el resultado.
+
+
+    Trabaja en /home/learner/aso/p32/palabras.txt. Guarda y sal del editor.'
+  evaluations:
+  - id: contenido
+    description: Contenido guardado
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/p32/palabras.txt
+      value: 'Errata
+
+        servicio activo
+
+        quitar final
+
+        '
+      match: exact
+  tips:
+  - Consulta :help x, :help r, :help cw y :help undo dentro de Vim.

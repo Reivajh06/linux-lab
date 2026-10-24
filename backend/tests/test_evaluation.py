@@ -1,17 +1,94 @@
 import asyncio
+import base64
 import json
 
 import pytest
 
 from lab.db import now
-from lab.evaluation import check_one, evaluate
+from lab.evaluation import check_one, evaluate, run_case
 from lab.runtime import Execution, Runtime
-from lab.schema import CommandCheck, ContentCheck, course_yaml, Course
+from lab.schema import CommandCheck, ContentCheck, RunCheck, StreamExpectation, course_yaml, Course
 
 
 class Runner:
     def __init__(self, result): self.result = result
     def exec(self, *args, **kwargs): return self.result
+
+
+class CaseRuntime:
+    """Return separate results for the executable probe, program, and reference."""
+    def __init__(self, *results):
+        self.results = iter(results)
+        self.calls = []
+
+    def exec(self, *args):
+        self.calls.append(args)
+        return next(self.results)
+
+
+def test_run_case_pass_and_wrong_exit():
+    check = RunCheck(type='run', path='/home/learner/count.sh', args=['a'],
+                     stdout=StreamExpectation(match='exact', value='42\n'),
+                     stderr=StreamExpectation(match='empty'))
+    runtime = CaseRuntime(Execution(0), Execution(0, '42\n'))
+    result = run_case(runtime, 'env', check)
+    assert result['status'] == 'pass' and result['expected_exit'] == 0
+    assert runtime.calls[1] == ('env', 'cd /home/learner && /home/learner/count.sh a </dev/null', 'learner', 10)
+    result = run_case(CaseRuntime(Execution(0), Execution(2, '42\n')), 'env', check)
+    assert result['status'] == 'fail' and 'exit code 2, expected 0' in result['message']
+
+
+@pytest.mark.parametrize('code,message', [(3, 'does not exist'), (4, 'not executable')])
+def test_run_case_missing_or_not_executable(code, message):
+    runtime = CaseRuntime(Execution(code))
+    result = run_case(runtime, 'env', RunCheck(type='run', path='/home/learner/missing.sh'))
+    assert result['status'] == 'fail' and message in result['message']
+    assert len(runtime.calls) == 1
+
+
+def test_run_case_from_command_reference():
+    check = RunCheck(type='run', path='/home/learner/count.sh', cwd='/tmp/input files',
+                     stdout=StreamExpectation(match='lines', from_command="printf '42\\n'"))
+    runtime = CaseRuntime(Execution(0), Execution(0, '42  \n'), Execution(0, '42\n'))
+    result = run_case(runtime, 'env', check)
+    assert result['status'] == 'pass' and result['expected_stdout'] == '42\n'
+    assert runtime.calls[2] == ('env', "cd '/tmp/input files' && { printf '42\\n'\n}", 'learner', 10)
+    result = run_case(CaseRuntime(Execution(0), Execution(0, '41\n'), Execution(0, '42\n')), 'env', check)
+    assert result['status'] == 'fail' and 'stdout' in result['message']
+
+
+@pytest.mark.parametrize('code,stdout,stderr,status', [
+    (2, '', 'One letter required\n', 'pass'),
+    (0, '', 'One letter required\n', 'fail'),
+    (2, 'unexpected result', 'One letter required\n', 'fail'),
+    (2, '', '', 'fail'), (2, '', '  \n', 'fail'),
+])
+def test_run_case_requirement_stderr_defaults(course_data, code, stdout, stderr, status):
+    data = course_data['exercises'][0]
+    data['script'] = {'path': '/home/learner/count.sh'}
+    data['output_requirements'] = [{'id': 'letter', 'description': 'One letter', 'exit_code': 2, 'stream': 'stderr', 'message': 'One letter required'}]
+    data['tasks'][0]['checks'] = [{'type': 'run', 'args': ['ab'], 'requirement': 'letter'}]
+    exercise = Course.model_validate(course_data).exercises[0]
+    result = run_case(CaseRuntime(Execution(0), Execution(code, stdout, stderr)), 'env', exercise.evaluations[0].checks[0], exercise)
+    assert result['status'] == status and result['expected_exit'] == 2
+    assert result['command'] == '/home/learner/count.sh ab'
+
+
+def test_run_case_stdin_piping_and_argument_quoting():
+    stdin = "a'b\n$(touch /tmp/not-run)\ná\n"
+    check = RunCheck(type='run', path='/home/learner/my script.sh', args=['a b', '$(false)', ''], stdin=stdin)
+    runtime = CaseRuntime(Execution(0), Execution(0))
+    assert run_case(runtime, 'env', check)['status'] == 'pass'
+    encoded = base64.b64encode(stdin.encode()).decode()
+    assert runtime.calls[1][1] == f"cd /home/learner && printf %s {encoded} | base64 -d | '/home/learner/my script.sh' 'a b' '$(false)' ''"
+
+
+def test_run_case_timeout():
+    check = RunCheck(type='run', path='/home/learner/loop.sh', timeout=1)
+    runtime = CaseRuntime(Execution(0), Execution(124, stderr='partial', timed_out=True))
+    result = run_case(runtime, 'env', check)
+    assert result['status'] == 'fail' and 'Timed out after 1s' in result['message']
+    assert result['stderr'] == 'partial' and runtime.calls[1][-1] == 1
 
 
 def test_command_checks_exit_stdout_and_timeout():

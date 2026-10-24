@@ -4,190 +4,285 @@ Linux Lab imports UTF-8 `.yaml` or `.yml` files. The importer, evaluator, and lo
 AI generator share the same schema. View the machine-readable JSON schema at
 `GET /api/courses/schema`. The import limit is 2 MB.
 
-## A complete example
+Exercises follow **Description -> Input requirements -> Output requirements ->
+Examples (optional) -> Evaluations**. State the learner's contract before describing
+how it earns points. For scripting exercises, link each invalid input to an error
+output with its own nonzero exit code and stderr message, then test success and
+every error with `run` cases.
+
+## A complete scripting example
+
+This collection prepares a small dictionary fixture at `/usr/share/dict/words` so
+it works without downloading a dictionary package. Setup creates input data, not
+the learner's script. A course using an installed dictionary can omit that fixture;
+`from_command` computes the expected count from the container's actual data.
 
 ```yaml
 schema_version: 1
-id: team-files
+id: dictionary-count
 version: "1.0"
-title: A team's first files
-description: Practice files, groups, and permissions in one shared Linux workspace.
+title: Count words by initial letter
+description: Practice Bash arguments, validation, output streams, and exit codes.
 setup:
   - script: |
-      install -d -o learner -g learner /home/learner/team-practice
-    user: root
-    timeout: 15
+      install -d /usr/share/dict
+      printf '%s\n' alpha apple banana berry cherry date > /usr/share/dict/words
+      install -d -o learner -g learner /home/learner/lab/dictionary
 exercises:
-  - id: team-note
-    title: Leave the team a note
+  - id: count-letter
+    title: Count words starting with a letter
     description: |
-      Create `/home/learner/team-practice/note.txt` containing `Hello, team!`.
-      Set its permissions so only the owner can read or write it.
-    tasks:
-      - id: greeting
-        description: Save the greeting in the right file.
+      Write an executable Bash script at the path below. Given one ASCII letter,
+      count the words in `/usr/share/dict/words` starting with that letter,
+      ignoring case. Print only the decimal count and a newline on success.
+      Validate argument count before validating the letter.
+    script:
+      path: /home/learner/lab/dictionary/count-letter.sh
+      usage: count-letter.sh LETTER
+    input_requirements:
+      - description: Supply exactly one argument.
+        error: argument-count
+      - description: The argument must be one ASCII letter, A-Z or a-z.
+        error: invalid-letter
+    output_requirements:
+      - id: success
+        description: Print the count followed by a newline; leave stderr empty.
+        exit_code: 0
+        stream: stdout
+      - id: argument-count
+        description: Reject zero or multiple arguments; leave stdout empty.
+        exit_code: 1
+        stream: stderr
+        message: Expected exactly one argument
+      - id: invalid-letter
+        description: Reject an empty argument, multiple characters, or a nonletter.
+        exit_code: 2
+        stream: stderr
+        message: Expected one ASCII letter
+    examples:
+      - command: /home/learner/lab/dictionary/count-letter.sh a
+        stdout: "2\n"
+        stderr: ""
+        exit_code: 0
+        description: The fixture contains alpha and apple.
+      - command: /home/learner/lab/dictionary/count-letter.sh
+        stdout: ""
+        stderr: "Expected exactly one argument\n"
+        exit_code: 1
+      - command: /home/learner/lab/dictionary/count-letter.sh ab
+        stdout: ""
+        stderr: "Expected one ASCII letter\n"
+        exit_code: 2
+    evaluations:
+      - id: valid-letters
+        description: Count existing initials case-insensitively and handle zero matches.
+        points: 10
+        checks:
+          - type: run
+            requirement: success
+            args: [a]
+            stdout:
+              match: exact
+              from_command: LC_ALL=C grep -ic '^a' /usr/share/dict/words
+            stderr: {match: empty}
+          - type: run
+            requirement: success
+            args: [B]
+            stdout:
+              match: lines
+              from_command: LC_ALL=C grep -ic '^b' /usr/share/dict/words
+            stderr: {match: empty}
+          - type: run
+            requirement: success
+            args: [z]
+            stdout: {match: exact, value: "0\n"}
+            stderr: {match: empty}
+      - id: wrong-argument-count
+        description: Reject missing and extra arguments with exit 1 and the required message.
         points: 5
         checks:
-          - type: content
-            path: /home/learner/team-practice/note.txt
-            value: Hello, team!
-            match: contains
-      - id: private
-        description: Set the file permissions to 600.
+          - type: run
+            requirement: argument-count
+            args: []
+            stderr: {match: exact, value: Expected exactly one argument}
+          - type: run
+            requirement: argument-count
+            args: [a, b]
+            stderr: {match: exact, value: Expected exactly one argument}
+      - id: wrong-letter
+        description: Reject invalid letters with exit 2 and the required message.
         points: 5
         checks:
-          - type: permissions
-            path: /home/learner/team-practice/note.txt
-            mode: "600"
+          - type: run
+            requirement: invalid-letter
+            args: [ab]
+            stderr: {match: exact, value: Expected one ASCII letter}
+          - type: run
+            requirement: invalid-letter
+            args: ["7"]
+            stderr: {match: exact, value: Expected one ASCII letter}
+          - type: run
+            requirement: invalid-letter
+            args: [""]
+            stderr: {match: exact, value: Expected one ASCII letter}
     tips:
-      - Try nano, vim, vi, or gedit to create the file.
-      - Read `man chmod` for numeric permission modes.
-    setup: []
+      - Read about positional parameters and redirecting messages to stderr.
+      - Make the script executable before evaluating it.
     sources: []
-    supplemental: Setup and evaluation rules use general Linux knowledge.
+    supplemental: The dictionary fixture and grading cases are authored for this lab.
 ```
 
 ## Collection fields
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `schema_version` | Yes; defaults to 1 | Only `1` is supported. |
-| `id` | Yes | Stable lowercase ID, starting with a letter; letters, numbers, and hyphens only; at most 64 characters. |
-| `version` | Yes | **Quoted string**, up to 40 letters, digits, dots, underscores, or hyphens; starts with a letter or number. |
-| `title` | Yes | Human-readable title, 1–200 characters. |
+| `schema_version` | No; defaults to 1 | Only `1` is supported. |
+| `id` | Yes | Lowercase letters, digits, and hyphens; starts with a letter; at most 64 characters. |
+| `version` | Yes | Quoted string, up to 40 letters, digits, dots, underscores, or hyphens; starts with a letter or digit. |
+| `title` | Yes | Human-readable title, 1-200 characters. |
 | `description` | Yes | Markdown introduction, up to 30,000 characters. |
-| `setup` | No | Ordered list of scripts; at most 30. |
-| `exercises` | Yes | Ordered list containing 1–200 exercises. |
+| `setup` | No | Ordered list of at most 30 setup scripts. |
+| `exercises` | Yes | Ordered list of 1-200 exercises, with unique IDs. |
 
 An ID and version combination is immutable. Importing it twice is rejected. To
-change an existing course, export it, change the version, and import the revision.
-The revision gets a separate environment. Old work remains in its original course.
-The Environments page can also create multiple named environments from the same
-course version. Each has its own files, accounts, resources, and evaluation results.
-Opening a course from the library uses its primary environment; opening a named
-environment from Environments uses that specific instance.
-Unknown fields, duplicate YAML mapping keys, aliases, and unsafe YAML tags are
-rejected rather than silently interpreted.
+change a course, export it, change its version, and import the revision. Existing
+work stays in its original environment. The Environments page can create multiple
+named environments from one course version, each with independent state and scores.
+Unknown fields, duplicate YAML mapping keys, aliases, and unsafe tags are rejected.
 
-## Exercise and task fields
+## Exercise fields
 
-Each exercise has `id`, `title`, `description`, and `tasks`. Exercise IDs are unique
-within a collection and follow the same ID syntax as courses.
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id`, `title`, `description` | Yes | ID/title follow collection rules; description is the Markdown assignment. |
+| `script` | No | Deliverable `{path, usage?}`. `path` is an absolute path; `usage` is a short usage hint. This declares where the learner writes a script; it does not create it. |
+| `input_requirements` | No | Up to 30 `{description, error?}` entries. `error` links to an output requirement ID for invalid input. |
+| `output_requirements` | No | Up to 30 `{id, description, exit_code, stream?, message?}` entries, with unique IDs. Exit codes are 0-255; `stream` defaults to `stdout`. |
+| `examples` | No | Up to 20 `{command, stdout?, stderr?, exit_code?, description?}` examples. Examples are explanatory, not executable grading cases. |
+| `evaluations` | Yes | 1-30 entries, each with a unique `id`, Markdown `description`, integer `points` (1-1000), and 1-20 `checks`. |
+| `tips` | No | Up to 20 Markdown hints. |
+| `setup` | No | Up to 20 setup scripts. |
+| `sources` | No | Up to 20 document references. |
+| `supplemental` | No | Explain Linux setup/grading details added beyond the sources. |
 
-- `tasks`: 1–30 checklist entries, each with a unique `id`, Markdown `description`,
-  positive integer `points` (1–1000), and 1–20 `checks`.
-- `tips`: optional list of up to 20 Markdown strings.
-- `setup`: optional list of up to 20 setup scripts.
-- `sources`: optional list of up to 20 PDF references.
-- `supplemental`: optional text explaining Linux details added beyond the sources.
+An input requirement's `error` must name an existing output requirement whose exit
+code is nonzero. Author errors with distinct exit codes and `stream: stderr`.
+`message` documents the expected message; enforce its contents with a stream
+expectation in the check. An output requirement alone does not create a test.
+For nonscripting exercises, express inputs and outputs as relevant to the Linux
+state being requested; `script` and empty optional sections can be omitted.
 
-All a task's checks must pass to earn its points. Exercises can earn partial credit
-through separate tasks. A failed condition is `fail`; a timeout or execution error
-is `error`. Errors award no points. Evaluation examines **current state**, not
-terminal history or which editor a learner used. Results are timestamped snapshots;
-evaluate again after changing the environment.
+All checks in an evaluation must pass to earn its points. Separate evaluations
+allow partial credit. Checks examine current state, not command history or editor
+choice. Results are timestamped snapshots; evaluate again after changing the lab.
+
+### Legacy collections
+
+On import, `tasks` is accepted as a legacy alias for `evaluations`. Supplying both
+keys is an error, even if they contain identical entries. Exports and generated
+collections always use `evaluations`. Python callers can still read `Exercise.tasks`
+as a read-only compatibility property; the serialized field is `evaluations`.
 
 ## Check reference
 
-Fields not marked optional below are required. `type` must be exactly as shown.
+Fields not marked optional are required. `type` must be exactly as shown.
 
 | Type | Fields | Condition |
 | --- | --- | --- |
-| `path` | `path`; optional `kind` | `kind` is `file` (default), `directory`, `symlink`, or `absent`. File/directory checks follow links; absence checks include broken symlinks. |
-| `content` | `path`, `value`; optional `match` | `match` is `contains` (default), `exact`, or Python `regex`. UTF-8 files only; limit 1 MB. |
-| `permissions` | `path`, `mode` | Exact octal mode, **quoted**, 3 or 4 digits, e.g. `"640"`, `"2770"`. Follows links. |
-| `ownership` | `path`; `owner` and/or `group` | Account/group names; at least one must be set. Follows links. |
-| `user` | `name`; optional `exists`, `shell`, `home` | `exists` defaults to true. `shell` and `home` constrain existing accounts. |
+| `path` | `path`; optional `kind` | `file` (default), `directory`, `symlink`, or `absent`. Files/directories follow links; absence includes broken symlinks. |
+| `content` | `path`, `value`; optional `match` | `contains` (default), `exact`, or Python `regex`. UTF-8 files, limit 1 MB. |
+| `permissions` | `path`, `mode` | Exact quoted octal mode, 3 or 4 digits, e.g. `"640"`, `"2770"`. Follows links. |
+| `ownership` | `path`; `owner` and/or `group` | At least one account/group name; follows links. |
+| `user` | `name`; optional `exists`, `shell`, `home` | `exists` defaults to true; shell/home constrain existing accounts. |
 | `group` | `name`; optional `exists` | `exists` defaults to true. |
 | `membership` | `user`, `group` | Accepts primary or supplementary membership. |
-| `package` | `name` | Debian package is installed according to `dpkg-query`. |
-| `process` | `name`; optional `user` | Exact Linux process name, at most 15 characters; optionally owned by a given user. |
-| `command` | `script`; optional `user`, `timeout`, `expected_exit`, `stdout_contains` | Bash script exits with expected status (default 0) and stdout contains optional text. |
+| `package` | `name` | Installed according to `dpkg-query`. |
+| `process` | `name`; optional `user` | Exact process name, at most 15 characters; optionally owned by a user. |
+| `command` | `script`; optional `user`, `timeout`, `expected_exit`, `stdout_contains` | Bash script exits with expected status (default 0), and stdout contains optional text. |
+| `run` | See below | Execute a program with arguments/stdin and compare status and streams. |
 
-Built-in checks run as root in the learner container. Missing paths produce a
-failed condition; invalid output, unreadable inputs, or probe failures produce an
-error. Regex checks and probes have a 10-second outer limit.
+State probes run as root. Missing paths fail; invalid probe output and execution
+errors are errors. Probes have a 10-second outer limit. Command checks default to
+root and a 15-second timeout; command timeouts are errors.
 
-### User, group, and custom command example
+### `run` check
 
-```yaml
-schema_version: 1
-id: group-practice
-version: "1.0"
-title: Group practice
-description: Create a user and assign a supplementary group.
-exercises:
-  - id: join-developers
-    title: Join the developers
-    description: Create labdev, create labdevelopers, and add labdev to that group.
-    tasks:
-      - id: account
-        description: Create a Bash account with a home directory.
-        points: 5
-        checks:
-          - type: user
-            name: labdev
-            shell: /bin/bash
-            home: /home/labdev
-      - id: membership
-        description: Add the developer group membership.
-        points: 5
-        checks:
-          - type: group
-            name: labdevelopers
-          - type: membership
-            user: labdev
-            group: labdevelopers
-      - id: executable-script
-        description: Create /home/learner/hello.sh that prints Hello.
-        points: 5
-        checks:
-          - type: command
-            script: /home/learner/hello.sh
-            user: learner
-            timeout: 5
-            expected_exit: 0
-            stdout_contains: Hello
-    tips:
-      - Read the useradd, groupadd, and usermod manual pages.
-```
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `type` | Required | `run`. |
+| `path` | Exercise's `script.path` | Program to execute directly; either this or exercise `script` is required. Script files must exist and be executable. |
+| `args` | `[]` | Up to 50 strings, each at most 4096 characters; passed as quoted arguments, not shell code. Quote numeric YAML arguments. |
+| `stdin` | None | UTF-8 input (up to 100,000 characters), piped to the program. Without it stdin is `/dev/null`. |
+| `cwd` | `/home/learner` | Working directory. |
+| `user` | `learner` | `learner` or `root`. |
+| `timeout` | `10` | Execution/reference timeout in seconds, 1-60. |
+| `requirement` | None | Existing output requirement ID; supplies the expected exit code when `exit_code` is omitted. |
+| `exit_code` | Requirement's code, otherwise `0` | Expected status, 0-255; explicit value overrides the requirement. |
+| `stdout`, `stderr` | Unchecked | Optional `StreamExpectation` objects. For a stderr requirement, omitted stdout defaults to `empty`, omitted stderr to `nonempty`. Explicit stream expectations override those defaults. |
+| `prepare` | None | Bash script run as root before the program, with a 15-second timeout; e.g. prepare case input files. It must not solve the exercise. |
+
+Missing/nonexecutable scripts, wrong exit codes, mismatched output, and program
+timeouts fail the case. Preparation failures and reference-command timeouts are
+errors. Stderr requirement defaults do not compare the informational `message`;
+add an explicit `stderr` expectation when exact wording matters. For stdout
+requirements, add a `stdout` expectation and an empty `stderr` expectation.
+
+### `StreamExpectation`
+
+| `match` | Operand | Comparison |
+| --- | --- | --- |
+| `exact` (default) | Exactly one of `value`, `from_command` | Equal text after removing trailing newline characters. |
+| `lines` | Exactly one of `value`, `from_command` | Same ordered lines, ignoring trailing spaces per line and final newlines. Whitespace-only output is treated as no lines. |
+| `contains` | Exactly one of `value`, `from_command` | Expected text is a substring of actual output. |
+| `regex` | Literal `value` only | Python regular expression search with multiline mode. Invalid regexes are rejected on import. |
+| `empty` | Neither operand | No characters, including whitespace. |
+| `nonempty` | Neither operand | At least one nonwhitespace character. |
+
+`value` may be an empty string. `from_command` is a validated Bash command whose
+stdout becomes the reference, even when checking stderr. It runs in the case's
+working directory as the case's user, after the learner program. It should inspect
+independent input data rather than call the learner's script. It does not assert
+the reference command's exit status. Literal and command operands are limited to
+30,000 characters each. Omitting a stream expectation leaves that stream unchecked,
+except for the stderr requirement defaults described above.
 
 ## Script contract and shared state
 
 Setup entries contain `script`, optional `user` (`root` or `learner`, default
-`root`), and optional `timeout` (1–60 seconds, default 15). Command checks have
-the same fields plus `type: command`, `expected_exit` (0–255), and optional
-`stdout_contains`.
+`root`), and optional `timeout` (1-60 seconds, default 15). Command checks have the
+same fields plus `type: command`, `expected_exit`, and optional `stdout_contains`.
+Setup, command, preparation, and reference scripts are parsed as Bash on import;
+unsupported syntax is rejected. A deliverable `script.path` identifies the
+learner's file and is not parsed or executed on import.
 
-Scripts are parsed as Bash on import; unsupported syntax is rejected with its
-location. Execution uses `bash -lc` with working directory `/home/learner` and
-`DISPLAY=:1`. Use absolute paths. Scripts must be noninteractive. Only use custom
-grading commands to inspect state; the app cannot prove arbitrary shell code is
-read-only. The stdout/stderr feedback limit is 32 KB each, and individual output
-files are limited to 1 MB. Timeout exits are reported as errors.
+Execution uses Bash in the container, normally in `/home/learner`, with `DISPLAY=:1`.
+Use absolute paths and bounded, noninteractive commands. Custom grading commands
+should inspect state. Stdout/stderr feedback is limited to 32 KB each, and
+individual output files are limited to 1 MB.
 
-Course setup runs first, followed by **all exercise setup in order**, exactly once
-on a fresh environment. Opening an exercise does not rerun its setup. Setup should
-create input data and prerequisites, never the learner's completed answers.
-Use distinct paths and account names across exercises. Prefer
-`install -d -o learner -g learner /home/learner/lab/my-exercise` when preparing
-learner-owned directories. Do not rely on previous exercise answers unless your
-description states that dependency explicitly.
+Course setup runs first, followed by all exercise setup in order, once on a fresh
+environment. Opening an exercise does not rerun it. Setup prepares inputs and
+prerequisites, never completed answers. Use distinct paths and accounts across
+exercises; `install -d -o learner -g learner /home/learner/lab/my-exercise` prepares
+a learner-owned directory. State any dependency on earlier exercise answers.
 
-Stopping preserves the entire container filesystem, including users, groups, and
-installed packages. Recreating destroys that state, clears current scores, and
-reruns setup. Setup failure leaves an error environment; fix the collection in a
-new version or recreate after resolving the failure.
+Stopping preserves files, accounts, and installed packages. Recreating destroys
+that state, clears scores, and reruns setup. Imports and generation do not execute
+scripts; starting the environment runs setup. Import only collections you trust.
+Learners have sudo, so grading is a practice aid rather than a secure exam. No
+host paths or Docker socket are mounted into learner containers.
 
-Imports and AI generation do not execute scripts. Starting the environment runs
-setup. Import only collections you trust. Learners have sudo, so this grading is a
-practice aid, not a tamper-resistant exam system. No host paths or Docker socket
-are mounted into learner containers.
+## Source references and portability
 
-## PDF references and portability
+The Sources library accepts `.pdf`, `.txt`, `.md`, `.htm`, and `.html` documents.
+PDFs retain their physical pages and local OCR behavior. Text uses UTF-8 with
+cp1252/Latin-1 fallback. HTML becomes plain text, dropping scripts/styles and
+retaining headings, lists, and code. Plain-text `.htm` sheets also work. Text is
+split on paragraph boundaries into pages of about 3000 characters; long paragraphs
+are split further. These pages use the same search and citation system without OCR.
 
-Optional exercise references use the PDF's SHA-256, title, and **one-based PDF page
-numbers** (not the printed page labels):
+References use the original document's SHA-256, title, and one-based indexed page
+numbers (PDF physical pages, not printed labels; synthetic pages for text):
 
 ```yaml
 sources:
@@ -197,20 +292,17 @@ sources:
 supplemental: Setup paths and grading checks were added using general Linux knowledge.
 ```
 
-The Sources library exposes the document hash through its API. References remain
-portable across installations when the same PDF is imported. YAML exports do not
-embed PDF files. Missing or removed documents remain named in the exercise but
-are marked unavailable. Local model output is checked against the actual source
-pages provided to it; generated citations cannot invent other page numbers.
+The API exposes the hash. References remain portable when the same original file
+is uploaded elsewhere. YAML exports do not embed source files. Removed documents
+remain named but are marked unavailable. Generated citations are checked against
+the pages actually supplied to the model.
 
 ## Using Exercise Chat
 
-Select a local model and optional ready PDFs, choose the requested exercise count,
-and describe your goals in natural language. Follow-up requests revise the saved
-draft. The model receives this format through the canonical JSON schema and
-authoring rules, then returns structured data converted into YAML.
-
-Generation uses batches of up to three exercises, with at most two repair attempts
-per invalid batch. Review the editable YAML, validate and save it, then import it.
-Each import uses a course ID/version; importing never modifies an already running
-course. All model computation uses the configured local Ollama endpoint.
+Select a local model and optional ready sources, choose an exercise count, and
+describe your goals. Follow-up requests revise the saved draft. The model receives
+the canonical JSON schema through structured output plus concise authoring rules.
+Generation uses one exercise per batch and at most two repair attempts per invalid
+batch. Review the YAML, validate and save it, then import it. Each import uses a
+course ID/version and never modifies an already running course. All model
+computation uses the configured local Ollama endpoint.

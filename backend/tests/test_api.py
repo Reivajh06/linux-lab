@@ -1,3 +1,6 @@
+import threading
+
+import pytest
 import yaml
 from fastapi.testclient import TestClient
 
@@ -15,6 +18,7 @@ def test_import_library_export_and_local_guard(db, course_data):
         config = client.get('/api/config').json()
         assert not config['docker']['available']
         headers = {'X-Lab-Token': config['token']}
+        initial_count = len(client.get('/api/courses').json())
         assert client.post('/api/courses/import', json={'yaml': yaml.safe_dump(course_data)}).status_code == 403
         assert client.post('/api/courses/import', headers={**headers, 'Origin': 'https://evil.example'}, json={'yaml': yaml.safe_dump(course_data)}).status_code == 403
         assert client.get('/api/config', headers={'Host': 'evil.example'}).status_code == 400
@@ -26,7 +30,7 @@ def test_import_library_export_and_local_guard(db, course_data):
         assert detail['environment']['state'] == 'new'
         exported = client.get(f'/api/courses/{key}/export')
         assert yaml.safe_load(exported.text)['id'] == course_data['id']
-        assert len(client.get('/api/courses').json()) == 2  # starter plus import
+        assert len(client.get('/api/courses').json()) == initial_count + 1
         assert client.get('/api/courses/no-such-course').status_code == 404
         invalid = client.post('/api/courses/validate', headers=headers, json={'yaml': 'id: one\nid: two'})
         assert invalid.status_code == 422 and 'Duplicate' in invalid.text
@@ -42,3 +46,26 @@ def test_drafts_persist_and_reject_concurrent_edits(db):
         assert saved.status_code == 200
         assert client.get(f'/api/chats/{chat_id}').json()['draft'] == 'unfinished draft'
         assert client.get('/api/chats').json()[0]['id'] == chat_id
+
+
+@pytest.mark.parametrize('extension', ['txt', 'md', 'htm', 'html'])
+def test_text_source_upload_page_and_safe_preview(db, monkeypatch, extension):
+    app = create_app(db, NoDocker(db))
+    service = app.state.sources
+    monkeypatch.setattr(service, 'start', lambda source_id: service.index(source_id, threading.Event()))
+    content = b'Pr\xe1ctica\n\nLinux permissions'
+    if extension in ('htm', 'html'):
+        content = b'<h1>Pr\xe1ctica</h1><script>alert(1)</script><p>Linux permissions</p>'
+    with TestClient(app) as client:
+        headers = {'X-Lab-Token': client.get('/api/config').json()['token']}
+        response = client.post('/api/sources', headers=headers, files={'file': ('practice.' + extension, content)})
+        assert response.status_code == 201, response.text
+        source = response.json()
+        assert source['state'] == 'ready' and source['ocr_pages'] == 0
+        page = client.get(f"/api/sources/{source['id']}/pages/1")
+        assert page.status_code == 200 and 'Práctica' in page.json()['content']
+        preview = client.get(f"/api/sources/{source['id']}/pdf")
+        assert preview.status_code == 200 and preview.headers['content-type'].startswith('text/plain')
+        assert 'Práctica' in preview.text and 'Linux permissions' in preview.text
+        assert '<script>' not in preview.text and 'alert(1)' not in preview.text
+        assert client.post('/api/sources', headers=headers, files={'file': ('bad.exe', b'bad')}).status_code == 422

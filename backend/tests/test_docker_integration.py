@@ -12,25 +12,34 @@ from lab.schema import parse_course, course_yaml
 
 pytestmark = pytest.mark.skipif(os.getenv('RUN_DOCKER_TESTS') != '1', reason='Docker acceptance tests require Docker and a built lab image')
 
+COURSE_FILES = sorted((Path(__file__).resolve().parents[2] / 'courses').glob('*.yaml'))
 
-async def test_all_starter_solutions_and_lifecycle(db):
-    root = Path(__file__).resolve().parents[2]
-    course = parse_course((root / 'courses/foundations.yaml').read_text(encoding='utf-8'))
-    db.execute("INSERT INTO courses VALUES('foundations',?,?,?,?)", (course.id, course.version, course_yaml(course), now()))
+
+@pytest.mark.parametrize('course_file', COURSE_FILES, ids=lambda path: path.stem)
+async def test_all_course_solutions_and_lifecycle(db, course_file):
+    course = parse_course(course_file.read_text(encoding='utf-8'))
+    course_key = course_file.stem
+    db.execute("INSERT INTO courses VALUES(?,?,?,?,?)", (course_key, course.id, course.version, course_yaml(course), now()))
     runtime = Runtime(db)
-    env = runtime.environment('foundations')
+    env = runtime.environment(course_key)
     free = runtime.environment()
     try:
         await runtime.start(env['id'])
         baseline = await evaluate(runtime, db, env['id'])
         assert sum(r['earned'] for r in baseline['results']) < sum(r['available'] for r in baseline['results'])
-        solutions = json.loads((root / 'courses/foundations-solutions.json').read_text())
+        solutions = json.loads(course_file.with_name(course_key + '-solutions.json').read_text(encoding='utf-8'))
         for exercise in course.exercises:
-            result = runtime.exec(env['id'], solutions[exercise.id], 'learner', 15)
-            assert result.code == 0, (exercise.id, result.stderr)
+            # Original foundations answers use the learner's home/session;
+            # ASO answer scripts also create accounts and set ownership.
+            user = 'learner' if course_key == 'foundations' else 'root'
+            result = runtime.exec(env['id'], 'set -e\n' + solutions[exercise.id], user, 30)
+            assert not result.timed_out and result.code == 0, (course_key, exercise.id, result.stdout, result.stderr)
         grades = await evaluate(runtime, db, env['id'])
         for grade in grades['results']:
-            assert grade['earned'] == grade['available'], grade
+            assert grade['earned'] == grade['available'], (course_key, grade)
+            assert all(evaluation['status'] == 'pass' for evaluation in grade['tasks']), (course_key, grade)
+        if course_key != 'foundations':
+            return
         for executable in ['vi', 'vim', 'nano', 'gedit', 'man', 'info']:
             assert runtime.exec(env['id'], f'command -v {executable}').code == 0
         assert runtime.exec(env['id'], 'man -w ls && info --where coreutils').code == 0

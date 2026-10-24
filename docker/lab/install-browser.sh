@@ -5,6 +5,11 @@ if ! command -v wmctrl >/dev/null || ! command -v gpg >/dev/null || ! command -v
     apt-get update -qq
     apt-get install -y --no-install-recommends wmctrl gnupg gnome-themes-extra adwaita-icon-theme libglib2.0-bin dconf-gsettings-backend gsettings-desktop-schemas
 fi
+# Course material (ASO prácticas) uses the words list and a few process tools.
+if [ ! -f /usr/share/dict/words ] || ! command -v bc >/dev/null || ! command -v htop >/dev/null || ! command -v lsof >/dev/null; then
+    apt-get update -qq
+    apt-get install -y --no-install-recommends wamerican bc htop lsof
+fi
 if ! dpkg-query -W -f='${Version}' firefox 2>/dev/null | grep -qv 'snap'; then
     install -d -m 0755 /etc/apt/keyrings
     curl --fail --silent --show-error --location https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt/keyrings/packages.mozilla.org.asc

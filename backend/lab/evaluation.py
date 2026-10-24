@@ -1,9 +1,11 @@
 import asyncio
 import base64
 import json
+import re
 import shlex
 
 from .db import now
+from .schema import StreamExpectation
 
 # Run as a short, isolated Python process INSIDE the learner container. No paths or
 # regexes are interpolated into shell syntax; JSON is carried as a base64 argument.
@@ -50,7 +52,77 @@ except Exception as e:
 '''
 
 
-def check_one(runtime, environment_id, check):
+def stream_matches(expectation, actual, reference=None):
+    """Return (passed, explanation) comparing one output stream with its expectation."""
+    m = expectation.match
+    if m == "empty":
+        return actual == "", "expected no output"
+    if m == "nonempty":
+        return actual.strip() != "", "expected some output"
+    value = reference if expectation.from_command is not None else expectation.value
+    if m == "exact":
+        return actual.rstrip("\n") == value.rstrip("\n"), "expected exactly the reference output"
+    if m == "lines":
+        lines = lambda s: [line.rstrip() for line in s.rstrip("\n").split("\n")] if s.strip() else []
+        return lines(actual) == lines(value), "expected the same lines (trailing spaces ignored)"
+    if m == "contains":
+        return value in actual, f"expected output containing {value!r}"
+    return re.search(value, actual, re.MULTILINE) is not None, f"expected output matching /{value}/"
+
+
+def run_case(runtime, environment_id, check, exercise=None):
+    """Run a learner program like a user would and compare exit code, stdout and stderr."""
+    path = check.path or exercise.script.path
+    requirement = next((o for o in (exercise.output_requirements if exercise else []) if o.id == check.requirement), None)
+    expected_exit = check.exit_code if check.exit_code is not None else (requirement.exit_code if requirement else 0)
+    stdout_rule, stderr_rule = check.stdout, check.stderr
+    if requirement and requirement.stream == "stderr":
+        # An error case: the message goes to stderr and nothing is printed as a result.
+        stdout_rule = stdout_rule or StreamExpectation(match="empty")
+        stderr_rule = stderr_rule or StreamExpectation(match="nonempty")
+    command = " ".join([shlex.quote(path), *map(shlex.quote, check.args)])
+    shown = " ".join([path, *map(shlex.quote, check.args)])
+    feedback = {"command": shown, "expected_exit": expected_exit}
+    if "/" in path:
+        probe = runtime.exec(environment_id, f"p={shlex.quote(path)}; [ -e \"$p\" ] || exit 3; [ -x \"$p\" ] || exit 4; exit 0", check.user, 5)
+        if probe.code in (3, 4):
+            return {**feedback, "status": "fail", "message": f"{path} does not exist" if probe.code == 3 else f"{path} is not executable (try chmod u+x)"}
+    if check.prepare:
+        prepared = runtime.exec(environment_id, check.prepare, "root", 15)
+        if prepared.timed_out or prepared.code != 0:
+            return {**feedback, "status": "error", "message": "Case preparation failed", "stderr": prepared.stderr}
+    stdin = f"printf %s {shlex.quote(base64.b64encode(check.stdin.encode()).decode())} | base64 -d | " if check.stdin is not None else ""
+    redirect = "" if check.stdin is not None else " </dev/null"
+    result = runtime.exec(environment_id, f"cd {shlex.quote(check.cwd)} && {stdin}{command}{redirect}", check.user, check.timeout)
+    feedback.update(stdout=result.stdout, stderr=result.stderr, exit_code=result.code)
+    if result.timed_out:
+        return {**feedback, "status": "fail", "message": f"Timed out after {check.timeout}s (is it waiting for input?)"}
+    problems = []
+    if result.code != expected_exit:
+        problems.append(f"exit code {result.code}, expected {expected_exit}")
+    for name, rule, actual in (("stdout", stdout_rule, result.stdout), ("stderr", stderr_rule, result.stderr)):
+        if rule is None:
+            continue
+        reference = None
+        if rule.from_command is not None:
+            ref = runtime.exec(environment_id, f"cd {shlex.quote(check.cwd)} && {{ {rule.from_command}\n}}", check.user, check.timeout)
+            if ref.timed_out:
+                return {**feedback, "status": "error", "message": f"Reference command for {name} timed out"}
+            reference = ref.stdout
+            feedback[f"expected_{name}"] = reference
+        elif rule.value is not None:
+            feedback[f"expected_{name}"] = rule.value
+        passed, why = stream_matches(rule, actual, reference)
+        if not passed:
+            problems.append(f"{name}: {why}")
+    if problems:
+        return {**feedback, "status": "fail", "message": "; ".join(problems)}
+    return {**feedback, "status": "pass", "message": f"Exit {result.code} and output as expected"}
+
+
+def check_one(runtime, environment_id, check, exercise=None):
+    if check.type == "run":
+        return run_case(runtime, environment_id, check, exercise)
     if check.type == "command":
         result = runtime.exec(environment_id, check.script, check.user, check.timeout)
         if result.timed_out:
@@ -87,7 +159,7 @@ async def evaluate(runtime, db, environment_id, exercise_id=None):
                 checks = []
                 for check in task.checks:
                     try:
-                        checks.append(await asyncio.to_thread(check_one, runtime, environment_id, check))
+                        checks.append(await asyncio.to_thread(check_one, runtime, environment_id, check, exercise))
                     except Exception as exc:
                         checks.append({"status": "error", "message": str(exc)[:2000]})
                 status = "error" if any(c["status"] == "error" for c in checks) else ("pass" if all(c["status"] == "pass" for c in checks) else "fail")

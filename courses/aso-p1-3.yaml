@@ -1,0 +1,181 @@
+schema_version: 1
+id: aso-p1-3
+version: '1.0'
+title: ASO Práctica 1.3 · Usuarios, permisos y grupos
+description: 'Actividad 8 de ULPGC ASO: cuentas, contraseñas, grupos y directorio compartido. Ejecuta
+  los ejercicios en orden, con sudo. Se evalúa el estado final. Elige las contraseñas; deben estar establecidas
+  y desbloqueadas.'
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p13
+
+    '
+  user: root
+exercises:
+- id: cuentas
+  title: 8.1 · Crear cuentas
+  description: Crea jefe, trabajador1, trabajador2 y trabajador3, con directorio /home/NOMBRE y shell
+    /bin/bash. Asigna una contraseña a cada cuenta.
+  evaluations:
+  - id: jefe
+    description: Cuenta y contraseña de jefe
+    points: 2
+    checks:
+    - type: user
+      name: jefe
+      home: /home/jefe
+      shell: /bin/bash
+    - type: path
+      path: /home/jefe
+      kind: directory
+    - type: command
+      script: 'awk -F: ''$1=="jefe" {ok=($2!="" && $2 !~ /^[!*]/)} END {exit !ok}'' /etc/shadow'
+  - id: trabajador1
+    description: Cuenta y contraseña de trabajador1
+    points: 2
+    checks:
+    - type: user
+      name: trabajador1
+      home: /home/trabajador1
+      shell: /bin/bash
+    - type: path
+      path: /home/trabajador1
+      kind: directory
+    - type: command
+      script: 'awk -F: ''$1=="trabajador1" {ok=($2!="" && $2 !~ /^[!*]/)} END {exit !ok}'' /etc/shadow'
+  - id: trabajador2
+    description: Cuenta y contraseña de trabajador2
+    points: 2
+    checks:
+    - type: user
+      name: trabajador2
+      home: /home/trabajador2
+      shell: /bin/bash
+    - type: path
+      path: /home/trabajador2
+      kind: directory
+    - type: command
+      script: 'awk -F: ''$1=="trabajador2" {ok=($2!="" && $2 !~ /^[!*]/)} END {exit !ok}'' /etc/shadow'
+  - id: trabajador3
+    description: Cuenta y contraseña de trabajador3
+    points: 2
+    checks:
+    - type: user
+      name: trabajador3
+      home: /home/trabajador3
+      shell: /bin/bash
+    - type: path
+      path: /home/trabajador3
+      kind: directory
+    - type: command
+      script: 'awk -F: ''$1=="trabajador3" {ok=($2!="" && $2 !~ /^[!*]/)} END {exit !ok}'' /etc/shadow'
+  tips:
+  - Consulta man useradd, man passwd y man chpasswd.
+- id: caducidad
+  title: 8.2 · Política de contraseñas
+  description: Para las cuatro cuentas establece vigencia máxima de contraseña de 60 días, aviso de 4
+    días y gracia por inactividad de 2 días. Las cuentas trabajador1, trabajador2 y trabajador3 caducan
+    el 15 de diciembre de 2026; jefe no tiene caducidad de cuenta.
+  evaluations:
+  - id: jefe
+    description: Política de jefe
+    points: 2
+    checks:
+    - type: command
+      script: 'awk -F: ''$1=="jefe" {ok=($5==60 && $6==4 && $7==2 && ($8=="" || $8==-1))} END {exit !ok}''
+        /etc/shadow'
+  - id: trabajador1
+    description: Política de trabajador1
+    points: 2
+    checks:
+    - type: command
+      script: 'awk -F: ''$1=="trabajador1" {ok=($5==60 && $6==4 && $7==2 && $8==20802)} END {exit !ok}''
+        /etc/shadow'
+  - id: trabajador2
+    description: Política de trabajador2
+    points: 2
+    checks:
+    - type: command
+      script: 'awk -F: ''$1=="trabajador2" {ok=($5==60 && $6==4 && $7==2 && $8==20802)} END {exit !ok}''
+        /etc/shadow'
+  - id: trabajador3
+    description: Política de trabajador3
+    points: 2
+    checks:
+    - type: command
+      script: 'awk -F: ''$1=="trabajador3" {ok=($5==60 && $6==4 && $7==2 && $8==20802)} END {exit !ok}''
+        /etc/shadow'
+  tips:
+  - Consulta man chage y man 5 shadow.
+- id: empresa
+  title: 8.3 · Grupo y administración
+  description: Crea empresa, añade las cuatro cuentas como miembros secundarios y establece jefe como
+    único administrador del grupo. Conserva sus grupos primarios individuales.
+  evaluations:
+  - id: grupo
+    description: Crear empresa
+    points: 2
+    checks:
+    - type: group
+      name: empresa
+  - id: miembros
+    description: Cuatro miembros secundarios
+    points: 2
+    checks:
+    - type: membership
+      user: jefe
+      group: empresa
+    - type: membership
+      user: trabajador1
+      group: empresa
+    - type: membership
+      user: trabajador2
+      group: empresa
+    - type: membership
+      user: trabajador3
+      group: empresa
+    - type: command
+      script: 'awk -F: ''$1=="empresa" {n=split($4,a,","); for(i=1;i<=n;i++) seen[a[i]]=1; ok=seen["jefe"]&&seen["trabajador1"]&&seen["trabajador2"]&&seen["trabajador3"]}
+        END {exit !ok}'' /etc/group'
+    - type: command
+      script: 'for u in jefe trabajador1 trabajador2 trabajador3; do
+
+        [ "$(id -gn "$u")" = "$u" ] || exit 1
+
+        done
+
+        '
+  - id: administrador
+    description: Administración de empresa
+    points: 2
+    checks:
+    - type: command
+      script: 'awk -F: ''$1=="empresa" {ok=($3=="jefe")} END {exit !ok}'' /etc/gshadow'
+  tips:
+  - Consulta man groupadd, man usermod y man gpasswd.
+- id: trabajo
+  title: 8.4 · Directorio compartido
+  description: Crea /home/trabajo, propiedad de jefe y del grupo empresa. Propietario y grupo tienen todos
+    los permisos; los demás ninguno. Activa sticky bit.
+  evaluations:
+  - id: directorio
+    description: Directorio y propiedad
+    points: 2
+    checks:
+    - type: path
+      path: /home/trabajo
+      kind: directory
+    - type: ownership
+      path: /home/trabajo
+      owner: jefe
+      group: empresa
+  - id: permisos
+    description: Acceso y sticky bit
+    points: 2
+    checks:
+    - type: permissions
+      path: /home/trabajo
+      mode: '1770'
+  tips:
+  - Consulta man chmod y man chown.

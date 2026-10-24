@@ -56,7 +56,7 @@ class EvaluationInput(BaseModel):
 class GenerationInput(BaseModel):
     prompt: str = Field(min_length=1, max_length=8000)
     model: str = Field(min_length=1, max_length=200)
-    source_ids: list[str] = Field(default_factory=list, max_length=20)
+    source_ids: list[str] | None = Field(default=None, max_length=500)
     count: int = Field(default=5, ge=1, le=30)
 
 
@@ -85,8 +85,7 @@ def create_app(db=None, runtime=None):
 
     @asynccontextmanager
     async def lifespan(app):
-        starter = ROOT / "courses" / "foundations.yaml"
-        if starter.exists():
+        for starter in sorted((ROOT / "courses").glob("*.yaml")):
             course = parse_course(starter.read_text(encoding="utf-8"))
             db.execute("INSERT OR IGNORE INTO courses VALUES(?,?,?,?,?)", (uid(), course.id, course.version, course_yaml(course), now()))
         yield
@@ -371,6 +370,9 @@ def create_app(db=None, runtime=None):
     @app.get("/api/sources/{source_id}/pdf")
     async def source_pdf(source_id: str):
         row = source_row(source_id)
+        if sources.path(source_id).suffix != ".pdf":
+            from .sources import source_text
+            return Response(source_text(sources.path(source_id).read_bytes(), row["filename"]), media_type="text/plain")
         return FileResponse(sources.path(source_id), media_type="application/pdf", filename=row["filename"], content_disposition_type="inline")
 
     @app.post("/api/sources/{source_id}/retry")

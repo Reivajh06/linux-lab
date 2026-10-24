@@ -1,9 +1,13 @@
 export type Environment = { id: string; course_key: string | null; state: string; error: string | null; setup_done: number; name: string; cpus: number; memory_mb: number; pids: number; is_default: number; created_at: string };
-export type CheckResult = { status: 'pass' | 'fail' | 'error'; message: string; stdout?: string; stderr?: string };
+export type CheckResult = { status: 'pass' | 'fail' | 'error'; message: string; stdout?: string; stderr?: string; command?: string; exit_code?: number; expected_exit?: number; expected_stdout?: string; expected_stderr?: string };
 export type TaskResult = { id: string; status: string; earned: number; available: number; checks: CheckResult[] };
 export type Result = { exercise_id: string; tasks: TaskResult[]; earned: number; available: number; checked_at: string };
 export type Reference = { document_hash: string; title: string; pages: number[]; available?: boolean; source_id?: string };
-export type Exercise = { id: string; title: string; description: string; tasks: { id: string; description: string; points: number; checks: object[] }[]; tips: string[]; setup: object[]; sources: Reference[]; supplemental?: string };
+export type Evaluation = { id: string; description: string; points: number; checks: { type: string; args?: string[]; requirement?: string }[] };
+export type InputRequirement = { description: string; error?: string };
+export type OutputRequirement = { id: string; description: string; exit_code: number; stream: 'stdout' | 'stderr'; message?: string };
+export type Example = { command: string; stdout?: string; stderr?: string; exit_code?: number; description?: string };
+export type Exercise = { id: string; title: string; description: string; script?: { path: string; usage?: string }; input_requirements: InputRequirement[]; output_requirements: OutputRequirement[]; examples: Example[]; evaluations: Evaluation[]; tips: string[]; setup: object[]; sources: Reference[]; supplemental?: string };
 export type Course = { id: string; version: string; title: string; description: string; exercises: Exercise[] };
 export type CourseSummary = { key: string; id: string; title: string; description: string; version: string; exercise_count: number; points: number; earned: number; completed: number; environment: Environment | null };
 export type CourseDetail = { key: string; course: Course; environment: Environment; results: Record<string, Result> };
@@ -37,3 +41,9 @@ export const download = (content: string, filename: string) => {
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 export function progressPercent(earned: number, total: number): number { return total > 0 ? Math.min(100, Math.round(earned / total * 100)) : 0; }
+
+export function selectLocalModel(models: { name: string }[], saved: string): string {
+  return models.find(m => m.name === saved)?.name
+    || models.find(m => m.name === 'gemma3:12b-it-qat')?.name
+    || models[0]?.name || '';
+}

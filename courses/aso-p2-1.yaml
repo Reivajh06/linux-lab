@@ -1,0 +1,824 @@
+schema_version: 1
+id: aso-p2-1
+version: '1.0'
+title: ASO Práctica 2.1 · Scripts en bash
+description: "Desarrolla scripts en bash que validen argumentos y consulten ficheros, usuarios y grupos del sistema. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p21/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p21
+
+    groupadd p21_consulta_equipo
+
+    useradd -m -s /bin/bash -G p21_consulta_equipo p21_consulta
+
+    groupadd p21_miembros_equipo
+
+    useradd -m -s /bin/bash -G p21_miembros_equipo p21_miembros
+
+    groupadd p21_grupos_equipo
+
+    useradd -m -s /bin/bash -G p21_grupos_equipo p21_grupos
+
+    groupadd p21_perfil_equipo
+
+    useradd -m -s /bin/bash -G p21_perfil_equipo p21_perfil
+
+    useradd -M -d /var/lib/p21_otro -s /bin/sh p21_otro
+
+    '
+  user: root
+exercises:
+- id: letra
+  title: Laboratorio 1 · Palabras por inicial
+  description: "Cuenta las palabras de /usr/share/dict/words que comienzan por la letra recibida. La búsqueda debe dar el mismo resultado para una letra mayúscula que para su minúscula.\n\nCrea el script ejecutable /home/learner/aso/p21/letra.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/letra.sh
+    usage: letra.sh LETRA
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "El argumento es una única letra (a–z o A–Z)."
+    error: formato
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout solo el número de palabras que comienzan por LETRA, seguido de un salto de línea; por ejemplo, `3850`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: letra.sh LETRA'
+  - id: formato
+    description: "El argumento no es una única letra ASCII: está vacío, contiene varias letras o incluye otro carácter."
+    exit_code: 2
+    stream: stderr
+    message: "el argumento debe ser una única letra"
+  examples:
+  - command: ./letra.sh a
+    stdout: '3850
+  
+      '
+    description: Salida ilustrativa; el número depende del sistema.
+    exit_code: 0
+  - command: ./letra.sh
+    stderr: 'uso: letra.sh LETRA
+  
+      '
+    exit_code: 1
+  - command: ./letra.sh ab
+    stderr: 'el argumento debe ser una única letra
+  
+      '
+    exit_code: 2
+  evaluations:
+  - id: correcto-1
+    description: "Cuenta las palabras que empiezan por «a»"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: grep -ic '^a' /usr/share/dict/words
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Acepta mayúsculas: «Z»"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - Z
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: grep -ic '^z' /usr/share/dict/words
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Dos letras → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ab
+      requirement: formato
+  tips:
+  - Consulta en man grep cómo ignorar mayúsculas y cómo anclar una expresión al comienzo de la línea.
+- id: campos
+  title: Laboratorio 2 · Dos campos
+  description: "Muestra dos campos de cada línea de un fichero con el mismo formato que /etc/passwd. Los dos primeros argumentos indican los campos y el tercero, opcional, el fichero que se leerá; si se omite, utiliza /etc/passwd. Respeta el orden solicitado aunque el primer número sea mayor que el segundo y permite repetir un campo.\n\nCrea el script ejecutable /home/learner/aso/p21/campos.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/campos.sh
+    usage: campos.sh CAMPO1 CAMPO2 [FICHERO]
+  input_requirements:
+  - description: "Dos o tres argumentos: CAMPO1, CAMPO2 y, opcionalmente, FICHERO."
+    error: uso
+  - description: "CAMPO1 y CAMPO2 contienen únicamente dígitos decimales (0–9), sin signo."
+    error: formato
+  - description: "CAMPO1 y CAMPO2 están entre 1 y 7, ambos incluidos."
+    error: rango
+  - description: "El fichero que se va a leer existe, es regular y se puede leer."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea por cada línea de entrada, con los dos campos separados por `:` y en el orden solicitado. No añadas cabecera ni espacios; por ejemplo, al pedir dos veces el campo 3 de una línea con UID 123, imprime `123:123`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "Se han recibido menos de dos argumentos o más de tres."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]'
+  - id: formato
+    description: "Alguno de los números de campo está vacío o contiene caracteres distintos de los dígitos decimales."
+    exit_code: 2
+    stream: stderr
+    message: los campos deben ser enteros
+  - id: rango
+    description: "Alguno de los números de campo es menor que 1 o mayor que 7."
+    exit_code: 3
+    stream: stderr
+    message: campo fuera de rango
+  - id: fichero
+    description: "El fichero que se va a leer no existe, no es regular o no se puede leer."
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe o no es legible
+  examples:
+  - command: 'printf ''ana:x:123:456:Ana:/home/ana:/bin/bash\n'' > ''entrada con espacios''
+  
+      ./campos.sh 3 3 ''entrada con espacios'''
+    exit_code: 0
+    stdout: '123:123
+  
+      '
+    description: Crea una línea con formato /etc/passwd y muestra dos veces su UID.
+  - command: ./campos.sh
+    stderr: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Muestra los campos 5 y 1 de /etc/passwd en ese orden"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '5'
+      - '1'
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print $5 ":" $1}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Repite el campo 3 y acepta una ruta con espacios"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '3'
+      - '3'
+      - /home/learner/aso/p21/entrada con espacios
+      requirement: ok
+      prepare: 'printf %s ''ana:x:123:456:Ana:/home/ana:/bin/bash
+
+        '' > ''/home/learner/aso/p21/entrada con espacios''
+
+        '
+      stdout:
+        match: exact
+        value: '123:123
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Una letra como número de campo → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '2'
+      requirement: formato
+  - id: rango
+    description: "Campo 0 → error de rango"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '0'
+      - '2'
+      requirement: rango
+  - id: fichero
+    description: "Fichero inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - /home/learner/aso/p21/ausente
+      requirement: fichero
+  tips:
+  - Conserva el orden de los campos solicitados, incluso si coinciden; cut por sí solo no conserva ese orden
+    ni repite campos.
+- id: existe-fichero
+  title: Autónomo 1 · Existencia de fichero
+  description: "Comprueba si el nombre recibido corresponde a un fichero regular. Si existe, indícalo con el mensaje de éxito; si no existe o es de otro tipo, muestra el mensaje de error y termina con código 4.\n\nCrea el script ejecutable /home/learner/aso/p21/existe-fichero.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/existe-fichero.sh
+    usage: existe-fichero.sh FICHERO
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "El argumento identifica un fichero regular existente."
+    error: fichero
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout exactamente `el fichero existe`, seguido de un salto de línea."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: existe-fichero.sh FICHERO'
+  - id: fichero
+    description: "La ruta no existe o no corresponde a un fichero regular."
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: ./existe-fichero.sh /etc/passwd
+    exit_code: 0
+    stdout: 'el fichero existe
+  
+      '
+  - command: ./existe-fichero.sh
+    stderr: 'uso: existe-fichero.sh FICHERO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Reconoce /etc/passwd como fichero regular"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc/passwd
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el fichero existe
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: fichero
+    description: "Ruta inexistente → error de fichero"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p21/ausente
+      requirement: fichero
+  tips:
+  - Consulta en man test la diferencia entre comprobar si una ruta existe y comprobar si es un fichero regular.
+- id: digitos
+  title: Autónomo 2 · Clasificar números
+  description: "Determina si la cadena recibida representa un entero decimal sin signo y clasifícala según su cantidad de dígitos. Se admite el cero y se cuentan todos los caracteres, incluidos los ceros iniciales.\n\nCrea el script ejecutable /home/learner/aso/p21/digitos.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/digitos.sh
+    usage: digitos.sh CADENA
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "CADENA contiene uno o más dígitos decimales (0–9), sin signo; se admite 0."
+    error: formato
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una sola línea: `es un número de un dígito`, `es un número de dos dígitos` o `es un número de tres o más dígitos`, según la longitud de la cadena."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: digitos.sh CADENA'
+  - id: formato
+    description: "La cadena está vacía o contiene algún carácter que no es un dígito decimal."
+    exit_code: 2
+    stream: stderr
+    message: no es un número
+  examples:
+  - command: ./digitos.sh 7
+    exit_code: 0
+    stdout: 'es un número de un dígito
+  
+      '
+  - command: ./digitos.sh 42
+    exit_code: 0
+    stdout: 'es un número de dos dígitos
+  
+      '
+  - command: ./digitos.sh
+    stderr: 'uso: digitos.sh CADENA
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Clasifica «7» como número de un dígito"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '7'
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'es un número de un dígito
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Clasifica «42» como número de dos dígitos"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '42'
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'es un número de dos dígitos
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-3
+    description: "Clasifica «100» como número de tres o más dígitos"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '100'
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'es un número de tres o más dígitos
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: formato
+    description: "Una cadena con letras → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - 12x
+      requirement: formato
+  tips:
+  - Valida primero todos los caracteres y después consulta la longitud de la cadena mediante la expansión
+    de parámetros de bash.
+- id: consulta
+  title: Autónomo 3 · Usuario o grupo
+  description: "Comprueba si existe un usuario o un grupo con el nombre recibido. La opción -u selecciona una consulta de usuario y -g una consulta de grupo.\n\nCrea el script ejecutable /home/learner/aso/p21/consulta.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/consulta.sh
+    usage: consulta.sh -u|-g NOMBRE
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "El primer argumento es -u o -g."
+    error: opcion
+  - description: "NOMBRE corresponde a un usuario existente con -u o a un grupo existente con -g."
+    error: ausente
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout exactamente `el usuario existe` con -u o `el grupo existe` con -g, seguido de un salto de línea."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: consulta.sh -u|-g NOMBRE'
+  - id: opcion
+    description: "La opción recibida no es -u ni -g."
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  - id: ausente
+    description: "No existe un usuario o grupo con el nombre indicado para la consulta seleccionada."
+    exit_code: 4
+    stream: stderr
+    message: el usuario o grupo no existe
+  examples:
+  - command: ./consulta.sh -u p21_consulta
+    exit_code: 0
+    stdout: 'el usuario existe
+  
+      '
+  - command: ./consulta.sh -g p21_consulta
+    exit_code: 0
+    stdout: 'el grupo existe
+  
+      '
+  - command: ./consulta.sh
+    stderr: 'uso: consulta.sh -u|-g NOMBRE
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Consulta un usuario existente con -u"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      - p21_consulta
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Consulta un grupo existente con -g"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -g
+      - p21_consulta
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: opcion
+    description: "Opción -x → error de opción"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      - p21_consulta
+      requirement: opcion
+  - id: ausente
+    description: "Usuario inexistente → error de consulta"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      - aso_no_existe
+      requirement: ausente
+  tips:
+  - Consulta man getent para buscar por nombre en las bases de datos passwd y group.
+- id: miembros
+  title: Autónomo 4 · Miembros secundarios
+  description: "Comprueba si existe el grupo recibido y, en caso afirmativo, muestra los usuarios que lo tienen asignado como grupo secundario, según el cuarto campo de /etc/group.\n\nCrea el script ejecutable /home/learner/aso/p21/miembros.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/miembros.sh
+    usage: miembros.sh GRUPO
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "GRUPO es el nombre de un grupo existente."
+    error: grupo
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout dos líneas: primero `el grupo existe` y después los miembros secundarios, separados por comas y en el orden del cuarto campo de /etc/group. Si no hay miembros secundarios, la segunda línea queda vacía."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: miembros.sh GRUPO'
+  - id: grupo
+    description: "No existe un grupo con el nombre indicado."
+    exit_code: 4
+    stream: stderr
+    message: el grupo no existe
+  examples:
+  - command: ./miembros.sh p21_miembros_equipo
+    exit_code: 0
+    stdout: 'el grupo existe
+  
+      p21_miembros
+  
+      '
+  - command: ./miembros.sh root
+    exit_code: 0
+    stdout: 'el grupo existe
+  
+  
+      '
+  - command: ./miembros.sh
+    stderr: 'uso: miembros.sh GRUPO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Muestra los miembros secundarios de p21_miembros_equipo"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p21_miembros_equipo
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+          p21_miembros
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Deja vacía la lista de miembros secundarios de root"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - root
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: grupo
+    description: "Grupo inexistente → error de grupo"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso_no_existe
+      requirement: grupo
+  tips:
+  - Los miembros secundarios están en el cuarto campo de /etc/group; no incluyen necesariamente a quienes
+    lo tienen como grupo primario.
+- id: grupos
+  title: Autónomo 5 · Grupos de un usuario
+  description: "Comprueba si existe el usuario recibido y, en caso afirmativo, muestra todos los grupos a los que pertenece, tanto el primario como los secundarios.\n\nCrea el script ejecutable /home/learner/aso/p21/grupos.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/grupos.sh
+    usage: grupos.sh USUARIO
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "USUARIO es el nombre de un usuario existente."
+    error: usuario
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout dos líneas: primero `el usuario existe` y después los nombres de todos sus grupos, separados por espacios y en el mismo orden que `id -nG USUARIO`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: grupos.sh USUARIO'
+  - id: usuario
+    description: "No existe un usuario con el nombre indicado."
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: ./grupos.sh p21_grupos
+    stdout: 'el usuario existe
+  
+      p21_grupos p21_grupos_equipo
+  
+      '
+    exit_code: 0
+  - command: ./grupos.sh
+    stderr: 'uso: grupos.sh USUARIO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Muestra el grupo primario y los secundarios de p21_grupos"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p21_grupos
+      requirement: ok
+      stdout:
+        match: lines
+        from_command: printf 'el usuario existe\n'; id -nG p21_grupos
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: usuario
+    description: "Usuario inexistente → error de usuario"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso_no_existe
+      requirement: usuario
+  tips:
+  - Consulta man id para obtener los nombres del grupo primario y de los grupos secundarios.
+- id: perfil
+  title: Autónomo 6 · Directorio y shell
+  description: "Comprueba si existe el usuario recibido. En caso afirmativo, indica si su directorio personal está bajo /home/ y si su intérprete de comandos es /bin/bash. El propio directorio /home no cuenta como descendiente de /home/.\n\nCrea el script ejecutable /home/learner/aso/p21/perfil.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p21/perfil.sh
+    usage: perfil.sh USUARIO
+  input_requirements:
+  - description: "Exactamente un argumento."
+    error: uso
+  - description: "USUARIO es el nombre de un usuario existente."
+    error: usuario
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout exactamente tres líneas: `el usuario existe`, `directorio bajo /home: sí` o `directorio bajo /home: no`, y `shell /bin/bash: sí` o `shell /bin/bash: no`, según los datos del usuario."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido exactamente un argumento."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: perfil.sh USUARIO'
+  - id: usuario
+    description: "No existe un usuario con el nombre indicado."
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: ./perfil.sh p21_perfil
+    exit_code: 0
+    stdout: 'el usuario existe
+  
+      directorio bajo /home: sí
+  
+      shell /bin/bash: sí
+  
+      '
+  - command: ./perfil.sh root
+    exit_code: 0
+    stdout: 'el usuario existe
+  
+      directorio bajo /home: no
+  
+      shell /bin/bash: sí
+  
+      '
+  - command: ./perfil.sh
+    stderr: 'uso: perfil.sh USUARIO
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Reconoce un directorio personal bajo /home y el intérprete /bin/bash"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p21_perfil
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: sí
+
+          shell /bin/bash: sí
+
+          '
+      stderr:
+        match: empty
+  - id: correcto-2
+    description: "Reconoce que el directorio personal de root está fuera de /home"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - root
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: no
+
+          shell /bin/bash: sí
+
+          '
+      stderr:
+        match: empty
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+  - id: usuario
+    description: "Usuario inexistente → error de usuario"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso_no_existe
+      requirement: usuario
+  - id: sin-home-ni-bash
+    description: "Reconoce un directorio personal fuera de /home y un intérprete distinto de /bin/bash"
+    points: 2
+    checks:
+    - type: run
+      requirement: ok
+      args:
+      - p21_otro
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: no
+
+          shell /bin/bash: no
+
+          '
+      stderr:
+        match: empty
+  tips:
+  - En /etc/passwd, el sexto campo es el directorio personal y el séptimo es el intérprete de comandos.

@@ -1,0 +1,2010 @@
+schema_version: 1
+id: aso-p3-1
+version: '1.0'
+title: ASO Práctica 3.1 · Procesos
+description: "Consulta y cuenta procesos del sistema con ps, top, pgrep y las herramientas de gestión de procesos. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p31/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p31
+
+    groupadd -g 23102 p31_equipo
+
+    useradd -m -s /bin/bash p31_contador
+
+    useradd -m -s /bin/bash -g p31_equipo p31_grupo
+
+    useradd -m -s /bin/bash usuario1
+
+    runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+    runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+    runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+    runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+    runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+    sleep 0.2
+
+    useradd -m -s /bin/bash p31_bash
+
+    runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+    sleep 0.2
+
+    '
+  user: root
+exercises:
+- id: procesos-usuario
+  title: Laboratorio 1 · Procesos por usuario
+  description: "Cuenta los procesos pertenecientes a cada usuario recibido, en el orden de los argumentos. Si un usuario no existe, muestra un error con su nombre y continúa con los demás; devuelve 4 al finalizar si hubo algún usuario inexistente.\n\nCrea el script ejecutable /home/learner/aso/p31/procesos-usuario.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p31/procesos-usuario.sh
+    usage: procesos-usuario.sh USUARIOS...
+  input_requirements:
+  - description: "Uno o más nombres de usuario."
+    error: uso
+  - description: "Cada nombre corresponde a un usuario existente; si alguno no existe, se procesan los restantes."
+    error: usuario
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea `USUARIO: N` por cada usuario existente, en el orden recibido, donde N es su número de procesos en ejecución. Si un usuario no tiene procesos, imprime `USUARIO: 0`."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se ha recibido ningún nombre de usuario."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: procesos-usuario.sh USUARIOS...'
+  - id: usuario
+    description: "Algún usuario no existe. Informa de cada nombre inexistente por stderr, continúa con los demás y devuelve 4 al finalizar."
+    exit_code: 4
+    stream: stderr
+    message: 'el usuario no existe: USUARIO'
+  examples:
+  - command: ./procesos-usuario.sh p31_contador p31_grupo
+    exit_code: 0
+    stdout: 'p31_contador: 2
+  
+      p31_grupo: 2
+  
+      '
+  - command: ./procesos-usuario.sh
+    stderr: 'uso: procesos-usuario.sh USUARIOS...
+  
+      '
+    exit_code: 1
+  - command: ./procesos-usuario.sh aso_no_existe p31_contador
+    stdout: 'p31_contador: 2
+  
+      '
+    stderr: 'el usuario no existe: aso_no_existe
+  
+      '
+    exit_code: 4
+    description: Informa del usuario inexistente y cuenta los procesos del siguiente.
+  evaluations:
+  - id: correcto-1
+    description: "Cuenta los dos procesos de cada usuario preparado"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p31_contador
+      - p31_grupo
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'p31_contador: 2
+
+          p31_grupo: 2
+
+          '
+      stderr:
+        match: empty
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: usuario
+    description: "Usuario inexistente → error de usuario"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso_no_existe
+      requirement: usuario
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: continuar
+    description: "Continúa contando procesos después de un usuario inexistente"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - aso_no_existe
+      - p31_contador
+      requirement: usuario
+      stdout:
+        match: exact
+        value: 'p31_contador: 2
+
+          '
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  tips:
+  - Consulta man ps para seleccionar procesos por usuario y obtener una lista sin cabecera que puedas contar.
+- id: procesos-grupo
+  title: Laboratorio 2 · Grupo primario y umbral
+  description: "Busca los usuarios cuyo grupo primario tenga el GID G y que sean propietarios de al menos P procesos en ejecución. Conserva el orden de /etc/passwd. Distingue entre la ausencia de usuarios con ese grupo primario (código 4) y la existencia de usuarios que no alcanzan el mínimo de procesos (código 5).\n\nCrea el script ejecutable /home/learner/aso/p31/procesos-grupo.sh con shebang #!/bin/bash."
+  script:
+    path: /home/learner/aso/p31/procesos-grupo.sh
+    usage: procesos-grupo.sh G P
+  input_requirements:
+  - description: "Exactamente dos argumentos."
+    error: uso
+  - description: "G y P son enteros decimales: uno o más dígitos (0–9), opcionalmente precedidos por un signo menos."
+    error: formato
+  - description: "G y P son mayores o iguales que cero."
+    error: rango
+  - description: "Existe al menos un usuario cuyo grupo primario tiene GID G."
+    error: grupo
+  - description: "Al menos un usuario con grupo primario de GID G tiene P o más procesos."
+    error: umbral
+  output_requirements:
+  - id: ok
+    description: "Imprime por stdout una línea `USUARIO: N` por cada usuario cuyo grupo primario tenga GID G y cuyo número de procesos N sea mayor o igual que P. Conserva el orden de /etc/passwd y no añadas cabecera ni total."
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: "No se han recibido exactamente dos argumentos."
+    exit_code: 1
+    stream: stderr
+    message: 'uso: procesos-grupo.sh G P'
+  - id: formato
+    description: "Algún argumento no tiene formato de entero decimal; por ejemplo, contiene letras o un signo sin dígitos."
+    exit_code: 2
+    stream: stderr
+    message: los argumentos deben ser enteros
+  - id: rango
+    description: "G o P tiene un valor negativo."
+    exit_code: 3
+    stream: stderr
+    message: los argumentos deben ser no negativos
+  - id: grupo
+    description: "No hay ningún usuario cuyo grupo primario tenga el GID indicado."
+    exit_code: 4
+    stream: stderr
+    message: no hay usuarios con ese grupo primario
+  - id: umbral
+    description: "Hay usuarios cuyo grupo primario tiene GID G, pero ninguno alcanza P procesos."
+    exit_code: 5
+    stream: stderr
+    message: ningún usuario alcanza el mínimo
+  examples:
+  - command: ./procesos-grupo.sh 23102 1
+    exit_code: 0
+    stdout: 'p31_grupo: 2
+  
+      '
+  - command: ./procesos-grupo.sh
+    stderr: 'uso: procesos-grupo.sh G P
+  
+      '
+    exit_code: 1
+  evaluations:
+  - id: correcto-1
+    description: "Selecciona p31_grupo por su grupo primario y su número de procesos"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '23102'
+      - '1'
+      requirement: ok
+      stdout:
+        match: exact
+        value: 'p31_grupo: 2
+
+          '
+      stderr:
+        match: empty
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: uso
+    description: "Sin argumentos → error de uso"
+    points: 2
+    checks:
+    - type: run
+      args: []
+      requirement: uso
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: formato
+    description: "GID con letras → error de formato"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      - '1'
+      requirement: formato
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: rango
+    description: "Mínimo de procesos negativo → error de rango"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '23102'
+      - '-1'
+      requirement: rango
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: grupo
+    description: "GID sin usuarios con ese grupo primario → error de grupo"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '59999'
+      - '1'
+      requirement: grupo
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: umbral
+    description: "Ningún usuario alcanza 99999 procesos → error de umbral"
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '23102'
+      - '99999'
+      requirement: umbral
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  tips:
+  - El grupo primario de cada usuario está en el cuarto campo de /etc/passwd; pertenecer a G como grupo
+    secundario no basta.
+- id: autonomos-1
+  title: Autónomos 1–4
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **ps-01** — Todos los procesos: PID, USER y COMMAND (línea completa), ordenados por usuario. Guarda
+    el comando en /home/learner/aso/p31/ps-01.sh.
+
+
+    **ps-02** — Todos los procesos: PID, COMMAND y TIME de CPU, ordenados por tiempo de CPU ascendente.
+    Guarda el comando en /home/learner/aso/p31/ps-02.sh.
+
+
+    **ps-03** — Procesos de usuario1: PID y ELAPSED (tiempo transcurrido), orden inverso por antigüedad.
+    Guarda el comando en /home/learner/aso/p31/ps-03.sh.
+
+
+    **ps-04** — Procesos de usuario1 vinculados a terminal: PID, COMMAND, PPID y %CPU, ordenados por PPID.
+    Usa la pseudoterminal preparada. Guarda el comando en /home/learner/aso/p31/ps-04.sh.'
+  evaluations:
+  - id: ps-01
+    description: 'Todos los procesos: PID, USER y COMMAND (línea completa), ordenados por usuario.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-01.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+USER\s+COMMAND\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-01.sh
+      stdout:
+        match: regex
+        value: ^\s*\d+\s+p31_contador\s+sleep 1000\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: 'set -o pipefail
+
+        /home/learner/aso/p31/ps-01.sh | tail -n +2 | sort -s -C -k2,2'
+  - id: ps-02
+    description: 'Todos los procesos: PID, COMMAND y TIME de CPU, ordenados por tiempo de CPU ascendente.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-02.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+COMMAND\s+TIME\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-02.sh
+      stdout:
+        match: regex
+        value: ^\s*\d+\s+sleep\s+\d+:\d+:\d+\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-02.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nvalues=[seconds(r[2]) for r in rows]; assert values==sorted(values)'"
+  - id: ps-03
+    description: 'Procesos de usuario1: PID y ELAPSED (tiempo transcurrido), orden inverso por antigüedad.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-03.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+ELAPSED\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-03.sh
+      stdout:
+        match: regex
+        value: ^\s*\d+\s+[\d:-]+\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-03.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nvalues=[seconds(r[1]) for r in rows]; assert values==sorted(values,reverse=True)'"
+  - id: ps-04
+    description: 'Procesos de usuario1 vinculados a terminal: PID, COMMAND, PPID y %CPU, ordenados por
+      PPID. Usa la pseudoterminal preparada.'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-04.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^PID COMMAND PPID %CPU\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-04.sh
+      stdout:
+        match: regex
+        value: ^\d+ sleep \d+ [\d.]+\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-04.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nassert all(len(r)==4 and r[0].isdigit() and r[2].isdigit() for r in rows); values=[int(r[2])\
+        \ for r in rows]; assert values==sorted(values)'"
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomos-5
+  title: Autónomos 5–8
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **ps-05** — Árbol de los procesos de usuario1 asociados a terminal, con PID y COMMAND. Usa ps en modo
+    forest. Guarda el comando en /home/learner/aso/p31/ps-05.sh.
+
+
+    **ps-06** — PID, COMMAND y TIME de los cinco procesos con mayor CPU acumulada, orden descendente.
+    Guarda el comando en /home/learner/aso/p31/ps-06.sh.
+
+
+    **ps-07** — PID, COMMAND, TIME y ELAPSED de los diez procesos más antiguos, ordenados por antigüedad
+    descendente. Guarda el comando en /home/learner/aso/p31/ps-07.sh.
+
+
+    **ps-08** — Solo los PID de procesos cuya línea de comandos contiene bash; un PID por línea. Guarda
+    el comando en /home/learner/aso/p31/ps-08.sh.'
+  evaluations:
+  - id: ps-05
+    description: Árbol de los procesos de usuario1 asociados a terminal, con PID y COMMAND. Usa ps en
+      modo forest.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-05.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+(?:TT|TTY)\s+COMMAND\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-05.sh
+      stdout:
+        match: regex
+        value: sleep 1000
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  - id: ps-06
+    description: PID, COMMAND y TIME de los cinco procesos con mayor CPU acumulada, orden descendente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-06.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+COMMAND\s+TIME\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      script: 'out=$(/home/learner/aso/p31/ps-06.sh)
+
+        [ "$(printf "%s\n" "$out" | wc -l)" -eq 6 ]'
+      user: learner
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-06.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nvalues=[seconds(r[2]) for r in rows]; assert len(rows)==5 and values==sorted(values,reverse=True)'"
+  - id: ps-07
+    description: PID, COMMAND, TIME y ELAPSED de los diez procesos más antiguos, ordenados por antigüedad
+      descendente.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-07.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+COMMAND\s+TIME\s+ELAPSED\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      script: 'out=$(/home/learner/aso/p31/ps-07.sh)
+
+        [ "$(printf "%s\n" "$out" | wc -l)" -eq 11 ]'
+      user: learner
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-07.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nvalues=[seconds(r[3]) for r in rows]; assert len(rows)==10 and values==sorted(values,reverse=True)'"
+  - id: ps-08
+    description: Solo los PID de procesos cuya línea de comandos contiene bash; un PID por línea.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-08.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\d+(?:\n\d+)*\n?$
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: 'out=$(/home/learner/aso/p31/ps-08.sh)
+
+        for pid in $(pgrep -u p31_bash -x bash); do
+
+        printf "%s\n" "$out" | grep -Fxq "$pid" || exit 1
+
+        done
+
+        '
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomos-9
+  title: Autónomos 9–11
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **ps-09** — Solo el número de procesos del usuario actual. Guarda el comando en /home/learner/aso/p31/ps-09.sh.
+
+
+    **ps-10** — Solo el número de procesos cuya línea de comandos contiene bash. Guarda el comando en
+    /home/learner/aso/p31/ps-10.sh.
+
+
+    **ps-11** — Adaptación de GNOME: contar los sleep propiedad de p31_contador; solo un número. Guarda
+    el comando en /home/learner/aso/p31/ps-11.sh.'
+  evaluations:
+  - id: ps-09
+    description: Solo el número de procesos del usuario actual.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-09.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\d+\n?$
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      script: 'actual=$(/home/learner/aso/p31/ps-09.sh)
+
+        expected=$(ps -u "$(id -u)" -o pid= | wc -l)
+
+        printf "%s" "$actual" | grep -Eq "^[0-9]+$" || exit 1
+
+        delta=$(expr "$actual" - "$expected")
+
+        [ "$delta" -ge -5 ] && [ "$delta" -le 5 ]'
+      user: learner
+  - id: ps-10
+    description: Solo el número de procesos cuya línea de comandos contiene bash.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-10.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\d+\n?$
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      script: 'actual=$(/home/learner/aso/p31/ps-10.sh)
+
+        expected=$(pgrep -fc bash)
+
+        printf "%s" "$actual" | grep -Eq "^[0-9]+$" || exit 1
+
+        delta=$(expr "$actual" - "$expected")
+
+        [ "$delta" -ge -5 ] && [ "$delta" -le 5 ]'
+      user: learner
+  - id: ps-11
+    description: "Cuenta los dos procesos sleep de p31_contador"
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-11.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^2\n?$
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
+- id: autonomos-12
+  title: Autónomos 12–14
+  description: 'Cada apartado requiere su propio script ejecutable con shebang #!/bin/bash. No recibe
+    argumentos salvo indicación expresa. Mantén el orden del fichero de entrada salvo que se pida ordenar.
+    Para ordenar usa la configuración regional del contenedor.
+
+
+    **ps-12** — Solo el número de usuarios distintos que poseen procesos en ejecución. Guarda el comando
+    en /home/learner/aso/p31/ps-12.sh.
+
+
+    **ps-13** — Procesos que no sean de root: PID, USER, COMMAND y VSZ (memoria virtual). Guarda el comando
+    en /home/learner/aso/p31/ps-13.sh.
+
+
+    **ps-14** — Procesos de usuario1 que tengan terminal, con PID, TTY, TIME y COMMAND, ordenados por
+    terminal. Guarda el comando en /home/learner/aso/p31/ps-14.sh.'
+  evaluations:
+  - id: ps-12
+    description: Solo el número de usuarios distintos que poseen procesos en ejecución.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-12.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\d+\n?$
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      script: 'actual=$(/home/learner/aso/p31/ps-12.sh)
+
+        expected=$(ps -eo user= | sort -u | wc -l)
+
+        printf "%s" "$actual" | grep -Eq "^[0-9]+$" || exit 1
+
+        delta=$(expr "$actual" - "$expected")
+
+        [ "$delta" -ge -5 ] && [ "$delta" -le 5 ]'
+      user: learner
+  - id: ps-13
+    description: 'Procesos que no sean de root: PID, USER, COMMAND y VSZ (memoria virtual).'
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-13.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+USER\s+COMMAND\s+VSZ\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-13.sh
+      stdout:
+        match: regex
+        value: ^\s*\d+\s+p31_contador\s+sleep\s+\d+\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-13.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nassert all(len(r)==4 and r[0].isdigit() and r[1]!=\"root\" and r[3].isdigit() for\
+        \ r in rows)'"
+  - id: ps-14
+    description: Procesos de usuario1 que tengan terminal, con PID, TTY, TIME y COMMAND, ordenados por
+      terminal.
+    points: 2
+    checks:
+    - type: run
+      path: /home/learner/aso/p31/ps-14.sh
+      exit_code: 0
+      stderr:
+        match: empty
+      stdout:
+        match: regex
+        value: ^\s*PID\s+(?:TT|TTY)\s+TIME\s+COMMAND\n
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: run
+      path: /home/learner/aso/p31/ps-14.sh
+      stdout:
+        match: regex
+        value: ^\s*\d+\s+pts/\d+\s+[\d:]+\s+sleep\s*$
+      stderr:
+        match: empty
+      exit_code: 0
+      prepare: 'count=$(pgrep -u p31_contador -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_contador -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_contador -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        count=$(pgrep -u p31_grupo -xc sleep)
+
+        if [ "$count" -ne 2 ]; then
+
+        pkill -u p31_grupo -x sleep || true
+
+        sleep 0.1
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        runuser -u p31_grupo -- sleep 1000 >/dev/null 2>&1 &
+
+        fi
+
+        if ! ps -u usuario1 -o tty=,comm= | grep -Eq "pts/[0-9]+[[:space:]]+sleep"; then
+
+        runuser -u usuario1 -- script -q -c "sleep 1000" /dev/null >/dev/null 2>&1 &
+
+        fi
+
+        if ! pgrep -u p31_bash -x bash >/dev/null; then
+
+        runuser -u p31_bash -- bash -c "while :; do sleep 1000; done" >/dev/null 2>&1 &
+
+        fi
+
+        sleep 0.2
+
+        '
+    - type: command
+      user: learner
+      script: "set -o pipefail\n/home/learner/aso/p31/ps-14.sh | python3 -c 'import sys\ndef seconds(t):\n\
+        \ days,sep,clock=t.partition(\"-\")\n if not sep: clock=days; days=\"0\"\n return int(days)*86400+sum(int(v)*60**i\
+        \ for i,v in enumerate(reversed(clock.split(\":\"))))\nrows=[line.split() for line in sys.stdin.read().splitlines()[1:]]\n\
+        assert rows\nassert all(len(r)==4 and r[1]!=\"?\" for r in rows); values=[r[1] for r in rows];\
+        \ assert values==sorted(values)'"
+  tips:
+  - Consulta man cut, man sort, man uniq, man grep, man wc y man bash.
