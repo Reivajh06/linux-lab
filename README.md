@@ -67,6 +67,10 @@ The application is a personal local tool; no account or hosted service is needed
 - **Exercise Chat:** select a local Ollama model, optional sources, an exercise
   count, and describe what you want in natural language. Revise, edit, validate,
   save, download, or import the YAML draft. Nothing runs during generation.
+  Ask a question instead ("How do I approach csv-03?", "¿Qué pide local-hostname?")
+  and the model answers in the chat using the draft and the relevant exercises from
+  your library, leaving the draft untouched. Start a message with `/ask` or
+  `/generate` to choose explicitly.
 
 Read [EXERCISE_FORMAT.md](EXERCISE_FORMAT.md) for the complete authoring contract.
 Exercises follow Description, Input requirements, Output requirements, optional

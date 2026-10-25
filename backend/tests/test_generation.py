@@ -226,3 +226,61 @@ async def test_missing_script_path_is_inferred_instead_of_failing(db, monkeypatc
     assert job['progress'] == 'Draft ready for review', job['error']
     course = parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'])
     assert [e.script.path for e in course.exercises] == ['/home/learner/lab/hello.sh', '/home/learner/lab/line-counter/line-counter.sh']
+
+
+async def test_local_model_slips_are_fixed_and_reported(db, monkeypatch):
+    sloppy = copy.deepcopy(EXAMPLE)
+    exercise = sloppy['exercises'][0]
+    exercise['output_requirements'][0]['stdout_contains'] = 'Hello'
+    exercise['input_requirements'].append({'description': 'Typo', 'error': 'missing'})
+    exercise['tips'] = ['ECHO-TIP']
+    text = yaml.safe_dump(sloppy, sort_keys=False).replace('ECHO-TIP', '`echo` prints text.')
+    generator, _ = generator_with(db, monkeypatch, text)
+    chat_id = generator.create_chat()
+    job = await generate(generator, chat_id)
+    assert job['progress'] == 'Draft ready for review', job['error']
+    course = parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'])
+    assert '`echo` prints text.' in course.exercises[0].tips
+    reply = db.all('SELECT content FROM messages WHERE chat_id=? ORDER BY id', (chat_id,))[-1]['content']
+    assert 'Fixed automatically' in reply and 'stdout_contains' in reply and "'missing'" in reply
+
+
+@pytest.mark.parametrize('prompt,question', [
+    ('Generate exercises about users and groups', False),
+    ('Can you add 2 more exercises?', False),
+    ('Make the tips shorter', False),
+    ('Crea un curso de permisos', False),
+    ('¿Puedes añadir 3 ejercicios sobre permisos?', False),
+    ('How do I solve list-users-sorted?', True),
+    ('Explain the hello exercise', True),
+    ('give me a hint for user-existence-check', True),
+    ('¿Cómo resuelvo el ejercicio count-sudo?', True),
+    ('/ask add more detail to your last answer', True),
+])
+def test_questions_and_edit_requests_are_routed(prompt, question):
+    assert Generator.is_question(prompt) is question
+
+
+async def test_question_is_answered_from_library_and_draft_without_changing_it(db, monkeypatch):
+    library = copy.deepcopy(EXAMPLE)
+    library['title'] = 'Scripting basics'
+    other = copy.deepcopy(EXAMPLE)
+    other['id'], other['title'] = 'files', 'File handling'
+    other['exercises'][0].update(id='archive-logs', title='Archive the logs')
+    for course in (library, other):
+        db.execute('INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?)',
+                   (course['id'], course['id'], '1.0', yaml.safe_dump(course), '2026'))
+    generator, calls = generator_with(db, monkeypatch, 'Check `$#` first, then **echo** the greeting.')
+    chat_id = generator.create_chat()
+    db.execute('UPDATE chats SET draft=? WHERE id=?', ('title: my draft', chat_id))
+    job = await generate(generator, chat_id, 'How do I validate arguments in the hello exercise?')
+    assert job['state'] == 'done' and job['progress'] == 'Answered; draft unchanged', job['error']
+    assert db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'] == 'title: my draft'
+    assert db.all('SELECT content FROM messages WHERE chat_id=? ORDER BY id', (chat_id,))[-1]['content'].startswith('Check `$#`')
+    sent = calls[0]
+    assert 'tutor' in sent[0]['content'] and 'YAML document' not in sent[0]['content']
+    assert any(m['content'] == 'CURRENT DRAFT (YAML):\ntitle: my draft' for m in sent)
+    context = next(m['content'] for m in sent if 'EXERCISE LIBRARY' in m['content'])
+    assert "From course 'Scripting basics'" in context and 'Expected one name' in context
+    assert 'archive-logs (Archive the logs)' in context and "From course 'File handling'" not in context
+    assert sent[-1]['content'] == 'How do I validate arguments in the hello exercise?'

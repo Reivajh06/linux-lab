@@ -290,13 +290,56 @@ class UniqueSafeLoader(yaml.SafeLoader):
         return result
 
 
+_RESERVED_START = re.compile(r"^(\s*(?:- +)*(?:[A-Za-z_][\w-]*:\s+)?)([`@%].*?)\s*$")
+# A key's plain value containing ": " or ending in ":" ("stdout: Total:") reads as a nested mapping.
+_COLON_VALUE = re.compile(r"^(\s*(?:- +)*[A-Za-z_][\w-]*:\s+)([^\s'\"\[{|>&*!#][^#]*?(?::\s.*|:))\s*$")
+_BLOCK_START = re.compile(r"(?::|^\s*-)\s*[|>][+-]?\d*\s*$")
+
+
+def repair_yaml(text: str) -> str:
+    """Quote plain values YAML cannot read as written: "- `grep` finds it", "stdout: Total:".
+
+    Markdown-minded authors (and local models) write these constantly; quoting them changes
+    nothing else, and literal block contents (after | or >) are left untouched.
+    """
+    lines, block_indent = [], None
+    for line in text.splitlines():
+        indent = len(line) - len(line.lstrip(" "))
+        if block_indent is not None and (not line.strip() or indent > block_indent):
+            lines.append(line)
+            continue
+        block_indent = None
+        match = _RESERVED_START.match(line) or _COLON_VALUE.match(line)
+        if match:
+            line = match.group(1) + "'" + match.group(2).replace("'", "''") + "'"
+        elif _BLOCK_START.search(line):
+            block_indent = indent
+        lines.append(line)
+    return "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+
+
+def load_yaml(content: str):
+    """Load untrusted YAML, repairing reserved-character values and reporting the error position."""
+    try:
+        try:
+            return yaml.load(content, Loader=UniqueSafeLoader)
+        except yaml.YAMLError:
+            repaired = repair_yaml(content)
+            if repaired == content:
+                raise
+            return yaml.load(repaired, Loader=UniqueSafeLoader)
+    except yaml.MarkedYAMLError as exc:
+        mark = exc.problem_mark
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+        raise ValueError(f"YAML syntax error{where}: {exc.problem or exc.context}") from exc
+    except RecursionError as exc:
+        raise ValueError("YAML nesting is too deep") from exc
+
+
 def parse_course(content: str) -> Course:
     if len(content.encode()) > 2_000_000:
         raise ValueError("Collection exceeds the 2 MB limit")
-    try:
-        return Course.model_validate(yaml.load(content, Loader=UniqueSafeLoader))
-    except RecursionError as exc:
-        raise ValueError("YAML nesting is too deep") from exc
+    return Course.model_validate(load_yaml(content))
 
 
 def course_yaml(course: Course) -> str:

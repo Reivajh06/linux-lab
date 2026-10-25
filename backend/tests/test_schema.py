@@ -7,7 +7,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from lab.schema import Course, StreamExpectation, course_yaml, parse_course
+from lab.schema import Course, StreamExpectation, course_yaml, parse_course, repair_yaml
 
 
 def test_yaml_roundtrip_and_schema(course_data):
@@ -95,3 +95,41 @@ def test_starter_course_is_complete():
     assert set(solutions) == {e.id for e in course.exercises}
     assert {"editor-vi", "editor-vim", "editor-nano", "editor-gedit", "read-manuals"}.issubset(solutions)
     for solution in solutions.values(): bashlex.parse(solution)
+
+
+MARKDOWN_SLIPS = """schema_version: 1
+id: slips
+version: '1.0'
+title: Slips
+description: |
+  Keep `this` block: untouched
+exercises:
+  - id: count
+    title: Count
+    description: Print the total.
+    evaluations:
+      - id: run-it
+        description: Output
+        points: 5
+        checks:
+          - type: content
+            path: /home/learner/lab/out.txt
+            value: Total:
+    tips:
+      - `grep` can find the pattern.
+      - `wc -l` counts lines.
+"""
+
+
+def test_markdown_style_values_are_repaired_without_touching_blocks():
+    course = parse_course(MARKDOWN_SLIPS)
+    exercise = course.exercises[0]
+    assert exercise.tips == ['`grep` can find the pattern.', '`wc -l` counts lines.']
+    assert exercise.evaluations[0].checks[0].value == 'Total:'
+    assert course.description == 'Keep `this` block: untouched\n'
+    assert repair_yaml("a: 'quoted: ok'\nb: [x]\n") == "a: 'quoted: ok'\nb: [x]\n"
+
+
+def test_unrepairable_yaml_reports_line_and_column():
+    with pytest.raises(ValueError, match=r'line 2, column 6'):
+        parse_course('id: x\n  bad: [\n')
