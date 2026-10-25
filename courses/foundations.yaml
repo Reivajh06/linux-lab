@@ -556,7 +556,7 @@ exercises:
     checks:
     - type: content
       path: /home/learner/lab/hostname.txt
-      value: linux-lab
+      value: fedora
       match: contains
   tips:
   - '`hostname` works without Internet access.'
@@ -564,7 +564,7 @@ exercises:
   sources: []
 - id: package-inventory
   title: Know your tools
-  description: Use `dpkg-query` to record information about the installed `nano` package
+  description: Use `rpm -q` to record information about the installed `nano` package
     in `/home/learner/lab/package-info.txt`.
   evaluations:
   - id: task-1
@@ -582,7 +582,7 @@ exercises:
       value: nano
       match: contains
   tips:
-  - '`dpkg-query -W nano` queries an installed package without downloading anything.'
+  - '`rpm -q nano` queries an installed package without downloading anything.'
   setup: []
   sources: []
 - id: archive

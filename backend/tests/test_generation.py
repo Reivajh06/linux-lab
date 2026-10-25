@@ -4,49 +4,71 @@ import json
 
 import httpx
 import pytest
+import yaml
 
-from lab.generation import AUTHORING, Generator
+from lab.generation import AUTHORING, EXAMPLE, Generator
 from lab.schema import Course, parse_course
 from lab.sources import SourceService
 
 
-async def test_generation_repairs_validates_saves_without_running_scripts(db, course_data, monkeypatch):
+def generator_with(db, monkeypatch, *replies):
+    """A generator whose model returns each reply in turn as (text, truncated)."""
     generator = Generator(db, SourceService(db))
-    chat_id = generator.create_chat()
-    async def models(): return [{'name': 'local-test'}]
+    calls = []
+    async def models(): return [{'name': 'test'}]
+    async def request(model, messages, on_progress=None):
+        calls.append(copy.deepcopy(messages))
+        reply = replies[len(calls) - 1]
+        return reply if isinstance(reply, tuple) else (reply, False)
     monkeypatch.setattr(generator, 'models', models)
-    attempts = []
-    async def request(model, messages):
-        attempts.append(messages)
-        if len(attempts) == 1: return '{"invalid":true}'
-        return json.dumps(course_data)
     monkeypatch.setattr(generator, 'request', request)
-    job = generator.start(chat_id, 'Make one exercise', 'local-test', [], 1)
-    await generator.tasks[job]
-    assert db.one('SELECT state FROM jobs WHERE id=?', (job,))['state'] == 'done'
-    saved = db.one('SELECT * FROM chats WHERE id=?', (chat_id,))
-    assert len(parse_course(saved['draft']).exercises) == 1
-    assert len(attempts) == 2
+    return generator, calls
+
+
+async def generate(generator, chat_id, prompt='Make exercises', count=1, sources=()):
+    job = generator.start(chat_id, prompt, 'test', list(sources), count)
+    await asyncio.wait_for(generator.tasks[job], timeout=5)
+    return generator.db.one('SELECT * FROM jobs WHERE id=?', (job,))
+
+
+async def test_yaml_reply_becomes_valid_draft_without_running_scripts(db, monkeypatch):
+    fenced = 'Here is your collection:\n```yaml\n' + yaml.safe_dump(EXAMPLE, sort_keys=False) + '```\nEnjoy!'
+    generator, calls = generator_with(db, monkeypatch, fenced)
+    chat_id = generator.create_chat()
+    job = await generate(generator, chat_id, count=3)
+    assert job['state'] == 'done' and job['progress'] == 'Draft ready for review', job['error']
+    course = parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'])
+    assert course.id == 'generated-' + chat_id[:12] and len(course.exercises) == 1
+    assert len(calls) == 1 and 'YAML' in calls[0][0]['content'] and 'Fedora' in calls[0][0]['content']
+    assert 'Write 3 exercises' in calls[0][-1]['content']
     assert not db.all('SELECT * FROM environments')
     assert not db.all('SELECT * FROM courses')
-    assert 'JSON SCHEMA' in attempts[0][0]['content']
-    assert 'Repair' in attempts[1][-1]['content']
 
 
-async def test_failed_revision_preserves_draft_and_stops_after_two_repairs(db, monkeypatch):
-    generator = Generator(db, SourceService(db))
+async def test_invalid_yaml_is_still_saved_with_issues_listed(db, course_data, monkeypatch):
+    del course_data['exercises'][0]['title']
+    generator, _ = generator_with(db, monkeypatch, yaml.safe_dump(course_data), 'exercises: [unclosed')
     chat_id = generator.create_chat()
-    db.execute('UPDATE chats SET draft=? WHERE id=?', ('saved previous draft', chat_id))
-    async def models(): return [{'name': 'test'}]
-    calls = []
-    async def request(*args): calls.append(1); return '{}'
-    monkeypatch.setattr(generator, 'models', models)
-    monkeypatch.setattr(generator, 'request', request)
-    job = generator.start(chat_id, 'Revise', 'test', [], 1)
-    await generator.tasks[job]
-    assert len(calls) == 3
-    assert db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'] == 'saved previous draft'
-    assert 'two repairs' in db.one('SELECT error FROM jobs WHERE id=?', (job,))['error']
+    job = await generate(generator, chat_id)
+    assert job['state'] == 'done' and 'issues' in job['progress']
+    draft = db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft']
+    assert 'make-note' in draft
+    reply = db.all('SELECT content FROM messages WHERE chat_id=? ORDER BY id', (chat_id,))[-1]['content']
+    assert 'exercises.0.title' in reply
+    job = await generate(generator, chat_id, 'Revise')
+    assert job['state'] == 'done'
+    assert db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'].startswith('exercises: [unclosed')
+    assert 'could not be parsed' in db.all('SELECT content FROM messages WHERE chat_id=? ORDER BY id', (chat_id,))[-1]['content']
+
+
+async def test_truncated_reply_warns_and_revision_includes_previous_draft(db, monkeypatch):
+    generator, calls = generator_with(db, monkeypatch, (yaml.safe_dump(EXAMPLE), True))
+    chat_id = generator.create_chat()
+    db.execute('UPDATE chats SET draft=? WHERE id=?', ('title: previous', chat_id))
+    job = await generate(generator, chat_id, 'Add one more')
+    assert job['state'] == 'done'
+    assert any('Revise this existing YAML draft' in m['content'] and 'title: previous' in m['content'] for m in calls[0])
+    assert 'output limit' in db.all('SELECT content FROM messages WHERE chat_id=? ORDER BY id', (chat_id,))[-1]['content']
 
 
 async def test_cancel_and_unavailable_models(db, monkeypatch):
@@ -54,7 +76,7 @@ async def test_cancel_and_unavailable_models(db, monkeypatch):
     chat_id = generator.create_chat()
     entered = asyncio.Event()
     async def models(): return [{'name': 'test'}]
-    async def request(*args): entered.set(); await asyncio.sleep(60)
+    async def request(*args, **kwargs): entered.set(); await asyncio.sleep(60)
     monkeypatch.setattr(generator, 'models', models)
     monkeypatch.setattr(generator, 'request', request)
     job = generator.start(chat_id, 'Generate', 'test', [], 1)
@@ -80,10 +102,17 @@ def mock_ollama(monkeypatch, handler):
     monkeypatch.setattr(httpx, 'AsyncClient', lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs))
 
 
-async def test_thinking_disabled_and_empty_or_truncated_answers_repaired(db, course_data, monkeypatch):
+def stream(*chunks, reason='stop'):
+    lines = [json.dumps({'message': {'content': c}, 'done': False}) for c in chunks]
+    lines.append(json.dumps({'message': {'content': ''}, 'done': True, 'done_reason': reason}))
+    return httpx.Response(200, content='\n'.join(lines).encode())
+
+
+async def test_streamed_plain_text_request_disables_thinking_and_fits_budget(db, monkeypatch):
     generator = Generator(db, SourceService(db))
     chat_id = generator.create_chat()
     requests = []
+    text = yaml.safe_dump(EXAMPLE, sort_keys=False)
 
     def handler(request):
         if request.url.path == '/api/tags':
@@ -92,50 +121,52 @@ async def test_thinking_disabled_and_empty_or_truncated_answers_repaired(db, cou
             return httpx.Response(200, json={'thinking': {'values': [False, True], 'default': True}})
         payload = json.loads(request.content)
         requests.append(payload)
-        if len(requests) == 1:
-            return httpx.Response(200, json={'message': {'content': '', 'thinking': 'reasoning'}, 'done_reason': 'stop'})
-        if len(requests) == 2:
-            return httpx.Response(200, json={'message': {'content': '{'}, 'done_reason': 'length'})
-        return httpx.Response(200, json={'message': {'content': json.dumps(course_data)}, 'done_reason': 'stop'})
+        return stream(text[:100], text[100:])
 
     mock_ollama(monkeypatch, handler)
     job = generator.start(chat_id, 'Generate a file exercise', 'qwen3:14b', None, 1)
     await generator.tasks[job]
-    assert db.one('SELECT state FROM jobs WHERE id=?', (job,))['state'] == 'done'
-    assert len(requests) == 3
-    for payload in requests:
-        assert payload['think'] is False
-        assert payload['options']['num_ctx'] == 8192
-        assert payload['options']['num_predict'] == 2048
-        assert generator.message_tokens(payload['messages']) + 2048 + 512 <= 8192
-    assert len(requests[1]['messages']) == len(requests[2]['messages'])
+    result = db.one('SELECT state,error FROM jobs WHERE id=?', (job,))
+    assert result['state'] == 'done', result['error']
+    assert len(requests) == 1
+    payload = requests[0]
+    assert payload['stream'] is True and 'format' not in payload and payload['think'] is False
+    assert payload['options'] == {'temperature': 0.2, 'num_ctx': 8192, 'num_predict': 4096}
+    assert generator.message_tokens(payload['messages']) + 4096 + 512 <= 8192
+    assert len(parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft']).exercises) == 1
 
 
-async def test_all_pdfs_default_and_multiple_batches_stay_in_budget(db, course_data, monkeypatch):
+async def test_empty_reply_fails_and_keeps_previous_draft(db, monkeypatch):
+    generator = Generator(db, SourceService(db))
+    chat_id = generator.create_chat()
+    db.execute('UPDATE chats SET draft=? WHERE id=?', ('saved previous draft', chat_id))
+    def handler(request):
+        if request.url.path == '/api/tags':
+            return httpx.Response(200, json={'models': [{'name': 'test'}]})
+        return stream('', '  ')
+    mock_ollama(monkeypatch, handler)
+    job = generator.start(chat_id, 'Revise', 'test', [], 1)
+    await generator.tasks[job]
+    assert 'no text' in db.one('SELECT error FROM jobs WHERE id=?', (job,))['error']
+    assert db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'] == 'saved previous draft'
+
+
+async def test_sources_are_sent_and_citations_checked(db, monkeypatch):
     service = SourceService(db)
     digest = 'a' * 64
     db.execute("INSERT INTO sources(id,hash,title,filename,state,created_at) VALUES(?,?,?,?,?,?)", ('theory', digest, 'Permissions', 'theory.pdf', 'ready', '2026'))
     db.execute('INSERT INTO chunks(source_id,page,content) VALUES(?,?,?)', ('theory', 7, 'Linux permissions with chmod. ' * 500))
-    generator = Generator(db, service)
+    cited = copy.deepcopy(EXAMPLE)
+    cited['exercises'][0]['sources'] = [{'document_hash': digest, 'title': 'Permissions', 'pages': [7]}]
+    generator, calls = generator_with(db, monkeypatch, yaml.safe_dump(cited))
+    generator.sources = service
     chat_id = generator.create_chat()
-    calls = []
-    async def models(): return [{'name': 'test'}]
-    async def request(model, messages):
-        calls.append(copy.deepcopy(messages))
-        assert generator.message_tokens(messages) + 2048 + 512 <= 8192
-        source_message = next(m['content'] for m in messages if m['content'].startswith('SOURCE EXCERPTS'))
-        assert digest in source_message
-        candidate = copy.deepcopy(course_data)
-        candidate['exercises'][0]['id'] = f'exercise-{len(calls)}'
-        candidate['exercises'][0]['sources'] = [{'document_hash': digest, 'title': 'Permissions', 'pages': [7]}]
-        return json.dumps(candidate)
-    monkeypatch.setattr(generator, 'models', models)
-    monkeypatch.setattr(generator, 'request', request)
     job = generator.start(chat_id, 'Generate Linux permissions exercises', 'test', None, 4)
     await generator.tasks[job]
-    assert db.one('SELECT state,error FROM jobs WHERE id=?', (job,))['state'] == 'done'
-    draft = parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'])
-    assert len(draft.exercises) == 4 and len(calls) == 4
+    assert db.one('SELECT progress FROM jobs WHERE id=?', (job,))['progress'] == 'Draft ready for review'
+    source_message = next(m['content'] for m in calls[0] if m['content'].startswith('SOURCE EXCERPTS'))
+    assert digest in source_message
+    assert calls[0][-1]['content'].startswith('Generate Linux permissions exercises')
 
 
 async def test_context_overflow_preserves_draft_before_contacting_model(db, monkeypatch):
@@ -144,7 +175,7 @@ async def test_context_overflow_preserves_draft_before_contacting_model(db, monk
     previous = 'long draft ' * 5000
     db.execute('UPDATE chats SET draft=? WHERE id=?', (previous, chat_id))
     async def models(): return [{'name': 'test'}]
-    async def request(*args): pytest.fail('Oversized drafts must not be sent to Ollama')
+    async def request(*args, **kwargs): pytest.fail('Oversized drafts must not be sent to Ollama')
     monkeypatch.setattr(generator, 'models', models)
     monkeypatch.setattr(generator, 'request', request)
     job = generator.start(chat_id, 'Revise', 'test', [], 1)
@@ -153,7 +184,7 @@ async def test_context_overflow_preserves_draft_before_contacting_model(db, monk
     assert db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'] == previous
 
 
-@pytest.mark.parametrize('failure,expected', [('timeout', 'timed out'), ('connection', 'Start Ollama'), ('http', 'requires more memory')])
+@pytest.mark.parametrize('failure,expected', [('timeout', 'stopped responding'), ('connection', 'Start Ollama'), ('http', 'requires more memory')])
 async def test_ollama_failures_have_actionable_messages(db, monkeypatch, failure, expected):
     generator = Generator(db, SourceService(db))
     chat_id = generator.create_chat()
@@ -174,47 +205,24 @@ async def test_model_profile_respects_context_limit_and_named_thinking_levels(db
     generator = Generator(db, SourceService(db))
     mock_ollama(monkeypatch, lambda request: httpx.Response(200, json={'thinking': {'values': ['low', 'medium', 'high']}}))
     settings = await generator.configure_model({'name': 'reasoner', 'details': {'context_length': 8192}, 'capabilities': ['thinking']})
-    assert settings == {'num_ctx': 8192, 'num_predict': 2048, 'think': 'low'}
+    assert settings == {'num_ctx': 8192, 'num_predict': 4096, 'think': 'low'}
 
 
-async def test_new_format_generated_batches_validate_and_include_all_paths(db, monkeypatch):
-    generator = Generator(db, SourceService(db))
+def test_authoring_example_is_a_valid_collection():
+    assert yaml.safe_dump(EXAMPLE, sort_keys=False, allow_unicode=True) in AUTHORING
+    Course.model_validate(EXAMPLE)
+
+
+async def test_missing_script_path_is_inferred_instead_of_failing(db, monkeypatch):
+    two = copy.deepcopy(EXAMPLE)
+    del two['exercises'][0]['script']
+    fallback = copy.deepcopy(two['exercises'][0])
+    fallback['examples'] = []
+    fallback['id'] = 'line-counter'
+    two['exercises'].append(fallback)
+    generator, _ = generator_with(db, monkeypatch, yaml.safe_dump(two))
     chat_id = generator.create_chat()
-    example = json.loads(AUTHORING.split('Minimal example:\n', 1)[1])
-    exercise = example['exercises'][0]
-    # Include a run with an explicit path as well as ones using script.path.
-    exercise['evaluations'][0]['checks'].append({'type': 'run', 'path': '/usr/bin/true'})
-    calls = []
-
-    def handler(request):
-        if request.url.path == '/api/tags':
-            return httpx.Response(200, json={'models': [{'name': 'test'}]})
-        payload = json.loads(request.content)
-        calls.append(payload)
-        assert 'evaluations' in payload['format']['$defs']['Exercise']['properties']
-        assert 'tasks' not in payload['format']['$defs']['Exercise']['properties']
-        assert generator.message_tokens(payload['messages']) + 2048 + 512 <= 8192
-        if len(calls) == 2:
-            summary = next(m['content'] for m in payload['messages'] if m['content'].startswith('Existing batches'))
-            assert exercise['script']['path'] in summary
-            assert '/usr/bin/true' in summary
-            assert 'null' not in summary
-        candidate = copy.deepcopy(example)
-        candidate['exercises'][0]['id'] = f'hello-{len(calls)}'
-        return httpx.Response(200, json={'message': {'content': json.dumps(candidate)}})
-
-    mock_ollama(monkeypatch, handler)
-    job = generator.start(chat_id, 'Write two scripting exercises', 'test', [], 2)
-    await asyncio.wait_for(generator.tasks[job], timeout=5)
-    result = db.one('SELECT state,error FROM jobs WHERE id=?', (job,))
-    assert result['state'] == 'done', result['error']
-    draft = db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft']
-    assert 'tasks:' not in draft
-    course = parse_course(draft)
-    assert len(course.exercises) == 2 and len(calls) == 2
-    for exercise in course.exercises:
-        errors = {r.error for r in exercise.input_requirements}
-        assert errors <= {c.requirement for c in exercise.evaluations[0].checks}
-        outputs = {o.id: o for o in exercise.output_requirements}
-        assert all(outputs[e].stream == 'stderr' and outputs[e].exit_code != 0 for e in errors)
-        assert len({outputs[e].exit_code for e in errors}) == len(errors)
+    job = await generate(generator, chat_id, 'Write scripting exercises', 2)
+    assert job['progress'] == 'Draft ready for review', job['error']
+    course = parse_course(db.one('SELECT draft FROM chats WHERE id=?', (chat_id,))['draft'])
+    assert [e.script.path for e in course.exercises] == ['/home/learner/lab/hello.sh', '/home/learner/lab/line-counter/line-counter.sh']

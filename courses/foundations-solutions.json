@@ -25,7 +25,7 @@
   "background-job": "nohup sleep 600 >/tmp/lab-sleep.log 2>&1 &",
   "network-interfaces": "ip address > /home/learner/lab/interfaces.txt",
   "local-hostname": "hostname > /home/learner/lab/hostname.txt",
-  "package-inventory": "dpkg-query -W nano > /home/learner/lab/package-info.txt",
+  "package-inventory": "rpm -q nano > /home/learner/lab/package-info.txt",
   "archive": "tar -czf /home/learner/lab/notes.tar.gz -C /home/learner/lab/inputs message.txt",
   "first-script": "printf %s '#!/bin/bash\nprintf \"Hello, Linux!\\n\"\n' > /home/learner/lab/greet.sh; chmod 755 /home/learner/lab/greet.sh",
   "script-arguments": "printf %s '#!/bin/bash\nprintf \"Welcome, %s\\n\" \"$1\"\n' > /home/learner/lab/welcome.sh"

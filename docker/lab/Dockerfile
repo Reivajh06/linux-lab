@@ -1,34 +1,37 @@
-FROM ubuntu:24.04
-ENV DEBIAN_FRONTEND=noninteractive LANG=en_US.UTF-8 DISPLAY=:1
-# Ubuntu's minimal image excludes manuals by default; restore them before install.
-RUN rm -f /etc/dpkg/dpkg.cfg.d/excludes && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    locales sudo bash bash-completion coreutils util-linux passwd login adduser \
-    vim vim-tiny nano gedit man-db manpages manpages-dev info less \
-    findutils grep sed gawk diffutils file tree tar gzip bzip2 xz-utils zip unzip \
-    wamerican bc htop lsof \
-    procps psmisc iproute2 iputils-ping dnsutils curl wget netcat-openbsd \
-    python3 python3-venv ca-certificates openssh-client rsync acl \
-    openbox xfce4-terminal tigervnc-standalone-server tigervnc-common \
-    websockify dbus-x11 x11-xserver-utils x11-utils fonts-dejavu supervisor \
-    poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-spa && \
-    apt-get install -y --reinstall coreutils bash util-linux findutils grep sed tar gzip && \
-    locale-gen en_US.UTF-8 && mandb && rm -rf /var/lib/apt/lists/* && \
+FROM fedora:44
+ENV LANG=en_US.UTF-8 DISPLAY=:1
+# Fedora's container image skips manuals (tsflags=nodocs); restore them before install.
+RUN sed -i '/^tsflags=nodocs/d' /etc/dnf/dnf.conf && \
+    dnf reinstall -y --skip-unavailable $(rpm -qa --qf '%{NAME} ') && \
+    dnf install -y --setopt=install_weak_deps=False \
+    glibc-langpack-en glibc-langpack-es sudo bash bash-completion coreutils util-linux passwd shadow-utils \
+    vim-enhanced vim-minimal nano gedit man-db man-pages info less \
+    findutils grep sed gawk diffutils file tree tar gzip bzip2 xz zip unzip \
+    words bc htop lsof \
+    procps-ng psmisc iproute iputils bind-utils curl wget nmap-ncat \
+    hostname cronie at net-tools traceroute plocate binutils strace tmux screen git-core jq \
+    usbutils pciutils sysstat \
+    python3 ca-certificates openssh-clients rsync acl \
+    openbox xfce4-terminal tigervnc-server-minimal python3-websockify \
+    dbus-x11 dbus-daemon xsetroot xprop xdpyinfo wmctrl supervisor \
+    dejavu-sans-fonts dejavu-sans-mono-fonts adwaita-mono-fonts adwaita-sans-fonts \
+    adwaita-icon-theme glib2 dconf gsettings-desktop-schemas \
+    poppler-utils tesseract tesseract-langpack-eng tesseract-langpack-spa firefox && \
+    mandb -q && dnf clean all && rm -rf /var/cache/dnf /var/cache/libdnf5 && \
     useradd -m -s /bin/bash learner && \
     printf 'learner ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/learner && chmod 0440 /etc/sudoers.d/learner && \
     install -d -o learner -g learner /home/learner/.config/openbox && \
     printf '\nexport DISPLAY=:1\nexport LANG=en_US.UTF-8\n' >> /home/learner/.bashrc
-RUN if [ -f /usr/bin/man.REAL ]; then rm -f /usr/bin/man && dpkg-divert --quiet --divert /usr/bin/man.REAL --rename --remove /usr/bin/man; fi
 COPY install-browser.sh /opt/linux-lab-workspace/install-browser.sh
-RUN bash /opt/linux-lab-workspace/install-browser.sh
+RUN sed -i 's/\r$//' /opt/linux-lab-workspace/install-browser.sh && bash /opt/linux-lab-workspace/install-browser.sh
 COPY workspace.py /opt/linux-lab-workspace/workspace.py
 COPY lab-terminal /usr/local/bin/lab-terminal
 COPY desktop.sh /usr/local/bin/lab-desktop
-COPY supervisord.conf /etc/supervisor/conf.d/lab.conf
+COPY supervisord.conf /etc/supervisord.conf
 COPY welcome.txt /etc/motd
-RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
+RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal /etc/supervisord.conf && \
     chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
     install -d -o learner -g learner /home/learner/.config /home/learner/.config/openbox \
     /home/learner/.config/xfce4 /home/learner/.config/xfce4/terminal /home/learner/.config/gtk-3.0
 EXPOSE 6080
-CMD ["supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
+CMD ["supervisord", "-n", "-c", "/etc/supervisord.conf"]

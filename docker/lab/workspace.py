@@ -32,11 +32,13 @@ OPENBOX = '''<?xml version="1.0" encoding="UTF-8"?>
 </openbox_config>
 '''
 TERMINAL = '''[Configuration]
-FontName=DejaVu Sans Mono 12
-ColorForeground=#dbe5df
-ColorBackground=#101512
-ColorCursor=#dfb74c
-ColorPalette=#202820;#e47777;#8fca9e;#e4c46b;#82a8df;#c69cdd;#80c8cb;#cbd6cf;#78867c;#ed9696;#a4dfb2;#f3d88b;#9dbde9;#d8b2ec;#a1dcde;#f0f5f1
+FontName=Adwaita Mono 12
+FontUseSystem=FALSE
+FontAllowBold=TRUE
+ColorForeground=#ffffff
+ColorBackground=#1e1e1e
+ColorCursor=#ffffff
+ColorPalette=#241f31;#c01c28;#2ec27e;#f5c211;#1e78e4;#9841bb;#0ab9dc;#c0bfbc;#5e5c64;#ed333b;#57e389;#f8e45c;#51a1ff;#c061cb;#4fd2fd;#f6f5f4
 ColorUseTheme=FALSE
 ColorBoldUseDefault=TRUE
 BackgroundMode=TERMINAL_BACKGROUND_SOLID
@@ -46,6 +48,8 @@ MiscBordersDefault=FALSE
 ScrollingBar=TERMINAL_SCROLLBAR_NONE
 ScrollingLines=10000
 MiscCursorBlinks=TRUE
+MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
+MiscBellUrgent=FALSE
 MiscCopyOnSelect=FALSE
 MiscConfirmClose=TRUE
 '''
@@ -68,16 +72,18 @@ def configure():
         (rc.parent / "rc.xml.before-tabs").write_bytes(rc.read_bytes())
     rc.write_text(OPENBOX)
     (config / "xfce4/terminal/terminalrc").write_text(TERMINAL)
-    (config / "gtk-3.0/settings.ini").write_text("[Settings]\ngtk-theme-name=Adwaita-dark\ngtk-application-prefer-dark-theme=true\ngtk-font-name=DejaVu Sans 10\ngtk-decoration-layout=\n")
+    (config / "gtk-3.0/settings.ini").write_text("[Settings]\ngtk-theme-name=Adwaita-dark\ngtk-application-prefer-dark-theme=true\ngtk-font-name=Adwaita Sans 11\ngtk-decoration-layout=\n"
+        # Grayscale antialiasing stays crisp through VNC; subpixel colour fringes do not.
+        "gtk-xft-antialias=1\ngtk-xft-hinting=1\ngtk-xft-hintstyle=hintslight\ngtk-xft-rgba=none\n")
     for key, value in (("scheme", "oblivion"), ("use-default-font", "false"),
-                       ("editor-font", "DejaVu Sans Mono 12"), ("display-line-numbers", "true")):
+                       ("editor-font", "Adwaita Mono 12"), ("display-line-numbers", "true")):
         run(["gsettings", "set", "org.gnome.gedit.preferences.editor", key, value], check=False)
     run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ""], check=False)
     profile = home / ".bashrc"
     marker = "# Linux Lab tabbed terminal"
     if profile.exists() and marker not in profile.read_text():
         with profile.open("a") as handle:
-            handle.write("\n" + marker + "\nexport GTK_THEME=Adwaita:dark\nexport DISPLAY=:1\nPS1='\\[\\e[38;5;108m\\]\\u@\\h\\[\\e[0m\\]:\\[\\e[38;5;180m\\]\\w\\[\\e[0m\\]\\$ '\n")
+            handle.write("\n" + marker + "\nexport GTK_THEME=Adwaita:dark\nexport DISPLAY=:1\nPS1='\\[\\e[1;32m\\]\\u@\\h\\[\\e[0m\\]:\\w\\$ '\n")
     return {"configured": True}
 
 

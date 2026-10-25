@@ -15,7 +15,7 @@ backend; Node and Python are not required on the target computer.
 1. Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/),
    enable its WSL 2 backend, and use Linux containers. Start Docker Desktop.
 2. In Linux Lab, open **Environment setup**, click **Build lab image**, and wait for
-   the initial Ubuntu image build. This needs Internet for the first download.
+   the initial Fedora image build. This needs Internet for the first download.
 3. Open **Free Practice**, or choose **Linux Foundations**, then **Start environment**.
 4. The terminal opens inside the app. Try `man ls`, `nano notes.txt`, or
    `gedit notes.txt &`. Use `sudo` to administer the container.
@@ -40,7 +40,7 @@ The application is a personal local tool; no account or hosted service is needed
   Terminal, Debian, Mint, Fedora, Arch, Kali, openSUSE, Pop!_OS, or Manjaro dark
   colors, or choose a custom accent. The palette
   and selected model are saved in the local database across app restarts.
-- **Free Practice:** an independent Ubuntu sandbox with vi, vim, nano, gedit, manuals,
+- **Free Practice:** an independent Fedora sandbox with vi, vim, nano, gedit, manuals,
   user/group administration, files, networking tools, packages, and scripting.
 - **Application tabs:** the terminal and normal GUI windows fill the Linux display
   without window-manager borders. Starting `gedit notes.txt &` or `firefox &` from
@@ -78,7 +78,7 @@ exports and generated drafts use `evaluations`.
 The `courses/` directory bundles Linux Foundations and the ASO collections
 `aso-p1-2`, `aso-p1-3`, `aso-p2-1`, `aso-p2-2`, `aso-p3-1`, and `aso-p3-2`.
 The systemd and Apache parts of ASO Práctica 3.2 need a VM with systemd;
-use a VM for those sections instead of the Ubuntu practice container.
+use a VM for those sections instead of the Fedora practice container.
 The bundled answer scripts in `courses/foundations-solutions.json` exist for
 acceptance testing; learners can use any valid solution.
 
@@ -165,7 +165,7 @@ terminal window nor a separately installed Python runtime. The default installer
 is unsigned; release distributors can add their own signing configuration.
 The packaged application registers a Start menu and desktop shortcut on launch,
 using Linux Lab's icon and Windows application ID for taskbar grouping. Palette
-names are visual themes; they do not change the Ubuntu base distribution.
+names are visual themes; they do not change the Fedora base distribution.
 
 To run only the backend during UI development:
 

@@ -7,7 +7,7 @@ export GTK_THEME=Adwaita:dark
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
-Xtigervnc :1 -geometry 1440x900 -depth 24 -localhost yes -SecurityTypes None -AlwaysShared &
+Xvnc :1 -geometry 1440x900 -depth 24 -dpi 96 -localhost yes -SecurityTypes None -AlwaysShared &
 vnc_pid=$!
 trap 'kill "$vnc_pid" 2>/dev/null || true' EXIT
 for attempt in $(seq 1 60); do
@@ -21,7 +21,7 @@ dbus-run-session -- bash -c '
         python3 /opt/linux-lab-workspace/workspace.py configure
     fi
     openbox &
-    xsetroot -solid "#101512"
+    xsetroot -solid "#1e1e1e"
     /usr/local/bin/lab-terminal &
     touch /tmp/lab-ready
     wait

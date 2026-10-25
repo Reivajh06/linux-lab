@@ -4,6 +4,8 @@ declare module '@novnc/novnc' {
     scaleViewport: boolean;
     resizeSession: boolean;
     viewOnly: boolean;
+    qualityLevel: number;
+    compressionLevel: number;
     disconnect(): void;
     focus(): void;
     sendKey(keysym: number, code: string, down?: boolean): void;

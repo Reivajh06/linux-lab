@@ -10,7 +10,7 @@ from .schema import StreamExpectation
 # Run as a short, isolated Python process INSIDE the learner container. No paths or
 # regexes are interpolated into shell syntax; JSON is carried as a base64 argument.
 PROBE = r'''
-import os,sys,json,base64,stat,pwd,grp,re,subprocess
+import os,sys,json,base64,stat,pwd,grp,re,shutil,subprocess
 c=json.loads(base64.b64decode(sys.argv[1])); t=c['type']; ok=False
 try:
  if t=='path':
@@ -36,8 +36,11 @@ try:
    u=pwd.getpwnam(c['user']); g=grp.getgrnam(c['group']); ok=u.pw_gid==g.gr_gid or c['user'] in g.gr_mem
   except KeyError: ok=False
  elif t=='package':
-  r=subprocess.run(['dpkg-query','-W','-f=${Status}',c['name']],capture_output=True,text=True,timeout=5)
-  ok=r.returncode==0 and r.stdout=='install ok installed'
+  if shutil.which('rpm'):
+   ok=subprocess.run(['rpm','-q',c['name']],capture_output=True,timeout=5).returncode==0
+  else:
+   r=subprocess.run(['dpkg-query','-W','-f=${Status}',c['name']],capture_output=True,text=True,timeout=5)
+   ok=r.returncode==0 and r.stdout=='install ok installed'
  elif t=='process':
   args=['pgrep','-x',c['name']]
   if c.get('user'): args+=['-u',c['user']]

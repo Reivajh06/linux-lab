@@ -54,6 +54,8 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
         accept(state); setPrepared(true); setStatus('Connecting');
         rfb = new RFB(screen.current, desktopURL(id));
         rfb.scaleViewport = true; rfb.resizeSession = true;
+        // noVNC defaults to JPEG quality 6, which smears terminal text; the lab is local, so favour fidelity.
+        rfb.qualityLevel = 9; rfb.compressionLevel = 1;
         connection.current = rfb;
         rfb.addEventListener('connect', () => { if (!disposed) { setStatus('Connected'); rfb?.focus(); } });
         rfb.addEventListener('disconnect', () => { if (!disposed) setStatus('Disconnected'); });

@@ -91,13 +91,40 @@ class Runtime:
             self.db.execute("UPDATE environments SET name=?,cpus=?,memory_mb=?,pids=? WHERE id=?", (name.strip(), cpus, memory_mb, pids, environment_id))
             return self.get(environment_id)
 
+    def _remove_container(self, container):
+        """Remove a lab container, its anonymous volumes and, if now unused, the outdated lab image it ran."""
+        image_id = container.attrs.get("Image")
+        container.remove(force=True, v=True)
+        self._remove_unused_lab_image(image_id)
+
+    def _remove_unused_lab_image(self, image_id):
+        # Only images a linux-lab container ran: never the current lab tag, never an
+        # image tagged by anything else, never one another container still uses.
+        if not image_id:
+            return
+        lab_image = os.getenv("LAB_IMAGE", "linux-lab-environment:local")
+        try:
+            image = self.client.images.get(image_id)
+            current = self.client.images.get(lab_image).id
+        except (NotFound, DockerException):
+            return
+        repository = lab_image.rsplit(":", 1)[0]
+        if image.id == current or any(tag.rsplit(":", 1)[0] != repository for tag in image.tags):
+            return
+        if self.client.containers.list(all=True, filters={"ancestor": image.id}):
+            return
+        try:
+            self.client.images.remove(image.id, noprune=False)
+        except DockerException:
+            pass  # Still referenced (e.g. as a parent layer); leave it alone.
+
     async def delete(self, environment_id):
         async with self.lock(environment_id):
             row = self.get(environment_id)
             if row["container_id"]:
                 try:
                     container = await asyncio.to_thread(self.container, environment_id)
-                    await asyncio.to_thread(container.remove, force=True)
+                    await asyncio.to_thread(self._remove_container, container)
                 except LabError:
                     if self.get(environment_id)["state"] != "missing":
                         raise
@@ -177,7 +204,7 @@ class Runtime:
                 image=os.getenv("LAB_IMAGE", "linux-lab-environment:local"),
                 name=f"linux-lab-{environment_id[:16]}",
                 labels={"linux-lab.managed": "true", "linux-lab.environment": environment_id},
-                detach=True, init=True, hostname="linux-lab",
+                detach=True, init=True, hostname="fedora",
                 mem_limit=row["memory_mb"] * 1024 * 1024,
                 nano_cpus=int(row["cpus"] * 1_000_000_000),
                 pids_limit=row["pids"],
@@ -200,7 +227,7 @@ class Runtime:
             container.reload()
             if container.status != "running":
                 raise LabError("Linux desktop exited. Inspect its Docker logs and recreate it.")
-            if container.exec_run(["bash", "-c", "test -f /tmp/lab-ready && pgrep -x Xtigervnc >/dev/null && pgrep -x openbox >/dev/null && pgrep -x xfce4-terminal >/dev/null"]).exit_code == 0:
+            if container.exec_run(["bash", "-c", "test -f /tmp/lab-ready && pgrep -x 'Xvnc|Xtigervnc' >/dev/null && pgrep -x openbox >/dev/null && pgrep -x xfce4-terminal >/dev/null"]).exit_code == 0:
                 break
             time.sleep(0.5)
         else:
@@ -238,7 +265,7 @@ class Runtime:
             row = self.get(environment_id)
             if row["container_id"]:
                 try:
-                    await asyncio.to_thread(self.container(environment_id).remove, force=True)
+                    await asyncio.to_thread(self._remove_container, self.container(environment_id))
                 except LabError:
                     if self.get(environment_id)["state"] != "missing":
                         raise
