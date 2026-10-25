@@ -256,6 +256,14 @@ async def test_local_model_slips_are_fixed_and_reported(db, monkeypatch):
     ('give me a hint for user-existence-check', True),
     ('¿Cómo resuelvo el ejercicio count-sudo?', True),
     ('/ask add more detail to your last answer', True),
+    ('hey gemma', True),
+    ('what is chmod', True),
+    ('I am stuck on csv-03', True),
+    ('Gracias!', True),
+    ('How do I add a user?', True),
+    ('Help me practice all of the pdf sources using scripts', False),
+    ('Generate an environment to practice 1.2 and 1.3 using bash scripts', False),
+    ('/generate one more', False),
 ])
 def test_questions_and_edit_requests_are_routed(prompt, question):
     assert Generator.is_question(prompt) is question
@@ -284,3 +292,18 @@ async def test_question_is_answered_from_library_and_draft_without_changing_it(d
     assert "From course 'Scripting basics'" in context and 'Expected one name' in context
     assert 'archive-logs (Archive the logs)' in context and "From course 'File handling'" not in context
     assert sent[-1]['content'] == 'How do I validate arguments in the hello exercise?'
+
+
+def test_invalid_ids_are_renamed_with_their_references():
+    data = copy.deepcopy(EXAMPLE)
+    exercise = data['exercises'][0]
+    exercise['id'] = 'Hello_World'
+    exercise['output_requirements'][1]['id'] = 'wrong_arity'
+    exercise['input_requirements'][0]['error'] = 'wrong_arity'
+    exercise['evaluations'][0]['checks'][1]['requirement'] = 'wrong_arity'
+    notes = Generator.tidy(data)
+    course = Course.model_validate(data)
+    assert course.exercises[0].id == 'hello-world'
+    assert course.exercises[0].input_requirements[0].error == 'wrong-arity'
+    assert course.exercises[0].evaluations[0].checks[1].requirement == 'wrong-arity'
+    assert any('wrong_arity → wrong-arity' in note for note in notes)

@@ -236,6 +236,26 @@ class Generator:
                 continue
             name = exercise.get("id", "exercise")
             outputs = [o for o in exercise.get("output_requirements") or [] if isinstance(o, dict)]
+            evaluations = [t for t in exercise.get("evaluations") or [] if isinstance(t, dict)]
+            # IDs like "owner_full" or "Check1" break the id pattern; rename them and every reference.
+            renamed = {}
+            for item in [exercise, *outputs, *evaluations]:
+                old = item.get("id")
+                if isinstance(old, str):
+                    new = re.sub(r"[^a-z0-9]+", "-", old.lower()).strip("-")
+                    new = new if re.match(r"[a-z]", new) else f"id-{new}"
+                    if new != old:
+                        item["id"] = renamed[old] = new[:64]
+            if renamed:
+                for requirement in exercise.get("input_requirements") or []:
+                    if isinstance(requirement, dict) and requirement.get("error") in renamed:
+                        requirement["error"] = renamed[requirement["error"]]
+                for evaluation in evaluations:
+                    for check in evaluation.get("checks") or []:
+                        if isinstance(check, dict) and check.get("requirement") in renamed:
+                            check["requirement"] = renamed[check["requirement"]]
+                notes.append(f"{exercise['id']}: renamed IDs " + ", ".join(f"{a} → {b}" for a, b in renamed.items()))
+                name = exercise["id"]
             for output in outputs:
                 extra = sorted(set(output) - set(OutputRequirement.model_fields))
                 if extra:
@@ -279,22 +299,24 @@ class Generator:
         return course_yaml(course), len(course.exercises), issues, notes
 
     @staticmethod
-    def is_question(prompt):
-        """Questions get a chat answer; requests to create or change exercises get a YAML draft."""
+    def is_question(prompt, has_draft=False):
+        """Chat answers by default; only explicit requests to create or change exercises get a YAML draft."""
         text = prompt.strip().lower()
         if text.startswith(("/ask", "ask:")):
             return True
         if text.startswith(("/generate", "generate:")):
             return False
+        if re.match(r"¿?(how|why|what|which|where|when|who|cómo|como|por qué|qué|cuál|cual|dónde|donde|cuándo|quién)\b", text):
+            return True
         edit = re.search(r"\b(generate|create|make|write|draft|build|add|remove|delete|replace|rewrite|revise|change|update|fix|improve|translate|convert|shorten|extend|"
                          r"genera\w*|crea\w*|haz|hacer|escrib\w*|añad\w*|agreg\w*|elimin\w*|borra|cambi\w*|modific\w*|corrig\w*|mejor\w*|traduc\w*)\b", text)
         about = re.search(r"\b(exercises?|course|collection|yaml|draft|environment|tasks?|checks?|evaluations?|tips?|"
                           r"ejercicios?|curso|colección|borrador|entorno|pistas?)\b", text)
-        if edit and about and not re.match(r"(how|why|what|which|where|when|who)\b", text):
-            return False
-        return text.endswith("?") or bool(re.match(
-            r"(how|why|what|which|where|when|who|explain|describe|tell me|help me understand|hint|give me a hint|"
-            r"can|could|should|would|is|are|does|do|did|am i|i don't understand|i do not understand|i'm stuck|i am stuck)\b", text))
+        practice = re.search(r"\b(help me practi[cs]e|i want to practi[cs]e|let me practi[cs]e|"
+                             r"ayúdame a practicar|quiero practicar|para practicar)\b", text)
+        # With a draft open, an imperative edit ("Add one more", "Cambia el segundo") revises it.
+        revise = has_draft and edit and re.match(r"(please |por favor )?" + re.escape(edit.group(1)) + r"\b", text)
+        return not ((edit and about) or practice or revise)
 
     STOPWORDS = frozenset("the and for with this that what how why which does can could should would you your are "
                           "from into about exercise exercises course use using una uno los las del que con por para "
@@ -378,7 +400,7 @@ class Generator:
                 input_budget = settings['num_ctx'] - settings['num_predict'] - 512
                 chat = self.db.one("SELECT draft FROM chats WHERE id=?", (chat_id,))
                 history = self.db.all("SELECT role,content FROM messages WHERE chat_id=? ORDER BY id DESC LIMIT 6", (chat_id,))[::-1]
-                if self.is_question(prompt):
+                if self.is_question(prompt, bool(chat["draft"])):
                     await self.answer(job_id, chat_id, prompt, model, chat["draft"], history, input_budget)
                     return
                 plural = 's' if count != 1 else ''
