@@ -8,7 +8,7 @@ your existing Ollama models.
 
 ## Windows application
 
-Install **Linux-Lab-Setup-1.2.0.exe** from `release/1.2.0/`, then launch **Linux Lab** from
+Install **Linux-Lab-Setup-1.2.1.exe** from `release/1.2.1/`, then launch **Linux Lab** from
 the Start menu or desktop shortcut. The installer includes the UI and Python
 backend; Node and Python are not required on the target computer.
 
@@ -162,8 +162,8 @@ For the installer and unpacked executable:
 pnpm build:windows
 ```
 
-Outputs: `release/1.2.0/Linux-Lab-Setup-1.2.0.exe` and
-`release/1.2.0/win-unpacked/Linux Lab.exe`. PyInstaller bundles the backend, while
+Outputs: `release/1.2.1/Linux-Lab-Setup-1.2.1.exe` and
+`release/1.2.1/win-unpacked/Linux Lab.exe`. PyInstaller bundles the backend, while
 Electron provides a sandboxed Chromium UI. The local backend needs neither a
 terminal window nor a separately installed Python runtime. The default installer
 is unsigned; release distributors can add their own signing configuration.
