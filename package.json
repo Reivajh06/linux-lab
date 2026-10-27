@@ -1,6 +1,6 @@
 {
   "name": "linux-lab-desktop",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "description": "A personal Linux practice lab with local exercise generation",
   "author": "Linux Lab",
@@ -16,7 +16,7 @@
   "build": {
     "appId": "local.linuxlab.desktop",
     "productName": "Linux Lab",
-    "directories": { "output": "release/1.2.1" },
+    "directories": { "output": "release/1.2.2" },
     "files": ["desktop/**/*", "package.json"],
     "extraResources": [
       { "from": "backend-dist/linux-lab-server", "to": "backend" },

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import RFB from '@novnc/novnc';
 import { AppWindow, ClipboardPaste, Expand, FilePenLine, Globe, Loader2, Plus, RefreshCw, Shrink, Terminal, X } from 'lucide-react';
 import { api, desktopURL, post } from './api';
+import { attachDeadKeys, keysym } from './deadkeys';
 
 type AppKind = 'terminal' | 'editor' | 'browser' | 'app';
 type WindowTab = { id: string; title: string; kind: AppKind; class_name: string };
@@ -34,6 +35,7 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
     let disposed = false;
     let rfb: RFB | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let detachDeadKeys: (() => void) | undefined;
     setPrepared(false); setError(''); setStatus('Preparing');
     const accept = (state: WindowState) => {
       if (!disposed) { setWindows(state.windows); setActive(state.active_id); }
@@ -57,6 +59,8 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
         // noVNC defaults to JPEG quality 6, which smears terminal text; the lab is local, so favour fidelity.
         rfb.qualityLevel = 9; rfb.compressionLevel = 1;
         connection.current = rfb;
+        // An empty code makes noVNC send the keysym rather than a US-layout scancode.
+        detachDeadKeys = attachDeadKeys(screen.current, text => { for (const char of text) rfb?.sendKey(keysym(char), ''); });
         rfb.addEventListener('connect', () => { if (!disposed) { setStatus('Connected'); rfb?.focus(); } });
         rfb.addEventListener('disconnect', () => { if (!disposed) setStatus('Disconnected'); });
         rfb.addEventListener('securityfailure', () => { if (!disposed) setStatus('Connection rejected'); });
@@ -65,7 +69,7 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
         if (!disposed) { setStatus('Unavailable'); setError(e instanceof Error ? e.message : String(e)); }
       }
     })();
-    return () => { disposed = true; if (timer) clearTimeout(timer); rfb?.disconnect(); connection.current = null; };
+    return () => { disposed = true; if (timer) clearTimeout(timer); detachDeadKeys?.(); rfb?.disconnect(); connection.current = null; };
   }, [id, running, epoch]);
 
   const operate = async (action: string, body: object) => {
