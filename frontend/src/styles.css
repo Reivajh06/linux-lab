@@ -110,3 +110,32 @@ pre.console .prompt{color:var(--accent);user-select:none}pre.console .err{color:
 .stream-compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
 .stream-compare small{display:block;font-size:8px;letter-spacing:1.2px;color:var(--muted);margin-bottom:3px}
 .stream-compare pre{margin:0;padding:7px 9px;border-radius:5px;background:#0d0f0e;font:10.5px/1.5 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto}
+
+/* Exercise panel sits to the right of the desktop; the description reads as styled prose. */
+.workspace-grid:not(.free-workspace){grid-template-columns:minmax(0,1fr) 380px}.workspace-grid>.exercise-panel{order:2;position:sticky;top:20px;max-height:max(480px,calc(100dvh - 252px));overflow-y:auto;scrollbar-width:thin}.workspace-grid>.exercise-panel .exercise-selector{position:sticky;top:0;z-index:1}
+@media(min-width:1600px){.workspace-grid:not(.free-workspace){grid-template-columns:minmax(0,1fr) 430px}}
+@media(max-width:1250px){.workspace-grid:not(.free-workspace){grid-template-columns:minmax(0,1fr) 330px}}
+@media(max-width:1000px){.workspace-grid:not(.free-workspace){grid-template-columns:minmax(0,1fr) 290px}}
+@media(max-width:760px){.workspace-grid:not(.free-workspace){grid-template-columns:1fr}.workspace-grid>.exercise-panel{position:static;max-height:none}}
+.exercise-body{font-family:"Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif}
+.exercise-body h2{font-size:22px;letter-spacing:-.3px;color:#f2f0ea;padding-bottom:12px;border-bottom:2px solid color-mix(in srgb,var(--accent) 45%,transparent)}
+.exercise-number{display:inline-block;padding:2px 8px;border-radius:5px;background:color-mix(in srgb,var(--accent) 14%,var(--surface-1));font-size:12px;font-weight:600}
+.spec-label{font-size:10px;letter-spacing:1.6px;margin:18px 0 8px}
+.exercise-body>.markdown{font-size:14px;line-height:1.7;color:#dcd9d0;padding:14px 16px;border-radius:8px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 5%,var(--surface-2))}
+.exercise-body .markdown>:first-child{margin-top:0}.exercise-body .markdown>:last-child{margin-bottom:0}
+.exercise-body .markdown p{margin:0 0 12px}
+.exercise-body .markdown h1,.exercise-body .markdown h2,.exercise-body .markdown h3,.exercise-body .markdown h4{color:var(--accent);font-size:15px;line-height:1.35;margin:18px 0 8px;font-weight:650}
+.exercise-body .markdown h1{font-size:17px}.exercise-body .markdown h2{font-size:16px}
+.exercise-body .markdown strong{color:#fff;font-weight:650}
+.exercise-body .markdown em{color:color-mix(in srgb,var(--accent) 65%,#fff)}
+.exercise-body .markdown a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.exercise-body .markdown ul,.exercise-body .markdown ol{padding-left:22px;margin:0 0 12px}
+.exercise-body .markdown li{margin-bottom:6px;padding-left:2px}
+.exercise-body .markdown li::marker{color:var(--accent);font-weight:600}
+.exercise-body .markdown code{font:500 .88em/1.4 "Cascadia Code",Consolas,monospace;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--accent) 13%,#151515);color:color-mix(in srgb,var(--accent) 55%,#fff);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+.exercise-body .markdown pre{margin:0 0 12px;padding:11px 13px;border-radius:7px;background:#0d0f0e;border:1px solid var(--border);font-size:12.5px}
+.exercise-body .markdown pre code{background:none;border:0;padding:0;color:#b4e0bf;font-size:inherit}
+.exercise-body .markdown blockquote{margin:0 0 12px;padding:8px 12px;border-left:3px solid #6fa8dc;background:#6fa8dc14;border-radius:0 6px 6px 0;color:#c9d9ea}
+.exercise-body .markdown hr{border:0;border-top:1px solid var(--border);margin:16px 0}
+.exercise-body .markdown table{font-size:13px;margin-bottom:12px}.exercise-body .markdown th{color:var(--accent);background:var(--surface-1)}
+.requirements,.output-row{font-size:13px;line-height:1.55;color:#d6d3ca}.task-line>div{font-size:13px;line-height:1.55}.task-heading{font-size:10px}.tips{font-size:13px}.tips ul{font-size:12.5px}
