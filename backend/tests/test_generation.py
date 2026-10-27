@@ -307,3 +307,31 @@ def test_invalid_ids_are_renamed_with_their_references():
     assert course.exercises[0].input_requirements[0].error == 'wrong-arity'
     assert course.exercises[0].evaluations[0].checks[1].requirement == 'wrong-arity'
     assert any('wrong_arity → wrong-arity' in note for note in notes)
+
+
+async def test_environment_helper_sends_exercise_without_check_scripts_and_stores_nothing(db, monkeypatch):
+    course = parse_course(yaml.safe_dump(EXAMPLE))
+    exercise = course.exercises[0]
+    generator = Generator(db, SourceService(db))
+    sent = []
+    async def models(): return [{'name': 'test'}]
+    async def configure_model(metadata):
+        generator.settings['test'] = {'num_ctx': 8192, 'num_predict': 4096}
+        return generator.settings['test']
+    async def chunks(model, messages):
+        sent.append(messages)
+        yield 'Try ', None
+        yield '`man test`.', 'length'
+    monkeypatch.setattr(generator, 'models', models)
+    monkeypatch.setattr(generator, 'configure_model', configure_model)
+    monkeypatch.setattr(generator, 'chunks', chunks)
+    context = generator.environment_context({'name': 'Lab', 'state': 'running'}, course, exercise)
+    history = [{'role': 'user', 'content': 'Hi'}, {'role': 'assistant', 'content': 'Hello'}, {'role': 'user', 'content': 'How do I start?'}]
+    reply = ''.join([text async for text in await generator.assist('test', context, history)])
+    assert reply.startswith('Try `man test`.') and 'output limit' in reply
+    messages = sent[0]
+    assert 'beside a learner' in messages[0]['content'] and messages[1]['content'] == context
+    assert [m['content'] for m in messages[2:]] == ['Hi', 'Hello', 'How do I start?']
+    assert exercise.id in context and exercise.evaluations[0].description in context
+    assert 'script:' not in context.split('evaluations:')[1]
+    assert db.all('SELECT * FROM messages') == [] and db.all('SELECT * FROM chats') == []

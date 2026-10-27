@@ -17,18 +17,40 @@ export type Chat = { id: string; title: string; draft: string; messages: { id: n
 export type Config = { token: string; docker: { available: boolean; image_ready: boolean; message: string }; ollama_url: string; ocr_languages: string; desktop: boolean };
 let token = '';
 
+async function checkResponse(response: Response): Promise<void> {
+  if (response.ok) return;
+  let detail: unknown = response.statusText;
+  try { detail = (await response.json()).detail; } catch { /* retain status */ }
+  if (Array.isArray(detail)) detail = detail.map(e => `${e.path ?? e.loc?.join('.') ?? ''}: ${e.message ?? e.msg ?? ''}`).join('\n');
+  throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (token) headers.set('X-Lab-Token', token);
   if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   const response = await fetch('/api' + path, { ...options, headers });
-  if (!response.ok) {
-    let detail: unknown = response.statusText;
-    try { detail = (await response.json()).detail; } catch { /* retain status */ }
-    if (Array.isArray(detail)) detail = detail.map(e => `${e.path ?? e.loc?.join('.') ?? ''}: ${e.message ?? e.msg ?? ''}`).join('\n');
-    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
-  }
+  await checkResponse(response);
   return response.json();
+}
+
+export async function stream(path: string, data: unknown, onText: (text: string) => void, signal?: AbortSignal): Promise<void> {
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (token) headers.set('X-Lab-Token', token);
+  const response = await fetch('/api' + path, { method: 'POST', headers, body: JSON.stringify(data), signal });
+  await checkResponse(response);
+  if (!response.body) throw new Error('The server returned no response stream.');
+  const reader = response.body.getReader(), decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const text = decoder.decode(value, { stream: true });
+      if (text) onText(text);
+    }
+    const text = decoder.decode();
+    if (text) onText(text);
+  } finally { reader.releaseLock(); }
 }
 
 export async function configure(): Promise<Config> {

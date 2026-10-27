@@ -69,3 +69,38 @@ def test_text_source_upload_page_and_safe_preview(db, monkeypatch, extension):
         assert 'Práctica' in preview.text and 'Linux permissions' in preview.text
         assert '<script>' not in preview.text and 'alert(1)' not in preview.text
         assert client.post('/api/sources', headers=headers, files={'file': ('bad.exe', b'bad')}).status_code == 422
+
+
+def test_chats_can_be_deleted_with_their_messages(db):
+    app = create_app(db, NoDocker(db))
+    with TestClient(app) as client:
+        headers = {'X-Lab-Token': client.get('/api/config').json()['token']}
+        chat_id = client.post('/api/chats', headers=headers).json()['id']
+        db.message(chat_id, 'user', 'hello')
+        assert client.delete(f'/api/chats/{chat_id}').status_code == 403
+        assert client.delete(f'/api/chats/{chat_id}', headers=headers).json() == {'deleted': True}
+        assert client.get(f'/api/chats/{chat_id}').status_code == 404
+        assert db.all('SELECT * FROM messages') == []
+        assert client.delete(f'/api/chats/{chat_id}', headers=headers).status_code == 404
+
+
+def test_environment_assistant_streams_without_storing(db, monkeypatch):
+    app = create_app(db, NoDocker(db))
+    generator = app.state.generator
+    async def assist(model, context, history):
+        assert 'free practice' in context and history[-1]['content'] == 'What is ls?'
+        async def reply():
+            yield 'It lists '
+            yield 'files.'
+        return reply()
+    monkeypatch.setattr(generator, 'assist', assist)
+    with TestClient(app) as client:
+        headers = {'X-Lab-Token': client.get('/api/config').json()['token']}
+        env = client.post('/api/environments', headers=headers, json={}).json()
+        body = {'model': 'test', 'messages': [{'role': 'user', 'content': 'What is ls?'}]}
+        response = client.post(f"/api/environments/{env['id']}/assistant", headers=headers, json=body)
+        assert response.status_code == 200 and response.text == 'It lists files.'
+        assert client.post('/api/environments/missing/assistant', headers=headers, json=body).status_code == 404
+        wrong = {'model': 'test', 'messages': [{'role': 'assistant', 'content': 'Hi'}]}
+        assert client.post(f"/api/environments/{env['id']}/assistant", headers=headers, json=wrong).status_code == 422
+        assert db.all('SELECT * FROM chats') == []

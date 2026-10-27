@@ -6,6 +6,8 @@ import Desktop from './Desktop';
 import Environments from './Environments';
 import ExerciseBody from './ExerciseBody';
 import Modal from './Modal';
+import ChatMessage from './ChatMessage';
+import EnvironmentAssistant from './EnvironmentAssistant';
 import { applyTheme, defaults, palettes } from './theme';
 import type { Preferences } from './theme';
 import { api, configure, download, post, progressPercent, selectLocalModel } from './api';
@@ -169,6 +171,7 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
   const [busy, setBusy] = useState('');
   const [reset, setReset] = useState(false);
   const [desktopKey, setDesktopKey] = useState(0);
+  const [panel, setPanel] = useState<'exercise' | 'assistant'>('exercise');
   const exercise = detail?.course.exercises[selected];
   const result = exercise ? detail?.results[exercise.id] : undefined;
   const load = useCallback(async () => {
@@ -176,7 +179,7 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
     else if (courseKey) { const data = await api<CourseDetail>(`/courses/${courseKey}`); setDetail(data); setEnvironment(data.environment); }
     else { setDetail(null); setEnvironment(await post<Environment>('/environments', {})); }
   }, [courseKey, environmentId]);
-  useEffect(() => { setSelected(0); setEnvironment(null); load().catch(onError); }, [load, onError]);
+  useEffect(() => { setSelected(0); setEnvironment(null); setDetail(null); setPanel('exercise'); load().catch(onError); }, [load, onError]);
   const lifecycle = async (action: string) => {
     if (!environment) return; setBusy(action);
     try { setEnvironment(await post<Environment>(`/environments/${environment.id}/${action}`)); setDesktopKey(n => n + 1); if (action === 'recreate') await load(); await onChanged(); }
@@ -202,8 +205,13 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
       </div>
     </div>
     {environment?.error && <div className="notice error-note"><CircleAlert size={17}/><span>{environment.error}</span><button className="text-button" onClick={onSetup}>Environment setup</button></div>}
-    <div className={'workspace-grid ' + (!detail ? 'free-workspace' : '')}>
-      {detail && <aside className="exercise-panel" aria-label="Exercise">
+    <div className="workspace-grid">
+      <aside className="exercise-panel" aria-label="Environment guidance">
+        <div className="workspace-panel-tabs" role="tablist" aria-label="Environment guidance">
+          {detail && <button id="exercise-tab" role="tab" aria-selected={panel === 'exercise'} aria-controls="exercise-content" onClick={() => setPanel('exercise')}>Exercise</button>}
+          <button id="assistant-tab" role="tab" aria-selected={!detail || panel === 'assistant'} aria-controls="assistant-content" onClick={() => setPanel('assistant')}><Sparkles size={15}/>Assistant</button>
+        </div>
+        {detail && <div id="exercise-content" role="tabpanel" aria-labelledby="exercise-tab" hidden={panel !== 'exercise'}>
         <div className="exercise-selector"><label htmlFor="exercise-picker">Exercise {selected + 1} of {detail.course.exercises.length}</label><div className="select-wrap"><select id="exercise-picker" value={selected} onChange={e => setSelected(Number(e.target.value))}>{detail.course.exercises.map((e, i) => <option key={e.id} value={i}>{detail.results[e.id]?.earned === detail.results[e.id]?.available && detail.results[e.id] ? '✓ ' : ''}{String(i + 1).padStart(2, '0')} · {e.title}</option>)}</select><ChevronDown size={16}/></div></div>
         {exercise && <ExerciseBody exercise={exercise} index={selected} result={result} actions={<>
           <div className="evaluate-actions">
@@ -213,7 +221,9 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
           </div>
           <div className="exercise-pagination"><button disabled={selected === 0} onClick={() => setSelected(n => n - 1)}><ArrowLeft size={16}/>Previous</button><button disabled={selected === detail.course.exercises.length - 1} onClick={() => setSelected(n => n + 1)}>Next<ArrowRight size={16}/></button></div>
         </>}/>}
-      </aside>}
+        </div>}
+        <div id="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
+      </aside>
       <div className="workspace-desktop"><Desktop key={desktopKey} id={environment?.id || ''} running={running}/></div>
     </div>
     {reset && <Modal title="Start fresh?" className="small" onClose={busy ? undefined : () => setReset(false)} description="Recreating this environment permanently removes its files, users, installed packages, and current scores. The imported course stays in your library.">
@@ -263,8 +273,15 @@ function Sources({ sources, refresh, onError, onChat }: { sources: Source[]; ref
 }
 
 function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: Source[]; onError: (e: unknown) => void; onImport: (text: string) => Promise<void>; onDirtyChange: (dirty: boolean) => void }) {
-  const [chats, setChats] = useState<{ id: string; title: string }[]>([]);
+  const [chats, setChats] = useState<{ id: string; title: string; created_at: string; updated_at: string }[]>([]);
   const [chat, setChat] = useState<Chat | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [deleteChat, setDeleteChat] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const historyToggle = useRef<HTMLButtonElement>(null);
+  const chatLoad = useRef(0);
   const [models, setModels] = useState<{ name: string; size?: number }[]>([]);
   const [model, setModel] = useState('gemma3:12b-it-qat');
   const [ollamaError, setOllamaError] = useState('');
@@ -279,44 +296,66 @@ function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: 
   const running = ['queued', 'running'].includes(chat?.job?.state || '');
   const readySources = sources.filter(s => s.state === 'ready');
   const loadModels = useCallback(async () => {
-    const response = await api<{ available: boolean; models: { name: string }[]; message?: string }>('/ollama/models');
+    const response = await api<{ name: string }[] | { available: boolean; models: { name: string }[]; message?: string }>('/ollama/models');
     const saved = await api<Preferences>('/preferences');
-    setModels(response.models); setOllamaError(response.available ? '' : response.message || 'Local Ollama unavailable');
-    setModel(selectLocalModel(response.models, saved.model));
+    const local = Array.isArray(response) ? response : response.models;
+    setModels(local); setOllamaError(!Array.isArray(response) && !response.available ? response.message || 'Local Ollama unavailable' : local.length ? '' : 'Ollama has no local models.');
+    setModel(selectLocalModel(local, saved.model));
   }, []);
-  const loadChat = useCallback(async (id: string, replaceDraft = true) => { const result = await api<Chat>(`/chats/${id}`); setChat(result); if (replaceDraft) { setDraft(result.draft); setDraftDirty(false); setValidation(''); } }, []);
-  useEffect(() => { api<{ id: string; title: string }[]>('/chats').then(setChats).catch(onError); loadModels().catch(onError); }, [loadModels, onError]);
+  const loadChat = useCallback(async (id: string, replaceDraft = true) => { const request = ++chatLoad.current; const result = await api<Chat>(`/chats/${id}`); if (request !== chatLoad.current) return; setChat(result); if (replaceDraft) { setDraft(result.draft); setDraftDirty(false); setValidation(''); } }, []);
+  const refreshChats = useCallback(async () => setChats(await api<typeof chats>('/chats')), []);
+  useEffect(() => { refreshChats().catch(onError); loadModels().catch(onError); return () => { chatLoad.current++; }; }, [refreshChats, loadModels, onError]);
   useEffect(() => {
-    if (!running || !chat) return;
+    if (!running || !chat || deleting || loadingChat) return;
     const timer = setInterval(() => loadChat(chat.id).catch(onError), 1500); return () => clearInterval(timer);
-  }, [running, chat?.id, loadChat, onError]);
+  }, [running, chat?.id, deleting, loadingChat, loadChat, onError]);
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [chat?.messages.length]);
   useEffect(() => { onDirtyChange(draftDirty); }, [draftDirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
   const save = async () => { if (!chat) return; await api(`/chats/${chat.id}/draft`, { method: 'PUT', body: JSON.stringify({ yaml: draft }) }); setDraftDirty(false); };
   const submit = async () => {
-    if (!prompt.trim() || !model || running || busy) return; setBusy(true); setValidation('');
+    if (!prompt.trim() || !model || running || busy || loadingChat) return; setBusy(true); setValidation('');
     try {
       let id = chat?.id;
       if (!id) { id = (await post<{ id: string }>('/chats')).id; }
       if (draftDirty && chat) await save();
       await post(`/chats/${id}/generate`, { prompt, model, source_ids: selectedSources?.filter(id => sources.some(s => s.id === id && s.state === 'ready')) ?? null, count });
       setPrompt(''); await api('/preferences', { method: 'PATCH', body: JSON.stringify({ model }) }); await loadChat(id);
-      setChats(await api('/chats'));
+      await refreshChats();
     } catch (e) { onError(e); } finally { setBusy(false); }
   };
-  const changeChat = async (id: string) => { if (draftDirty && !window.confirm('Discard unsaved draft edits?')) return; try { await loadChat(id); } catch (e) { onError(e); } };
+  const closeHistory = () => { setHistoryOpen(false); if (historyOpen) historyToggle.current?.focus(); };
+  const resetChat = () => { chatLoad.current++; setChat(null); setDraft(''); setDraftDirty(false); setValidation(''); setPrompt(''); closeHistory(); };
+  const newChat = () => { if (draftDirty && !window.confirm('Discard unsaved edits?')) return; resetChat(); };
+  const changeChat = async (id: string) => { if (id === chat?.id) { closeHistory(); return; } if (draftDirty && !window.confirm('Discard unsaved draft edits?')) return; setLoadingChat(true); try { await loadChat(id); closeHistory(); } catch (e) { onError(e); } finally { setLoadingChat(false); } };
+  const removeChat = async () => {
+    if (!deleteChat) return; setDeleting(true); setDeleteError(''); chatLoad.current++;
+    try {
+      await api(`/chats/${deleteChat.id}`, { method: 'DELETE' });
+      if (chat?.id === deleteChat.id) resetChat();
+      setDeleteChat(null); await refreshChats().catch(onError);
+    } catch (e) { setDeleteError(e instanceof Error ? e.message : String(e)); } finally { setDeleting(false); }
+  };
   const prompts = ['Create beginner exercises about users, groups, and permissions.', 'Build a course on files and text processing from my notes.', 'How should I approach the local-hostname exercise?'];
   return <div className="page chat-page">
-    <div className="section-heading"><div><h1>Exercise Chat</h1><p>Generate and revise exercise collections, or ask questions about your exercises.</p></div><button className="button secondary" disabled={running} onClick={() => { if (draftDirty && !window.confirm('Discard unsaved edits?')) return; setChat(null); setDraft(''); setDraftDirty(false); setValidation(''); }}><Plus size={16}/>New conversation</button></div>
+    <div className="section-heading"><div><h1>Exercise Chat</h1><p>Generate and revise exercise collections, or ask questions about your exercises.</p></div><button ref={historyToggle} className="button secondary history-toggle" aria-expanded={historyOpen} aria-controls="chat-history" onClick={() => setHistoryOpen(open => !open)}><Library size={16}/>History</button></div>
     <div className="chat-settings">
       <label><span>Local model</span><div className="select-wrap"><select value={model} onChange={e => { setModel(e.target.value); api('/preferences', { method: 'PATCH', body: JSON.stringify({ model: e.target.value }) }).catch(onError); }}>{models.length === 0 && <option value="">No local models found</option>}{models.map(m => <option key={m.name}>{m.name}</option>)}</select><ChevronDown size={15}/></div></label>
       <button className="icon-button" title="Refresh models" aria-label="Refresh local models" onClick={() => loadModels().catch(onError)}><RefreshCw size={17}/></button>
       <label className="count-select"><span>Exercises</span><input type="number" min={1} max={30} value={count} onChange={e => setCount(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}/></label>
-      {chats.length > 0 && <label className="history-select"><span>Conversation history</span><div className="select-wrap"><select value={chat?.id || ''} onChange={e => e.target.value && changeChat(e.target.value)}><option value="">New conversation</option>{chats.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select><ChevronDown size={15}/></div></label>}
     </div>
     {ollamaError && <div className="notice error-note" role="alert"><CircleAlert size={17}/>{ollamaError}</div>}
     <div className="chat-grid">
+      <aside id="chat-history" className={'chat-history ' + (historyOpen ? 'open' : '')} aria-label="Conversation history" onKeyDown={e => { if (e.key === 'Escape') closeHistory(); }}>
+        <div className="history-header"><button className="button secondary" disabled={busy || deleting || loadingChat} onClick={newChat}><Plus size={16}/>New conversation</button><button className="icon-button history-close" aria-label="Close history" onClick={closeHistory}><X size={17}/></button></div>
+        <div className="history-items">{chats.map(c => {
+          const date = new Date(c.updated_at || c.created_at);
+          return <div className={'history-item ' + (chat?.id === c.id ? 'active' : '')} key={c.id}>
+            <button className="history-item-open" aria-current={chat?.id === c.id ? 'true' : undefined} disabled={busy || deleting || loadingChat} title={c.title} onClick={() => changeChat(c.id)}><span>{c.title}</span>{!Number.isNaN(date.getTime()) && <time dateTime={date.toISOString()}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time>}</button>
+            <button className="icon-button delete-button history-delete" aria-label={`Delete conversation: ${c.title}`} disabled={busy || deleting || loadingChat} onClick={() => { setDeleteError(''); setDeleteChat(c); }}><Trash2 size={15}/></button>
+          </div>;
+        })}{!chats.length && <p className="history-empty">Your saved conversations appear here.</p>}</div>
+      </aside>
       <section className="chat-conversation" aria-label="Conversation">
         <div className="source-picker"><details><summary><FileText size={16}/>{selectedSources === null ? 'All indexed sources · relevant excerpts' : selectedSources.length ? `${selectedSources.length} ${selectedSources.length === 1 ? 'source' : 'sources'} selected` : 'No sources'}<ChevronDown size={14}/></summary><div className="source-options">
           <label><input type="checkbox" checked={selectedSources === null} onChange={e => setSelectedSources(e.target.checked ? null : [])}/>Use all indexed sources automatically</label>
@@ -326,14 +365,14 @@ function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: 
         </div></details></div>
         <div className="messages" aria-live="polite">
           {!chat?.messages.length && <div className="chat-welcome"><span className="create-icon"><Sparkles size={27}/></span><h2>Describe exercises to generate, or ask about your exercises.</h2><div className="prompt-suggestions">{prompts.map(p => <button key={p} onClick={() => setPrompt(p)}>{p}<ArrowRight size={14}/></button>)}</div></div>}
-          {chat?.messages.map(m => <div key={m.id} className={'message ' + m.role}><span className="message-avatar" aria-hidden="true">{m.role === 'user' ? 'Y' : <Sparkles size={15}/>}</span><div><small>{m.role === 'user' ? 'YOU' : 'LOCAL MODEL'}</small><article className="markdown"><Markdown>{m.content}</Markdown></article></div></div>)}
+          {chat?.messages.map(m => <ChatMessage key={m.id} role={m.role} content={m.content}/>)}
           {running && <div className="job-progress" role="status"><Loader2 size={16} className="spin"/>{chat?.job?.progress || 'Working…'}<button className="text-button" onClick={async () => { try { await post(`/jobs/${chat?.job?.id}/cancel`); if (chat) await loadChat(chat.id); } catch (e) { onError(e); } }}>Cancel</button></div>}
           {chat?.job?.error && <pre className="inline-error">{chat.job.error}</pre>}
           <div ref={messagesEnd}/>
         </div>
         <form className="chat-composer" onSubmit={e => { e.preventDefault(); submit(); }}>
           <textarea aria-label="Message" aria-describedby="composer-hint" placeholder="Describe exercises to create, or ask about an exercise…" value={prompt} disabled={running} onChange={e => setPrompt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}/>
-          <div><span id="composer-hint">Enter to send · Shift+Enter for a new line</span><button className="send-button" aria-label="Send" title="Send" disabled={!model || !prompt.trim() || running || busy}>{busy ? <Loader2 size={18} className="spin"/> : <Send size={18}/>}</button></div>
+          <div><span id="composer-hint">Enter to send · Shift+Enter for a new line</span><button className="send-button" aria-label="Send" title="Send" disabled={!model || !prompt.trim() || running || busy || loadingChat}>{busy ? <Loader2 size={18} className="spin"/> : <Send size={18}/>}</button></div>
         </form>
       </section>
       <section className="draft-panel" aria-label="Exercise draft">
@@ -351,6 +390,10 @@ function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: 
         </> : <div className="draft-empty"><FileText size={35}/><h3>No draft yet</h3><p>The editable YAML collection appears here once the model generates one.</p></div>}
       </section>
     </div>
+    {deleteChat && <Modal title="Delete conversation?" className="small" onClose={deleting ? undefined : () => setDeleteChat(null)} description={<>Permanently delete “{deleteChat.title}” and its draft? Any running generation in this conversation will be cancelled.</>}>
+      {deleteError && <p className="inline-error" role="alert">{deleteError}</p>}
+      <div className="modal-actions"><button className="button secondary" autoFocus disabled={deleting} onClick={() => setDeleteChat(null)}>Cancel</button><button className="button danger" disabled={deleting} onClick={removeChat}>{deleting ? <><Loader2 size={15} className="spin"/>Deleting…</> : 'Delete conversation'}</button></div>
+    </Modal>}
   </div>;
 }
 

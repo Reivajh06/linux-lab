@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import httpx
 import yaml
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -58,6 +58,17 @@ class GenerationInput(BaseModel):
     model: str = Field(min_length=1, max_length=200)
     source_ids: list[str] | None = Field(default=None, max_length=500)
     count: int = Field(default=5, ge=1, le=30)
+
+
+class AssistantMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=20000)
+
+
+class AssistantInput(BaseModel):
+    model: str = Field(min_length=1, max_length=200)
+    exercise_id: str | None = Field(default=None, max_length=200)
+    messages: list[AssistantMessage] = Field(min_length=1, max_length=60)
 
 
 class PreferencesInput(BaseModel):
@@ -416,6 +427,39 @@ def create_app(db=None, runtime=None):
         if not row:
             raise KeyError("Chat not found")
         return {**row, "messages": db.all("SELECT * FROM messages WHERE chat_id=? ORDER BY id", (chat_id,)), "job": db.one("SELECT * FROM jobs WHERE chat_id=? ORDER BY created_at DESC LIMIT 1", (chat_id,))}
+
+    @app.delete("/api/chats/{chat_id}")
+    async def delete_chat(chat_id: str):
+        if not db.one("SELECT id FROM chats WHERE id=?", (chat_id,)):
+            raise KeyError("Chat not found")
+        for job in db.all("SELECT id FROM jobs WHERE chat_id=? AND state IN ('queued','running')", (chat_id,)):
+            await generator.cancel(job["id"])
+        with db.connect() as con:
+            for table, column in (("messages", "chat_id"), ("jobs", "chat_id"), ("chats", "id")):
+                con.execute(f"DELETE FROM {table} WHERE {column}=?", (chat_id,))
+        return {"deleted": True}
+
+    @app.post("/api/environments/{environment_id}/assistant")
+    async def assistant(environment_id: str, body: AssistantInput):
+        # A temporary helper chat: the browser holds the conversation and nothing is stored.
+        if body.messages[-1].role != "user":
+            raise ValueError("The last message must be the learner's question")
+        environment = runtime.get(environment_id)
+        course = db.course(environment["course_key"]) if environment["course_key"] else None
+        exercise = next((e for e in course.exercises if e.id == body.exercise_id), None) if course else None
+        try:
+            chunks = await generator.assist(body.model, generator.environment_context(environment, course, exercise),
+                                            [m.model_dump() for m in body.messages])
+        except httpx.HTTPError as exc:
+            raise ValueError(generator.describe_error(exc)) from exc
+
+        async def reply():
+            try:
+                async for text in chunks:
+                    yield text
+            except Exception as exc:
+                yield f"\n\n**Error:** {generator.describe_error(exc)}"
+        return StreamingResponse(reply(), media_type="text/plain; charset=utf-8", headers={"Cache-Control": "no-store"})
 
     @app.put("/api/chats/{chat_id}/draft")
     async def save_draft(chat_id: str, body: YAMLInput):
