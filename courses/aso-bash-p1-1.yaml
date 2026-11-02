@@ -1,0 +1,1419 @@
+schema_version: 1
+id: aso-bash-p1-1
+version: '1.0'
+title: ASO Bash 1.1 · Instalación y exploración del sistema
+description: "Scripts que consultan lo que la Práctica 1.1 explica durante la instalación:\
+  \ herramientas y paquetes (`whereis`, `dnf`),\n    niveles de ejecución (`systemctl`,\
+  \ enlaces de `runlevelN.target`), identidad del sistema, memoria, red y ficheros\
+  \ de configuración.\n    VirtualBox, el particionado real, GRUB y la recuperación\
+  \ con el CD necesitan una máquina virtual y no se evalúan aquí.\n\nCada ejercicio\
+  \ es un **script de Bash** en `/home/learner/aso/p11/`: empieza por `#!/bin/bash`,\
+  \ hazlo ejecutable con `chmod u+x`, envía los resultados a stdout y los errores\
+  \ a stderr, y usa un código de salida distinto para cada error. Los ejercicios trabajan\
+  \ con ficheros y procesos reales del sistema (`/etc/passwd`, `/etc/group`, `/proc`,\
+  \ `/usr/share/dict/words`...): la salida esperada se calcula al evaluar, así que\
+  \ no vale escribir el resultado a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p11
+
+    id usuario1 >/dev/null 2>&1 || useradd -m -s /bin/bash -G wheel -c ''Usuario 1''
+    usuario1
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: herramientas
+  title: Localizar herramientas con whereis
+  description: "Para cada herramienta recibida como argumento, muestra `NOMBRE: RUTA`\
+    \ con la primera ruta de binario que indique `whereis -b`.\n    Si una herramienta\
+    \ no está instalada, escribe `NOMBRE: no instalada` en stderr, sigue con las demás\
+    \ y termina con el código 3.\n\n**Comandos a practicar:** `whereis -b`, `cut -s`\n\
+    \n**Estructuras de Bash:** `for x in \"$@\"`, `[[ -z ... ]]`, `>&2`\n\n**Detalle\
+    \ importante:** `whereis` imprime `nosuch:` sin espacios cuando no encuentra nada,\
+    \ y `cut` devuelve la línea entera si no contiene el delimitador. Mira qué hace\
+    \ `cut -s`."
+  script:
+    path: /home/learner/aso/p11/herramientas.sh
+    usage: herramientas.sh HERRAMIENTA...
+  input_requirements:
+  - description: Recibe al menos una herramienta.
+    error: uso
+  - description: Cada herramienta debe estar instalada; si no, se avisa y se continúa.
+    error: parcial
+  output_requirements:
+  - id: correcto
+    description: 'Una línea `NOMBRE: RUTA` por herramienta.'
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: herramientas.sh HERRAMIENTA...'
+  - id: parcial
+    description: stdout con las herramientas encontradas y stderr con las que faltan.
+    exit_code: 3
+    stream: stderr
+    message: 'nosuch: no instalada'
+  examples:
+  - command: /home/learner/aso/p11/herramientas.sh tar bzip2
+    stdout: 'tar: /usr/bin/tar
+
+      bzip2: /usr/bin/bzip2
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/herramientas.sh
+    stdout: ''
+    stderr: 'uso: herramientas.sh HERRAMIENTA...
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: instaladas
+    description: Localiza las herramientas instaladas.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - tar
+      - bzip2
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tar: /usr/bin/tar
+
+          bzip2: /usr/bin/bzip2'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - bash
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'whereis -b bash | cut -d'' '' -f2 | sed ''s/^/bash: /'''
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos una herramienta.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: herramientas.sh HERRAMIENTA...'
+  - id: error-parcial
+    description: 'Rechaza la entrada: Cada herramienta debe estar instalada; si no,
+      se avisa y se continúa.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - tar
+      - nosuch
+      - bash
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: parcial
+      stdout:
+        match: lines
+        from_command: 'whereis -b bash | cut -d'' '' -f2 | sed ''1i tar: /usr/bin/tar''
+          | sed ''2s/^/bash: /'''
+      stderr:
+        match: exact
+        value: 'nosuch: no instalada'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 6
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: paquetes
+  title: ¿Está instalado este paquete?
+  description: "Para cada paquete, muestra `NOMBRE: instalado` o `NOMBRE: no instalado`\
+    \ consultando `dnf list --installed`.\n    El nombre debe cumplir `^[a-z0-9][a-z0-9+._-]*$`;\
+    \ valida todos los argumentos antes de consultar ninguno.\n\n**Comandos a practicar:**\
+    \ `dnf list --installed`\n\n**Estructuras de Bash:** `[[ =~ ]]`, `cmd >/dev/null\
+    \ 2>&1 && ... || ...`\n\n**Detalle importante:** La salida del comando interno\
+    \ no forma parte del resultado: redirige stdout **y** stderr. Un comando vale\
+    \ «verdadero» cuando devuelve 0."
+  script:
+    path: /home/learner/aso/p11/paquetes.sh
+    usage: paquetes.sh PAQUETE...
+  input_requirements:
+  - description: Recibe al menos un paquete.
+    error: uso
+  - description: Cada nombre debe tener un formato válido.
+    error: nombre
+  output_requirements:
+  - id: correcto
+    description: Una línea por paquete, en el orden recibido.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: paquetes.sh PAQUETE...'
+  - id: nombre
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: nombre de paquete no válido
+  examples:
+  - command: /home/learner/aso/p11/paquetes.sh tar nosuch-pkg
+    stdout: 'tar: instalado
+
+      nosuch-pkg: no instalado
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/paquetes.sh
+    stdout: ''
+    stderr: 'uso: paquetes.sh PAQUETE...
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p11/paquetes.sh tar 'Mal Nombre'
+    stdout: ''
+    stderr: 'nombre de paquete no válido
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: consulta
+    description: Distingue paquetes instalados y ausentes.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - tar
+      - nosuch-pkg
+      - bzip2
+      cwd: /home/learner
+      user: learner
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tar: instalado
+
+          nosuch-pkg: no instalado
+
+          bzip2: instalado'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos un paquete.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: paquetes.sh PAQUETE...'
+  - id: error-nombre
+    description: 'Rechaza la entrada: Cada nombre debe tener un formato válido.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - tar
+      - Mal Nombre
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: nombre
+      stderr:
+        match: exact
+        value: nombre de paquete no válido
+    - type: run
+      args:
+      - -x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: nombre
+      stderr:
+        match: exact
+        value: nombre de paquete no válido
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 6
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: runlevel
+  title: De nivel de ejecución a target
+  description: 'Recibe un nivel de ejecución de 0 a 6 y muestra el nombre del target
+    al que apunta el enlace simbólico real `/usr/lib/systemd/system/runlevelN.target`.
+
+
+    **Comandos a practicar:** `readlink`, `ls -l`
+
+
+    **Estructuras de Bash:** `[[ =~ ]]`, `(( ))`, sustitución de comandos
+
+
+    **Detalle importante:** Son enlaces simbólicos, por eso `readlink` da directamente
+    el nombre del target. Compruébalo con `ls -l /usr/lib/systemd/system/runlevel*.target`.'
+  script:
+    path: /home/learner/aso/p11/runlevel.sh
+    usage: runlevel.sh NIVEL
+  input_requirements:
+  - description: Recibe exactamente un argumento.
+    error: uso
+  - description: El nivel es un número.
+    error: formato
+  - description: El nivel está entre 0 y 6.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: El nombre del target.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: runlevel.sh NIVEL'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el nivel debe ser un número
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: el nivel debe estar entre 0 y 6
+  examples:
+  - command: /home/learner/aso/p11/runlevel.sh 3
+    stdout: 'multi-user.target
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/runlevel.sh 5
+    stdout: 'graphical.target
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/runlevel.sh
+    stdout: ''
+    stderr: 'uso: runlevel.sh NIVEL
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p11/runlevel.sh tres
+    stdout: ''
+    stderr: 'el nivel debe ser un número
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p11/runlevel.sh 7
+    stdout: ''
+    stderr: 'el nivel debe estar entre 0 y 6
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: niveles
+    description: Resuelve todos los niveles.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel0.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel1.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel2.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel3.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '4'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel4.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel5.target
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '6'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: readlink /usr/lib/systemd/system/runlevel6.target
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un argumento.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: runlevel.sh NIVEL'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: runlevel.sh NIVEL'
+  - id: error-formato
+    description: 'Rechaza la entrada: El nivel es un número.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - tres
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el nivel debe ser un número
+    - type: run
+      args:
+      - '-1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el nivel debe ser un número
+  - id: error-rango
+    description: 'Rechaza la entrada: El nivel está entre 0 y 6.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '7'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el nivel debe estar entre 0 y 6
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 8
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: modo-arranque
+  title: Modo de arranque por defecto
+  description: "Muestra el target por defecto (`systemctl get-default`) seguido del\
+    \ modo de arranque, separados por `: `:\n    `graphical.target: modo gráfico`,\
+    \ `multi-user.target: modo texto` y, para cualquier otro, `NOMBRE: otro modo`.\n\
+    \n**Comandos a practicar:** `systemctl get-default`\n\n**Estructuras de Bash:**\
+    \ `case ... esac`\n\n**Detalle importante:** `systemctl set-default` no hace más\
+    \ que cambiar el enlace `/etc/systemd/system/default.target`. El evaluador lo\
+    \ cambia para comprobar que lees el valor real."
+  script:
+    path: /home/learner/aso/p11/modo-arranque.sh
+    usage: modo-arranque.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea con el target y su modo.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: modo-arranque.sh'
+  examples:
+  - command: /home/learner/aso/p11/modo-arranque.sh
+    stdout: 'graphical.target: modo gráfico
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/modo-arranque.sh x
+    stdout: ''
+    stderr: 'uso: modo-arranque.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: modos
+    description: Refleja el target por defecto real.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'graphical.target: modo gráfico'
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/default.target
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'multi-user.target: modo texto'
+      stderr:
+        match: empty
+      prepare: ln -sf /usr/lib/systemd/system/multi-user.target /etc/systemd/system/default.target
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'rescue.target: otro modo'
+      stderr:
+        match: empty
+      prepare: ln -sf /usr/lib/systemd/system/rescue.target /etc/systemd/system/default.target
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'graphical.target: modo gráfico'
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/default.target
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: modo-arranque.sh'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 8
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: interfaz
+  title: Descifrar el nombre de una interfaz
+  description: "Interpreta nombres predecibles como `enp0s3` (Ethernet `en`, bus PCI\
+    \ `p0`, slot `s3`) y muestra `tipo=ethernet bus=0 slot=3`.\n    Acepta también\
+    \ `wlp2s0`, que da `tipo=wifi bus=2 slot=0`.\n\n**Comandos a practicar:** `[[\
+    \ =~ ]]`\n\n**Estructuras de Bash:** grupos de captura y `BASH_REMATCH`, `case`\n\
+    \n**Detalle importante:** `BASH_REMATCH[0]` es la coincidencia completa; los grupos\
+    \ empiezan en el índice 1."
+  script:
+    path: /home/learner/aso/p11/interfaz.sh
+    usage: interfaz.sh NOMBRE
+  input_requirements:
+  - description: Recibe exactamente un nombre.
+    error: uso
+  - description: El nombre sigue el patrón enpXsY o wlpXsY.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: Una línea con tipo, bus y slot.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: interfaz.sh NOMBRE'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: nombre de interfaz no reconocido
+  examples:
+  - command: /home/learner/aso/p11/interfaz.sh enp0s3
+    stdout: 'tipo=ethernet bus=0 slot=3
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/interfaz.sh
+    stdout: ''
+    stderr: 'uso: interfaz.sh NOMBRE
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p11/interfaz.sh eth0
+    stdout: ''
+    stderr: 'nombre de interfaz no reconocido
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: nombres
+    description: Descifra varios nombres.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - enp0s3
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: tipo=ethernet bus=0 slot=3
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - enp12s25
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: tipo=ethernet bus=12 slot=25
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - wlp2s0
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: tipo=wifi bus=2 slot=0
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un nombre.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: interfaz.sh NOMBRE'
+  - id: error-formato
+    description: 'Rechaza la entrada: El nombre sigue el patrón enpXsY o wlpXsY.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - eth0
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: nombre de interfaz no reconocido
+    - type: run
+      args:
+      - enp0s
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: nombre de interfaz no reconocido
+    - type: run
+      args:
+      - xenp0s3
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: nombre de interfaz no reconocido
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 4
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: interfaces-red
+  title: Interfaces reales del sistema
+  description: 'Lista por orden alfabético las interfaces de red reales a partir de
+    `ip -o link`, una por línea y solo el nombre.
+
+
+    **Comandos a practicar:** `ip -o link`, `cut`, `sort`
+
+
+    **Estructuras de Bash:** tuberías
+
+
+    **Detalle importante:** El nombre de una interfaz de contenedor aparece como `eth0@if27`:
+    hay que quitar lo que sigue a `@`.'
+  script:
+    path: /home/learner/aso/p11/interfaces-red.sh
+    usage: interfaces-red.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Un nombre por línea, ordenados.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: interfaces-red.sh'
+  examples:
+  - command: /home/learner/aso/p11/interfaces-red.sh
+    stdout: 'eth0
+
+      lo
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/interfaces-red.sh eth0
+    stdout: ''
+    stderr: 'uso: interfaces-red.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: reales
+    description: Coincide con /sys/class/net.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: ls /sys/class/net | LC_ALL=C sort
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - eth0
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: interfaces-red.sh'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: memoria
+  title: RAM y swap desde /proc/meminfo
+  description: 'Lee `/proc/meminfo` y muestra dos líneas: `RAM: N MiB` y `Swap: N
+    MiB`, truncando la división por 1024. Si no hay swap, la segunda línea es `Swap:
+    sin swap`.
+
+
+    **Comandos a practicar:** `/proc/meminfo`
+
+
+    **Estructuras de Bash:** `while IFS='': '' read`, `case`, `$(( ))`, redirección
+    al bloque `while`
+
+
+    **Detalle importante:** La práctica explica que la swap da soporte a la memoria
+    virtual cuando supera a la RAM. `/proc` es un sistema de ficheros virtual: se
+    lee como cualquier otro fichero.'
+  script:
+    path: /home/learner/aso/p11/memoria.sh
+    usage: memoria.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Las líneas de RAM y swap.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: memoria.sh'
+  examples:
+  - command: /home/learner/aso/p11/memoria.sh
+    stdout: 'RAM: 15896 MiB
+
+      Swap: 4096 MiB
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/memoria.sh x
+    stdout: ''
+    stderr: 'uso: memoria.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: valores
+    description: Coincide con el kernel.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk ''/^MemTotal:/{print "RAM: " int($2/1024) " MiB"} /^SwapTotal:/{print
+          ($2 ? "Swap: " int($2/1024) " MiB" : "Swap: sin swap")}'' /proc/meminfo'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: memoria.sh'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 4
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: directiva
+  title: Valor activo de una directiva
+  description: "Muestra el valor de una directiva en un fichero de configuración con\
+    \ formato `CLAVE VALOR`. Las líneas comentadas no cuentan y, si la clave aparece\
+    \ varias veces, gana la última.\n    La práctica edita así `PermitRootLogin` en\
+    \ `sshd_config`; aquí se prueba con `/etc/login.defs`, el fichero real de valores\
+    \ por defecto.\n\n**Comandos a practicar:** `grep -E`, `tail -n 1`, `tr -s`, `cut`\n\
+    \n**Estructuras de Bash:** `[[ -f ]]`, sustitución de comandos\n\n**Detalle importante:**\
+    \ Una línea que empieza por `#` no tiene efecto: `#PermitRootLogin prohibit-password`\
+    \ no es la configuración activa. Ancla bien el patrón para que `UID_MIN` no coincida\
+    \ con `SUB_UID_MIN`."
+  script:
+    path: /home/learner/aso/p11/directiva.sh
+    usage: directiva.sh CLAVE FICHERO
+  input_requirements:
+  - description: Recibe clave y fichero.
+    error: uso
+  - description: El fichero existe y es regular.
+    error: fichero
+  - description: La clave está activa en el fichero.
+    error: clave
+  output_requirements:
+  - id: correcto
+    description: El valor de la directiva.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: directiva.sh CLAVE FICHERO'
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  - id: clave
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: directiva no encontrada
+  examples:
+  - command: /home/learner/aso/p11/directiva.sh UID_MIN /etc/login.defs
+    stdout: '1000
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/directiva.sh UMASK
+    stdout: ''
+    stderr: 'uso: directiva.sh CLAVE FICHERO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p11/directiva.sh UMASK /etc/nada
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p11/directiva.sh NO_EXISTE /etc/login.defs
+    stdout: ''
+    stderr: 'directiva no encontrada
+
+      '
+    exit_code: 5
+  evaluations:
+  - id: login-defs
+    description: Lee /etc/login.defs.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - UMASK
+      - /etc/login.defs
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk '$1=="UMASK"{v=$2} END{print v}' /etc/login.defs
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - UID_MIN
+      - /etc/login.defs
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk '$1=="UID_MIN"{v=$2} END{print v}' /etc/login.defs
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - UID_MAX
+      - /etc/login.defs
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk '$1=="UID_MAX"{v=$2} END{print v}' /etc/login.defs
+      stderr:
+        match: empty
+  - id: comentada
+    description: Ignora comentarios y se queda con la última.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - PermitRootLogin
+      - /home/learner/aso/p11/sshd_config
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'yes'
+      stderr:
+        match: empty
+      prepare: 'printf ''#PermitRootLogin prohibit-password\nPermitRootLogin no\nPermitRootLogin
+        yes\nXPermitRootLogin never\n'' > /home/learner/aso/p11/sshd_config; chown
+        learner: /home/learner/aso/p11/sshd_config'
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe clave y fichero.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - UMASK
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: directiva.sh CLAVE FICHERO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: directiva.sh CLAVE FICHERO'
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe y es regular.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - UMASK
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+    - type: run
+      args:
+      - UMASK
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  - id: error-clave
+    description: 'Rechaza la entrada: La clave está activa en el fichero.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - NO_EXISTE
+      - /etc/login.defs
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: clave
+      stderr:
+        match: exact
+        value: directiva no encontrada
+    - type: run
+      args:
+      - PermitRootLogin
+      - /home/learner/aso/p11/inactiva
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: clave
+      stderr:
+        match: exact
+        value: directiva no encontrada
+      prepare: 'printf ''#PermitRootLogin yes\n'' > /home/learner/aso/p11/inactiva;
+        chown learner: /home/learner/aso/p11/inactiva'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 14
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: administrador
+  title: ¿Puede administrar con sudo?
+  description: 'Indica si un usuario pertenece al grupo `wheel`, el que da privilegios
+    de administración en Fedora: `USUARIO: administrador` o `USUARIO: sin privilegios`.
+
+
+    **Comandos a practicar:** `id -nG`, `grep -qw`
+
+
+    **Estructuras de Bash:** `if ! comando; then`
+
+
+    **Detalle importante:** Busca la palabra completa: un grupo llamado `wheelers`
+    no da privilegios. `usuario1`, creado como en la instalación de la práctica, ya
+    está en `wheel`.'
+  script:
+    path: /home/learner/aso/p11/administrador.sh
+    usage: administrador.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Una línea con el veredicto.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: administrador.sh USUARIO'
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p11/administrador.sh usuario1
+    stdout: 'usuario1: administrador
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/administrador.sh daemon
+    stdout: 'daemon: sin privilegios
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/administrador.sh
+    stdout: ''
+    stderr: 'uso: administrador.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p11/administrador.sh nadie
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: usuarios
+    description: Distingue miembros y no miembros.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'usuario1: administrador'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - daemon
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'daemon: sin privilegios'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - p11wheelers
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p11wheelers: sin privilegios'
+      stderr:
+        match: empty
+      prepare: getent group wheelers >/dev/null || groupadd wheelers; id p11wheelers
+        >/dev/null 2>&1 || useradd -M -G wheelers p11wheelers
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: administrador.sh USUARIO'
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 5
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: sistema
+  title: Qué sistema tengo
+  description: 'Lee `/etc/os-release` y muestra `NOMBRE VERSION_ID` sin comillas (por
+    ejemplo `Fedora Linux 44`). Con la opción `-c` indica además si es la versión
+    de la práctica: `es Fedora 44` o `no es Fedora 44`, en una segunda línea.
+
+
+    **Comandos a practicar:** `source` / `.`, `/etc/os-release`
+
+
+    **Estructuras de Bash:** `[[ ]]` con `&&`, `case`
+
+
+    **Detalle importante:** `/etc/os-release` tiene sintaxis de asignaciones de shell,
+    así que `. /etc/os-release` carga sus valores en variables sin tener que partir
+    el texto.'
+  script:
+    path: /home/learner/aso/p11/sistema.sh
+    usage: sistema.sh [-c]
+  input_requirements:
+  - description: Recibe como mucho la opción -c.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una o dos líneas de identificación.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: sistema.sh [-c]'
+  examples:
+  - command: /home/learner/aso/p11/sistema.sh
+    stdout: 'Fedora Linux 44
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/sistema.sh -c
+    stdout: 'Fedora Linux 44
+
+      es Fedora 44
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p11/sistema.sh -c -c
+    stdout: ''
+    stderr: 'uso: sistema.sh [-c]
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: identificacion
+    description: Lee la identidad real.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk -F= '$1=="NAME"{gsub(/"/,"",$2);n=$2} $1=="VERSION_ID"{gsub(/"/,"",$2);v=$2}
+          END{print n " " v}' /etc/os-release
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: es Fedora 44
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho la opción -c.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -c
+      - -c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: sistema.sh [-c]'
+    - type: run
+      args:
+      - -x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: sistema.sh [-c]'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 11cb788eab069a7b8e7c0237daa4046c0b00797879244e0466ccf7402074df8d
+    title: Práctica-1.1
+    pages:
+    - 1
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.

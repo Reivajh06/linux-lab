@@ -1,0 +1,1748 @@
+{
+ "1-1": {
+  "administrador": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "usuario1: administrador\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "daemon: sin privilegios\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: administrador.sh USUARIO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  },
+  "directiva": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "1000\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: directiva.sh CLAVE FICHERO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 5,
+    "stderr": "directiva no encontrada\n",
+    "stdout": ""
+   }
+  },
+  "herramientas": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "tar: /usr/bin/tar\nbzip2: /usr/bin/bzip2\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: herramientas.sh HERRAMIENTA...\n",
+    "stdout": ""
+   }
+  },
+  "interfaces-red": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "eth0\nlo\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: interfaces-red.sh\n",
+    "stdout": ""
+   }
+  },
+  "interfaz": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "tipo=ethernet bus=0 slot=3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: interfaz.sh NOMBRE\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "nombre de interfaz no reconocido\n",
+    "stdout": ""
+   }
+  },
+  "memoria": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "RAM: 15896 MiB\nSwap: 4096 MiB\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: memoria.sh\n",
+    "stdout": ""
+   }
+  },
+  "modo-arranque": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "graphical.target: modo gráfico\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: modo-arranque.sh\n",
+    "stdout": ""
+   }
+  },
+  "paquetes": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "tar: instalado\nnosuch-pkg: no instalado\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: paquetes.sh PAQUETE...\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "nombre de paquete no válido\n",
+    "stdout": ""
+   }
+  },
+  "runlevel": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "multi-user.target\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "graphical.target\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: runlevel.sh NIVEL\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "el nivel debe ser un número\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 3,
+    "stderr": "el nivel debe estar entre 0 y 6\n",
+    "stdout": ""
+   }
+  },
+  "sistema": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Fedora Linux 44\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Fedora Linux 44\nes Fedora 44\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: sistema.sh [-c]\n",
+    "stdout": ""
+   }
+  }
+ },
+ "1-2": {
+  "comodines": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "conf: 17\ntres: 13\na-c: 24\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "conf: 0\ntres: 0\na-c: 0\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: comodines.sh DIRECTORIO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no es un directorio\n",
+    "stdout": ""
+   }
+  },
+  "correos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "hola-mundo_2026@gmail.com\naso@ulpgc.es\nchet.ramey@case.edu\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: correos.sh FICHERO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "cuenta-palabra": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: cuenta-palabra.sh PALABRA FICHERO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "dispositivos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "bloque: 0\ncaracter: 6\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: dispositivos.sh\n",
+    "stdout": ""
+   }
+  },
+  "expansiones": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ficheros: 21\ndirectorios: 8\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: expansiones.sh DIRECTORIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "no se ha podido crear el directorio\n",
+    "stdout": ""
+   }
+  },
+  "filtros-a": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "5\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "bin:x:1:1:bin:/bin:/usr/sbin/nologin\ndaemon:x:2:2:daemon:/sbin:/usr/sbin/nologin\nroot:x:0:0:Super User:/root:/bin/bash\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: filtros-a.sh N\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "N debe ser un número\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 3,
+    "stderr": "N debe estar entre 1 y 8\n",
+    "stdout": ""
+   }
+  },
+  "filtros-b": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "7\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: filtros-b.sh N\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "N debe estar entre 9 y 15\n",
+    "stdout": ""
+   }
+  },
+  "homonimos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "crontab\nhostname\np12-comun\npasswd\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: homonimos.sh\n",
+    "stdout": ""
+   }
+  },
+  "linea": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "sync:x:5:0:sync:/sbin:/bin/sync\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/bin/bash\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: linea.sh N [FICHERO]\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "N debe ser un entero positivo\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 3,
+    "stderr": "el fichero no tiene tantas líneas\n",
+    "stdout": ""
+   },
+   "5": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "listado": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "listado: 2029, errores: 6\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: listado.sh LISTADO ERRORES\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "no se puede escribir la salida\n",
+    "stdout": ""
+   }
+  },
+  "mayusculas": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "4\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: mayusculas.sh DIRECTORIO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no es un directorio\n",
+    "stdout": ""
+   }
+  },
+  "regex": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "24124\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "80\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: regex.sh N\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "N debe estar entre 1 y 9\n",
+    "stdout": ""
+   }
+  },
+  "secciones-man": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "1\n5\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: secciones-man.sh NOMBRE\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "no hay ninguna página de manual\n",
+    "stdout": ""
+   }
+  },
+  "sin-bash": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "20\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: sin-bash.sh [-c]\n",
+    "stdout": ""
+   }
+  },
+  "sin-comentarios": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "\nGROUP=100\nHOME=/home\nINACTIVE=-1\nEXPIRE=\nSHELL=/bin/bash\nSKEL=/etc/skel\nCREATE_MAIL_SPOOL=yes\n\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: sin-comentarios.sh FICHERO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "no se puede leer el fichero\n",
+    "stdout": ""
+   }
+  }
+ },
+ "1-3": {
+  "alta-usuarios": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "creado: p13a\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: alta-usuarios.sh CLAVE NOMBRE...\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "empresa": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "actividad completada\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: empresa.sh\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "especiales": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/usr/bin/at\n/usr/bin/chage\n/usr/bin/chfn\n/usr/bin/chsh\n/usr/bin/crontab\n/usr/bin/fusermount3\n/usr/bin/gpasswd\n/usr/bin/mount\n/usr/bin/newgrp\n/usr/bin/pam_timestamp_check\n/usr/bin/passwd\n/usr/bin/su\n/usr/bin/sudo\n/usr/bin/umount\n/usr/bin/unix_chkpwd\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: especiales.sh -u|-g DIRECTORIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "opción no válida\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no es un directorio\n",
+    "stdout": ""
+   }
+  },
+  "estado-clave": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "clave: establecida\nmaximo: 30\naviso: 5\ninactividad: 3\ncaduca: 2026-12-31\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: estado-clave.sh USUARIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  },
+  "fecha-shadow": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "2026-12-15\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "20802\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: fecha-shadow.sh DIAS|FECHA\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "formato no válido\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 3,
+    "stderr": "la fecha no existe\n",
+    "stdout": ""
+   }
+  },
+  "ficha-usuario": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "uid: 0\ngid: 0\ncomentario: Super User\nhome: /root\nshell: /bin/bash\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "uid: 1001\ngid: 1001\ncomentario: Usuario 1\nhome: /home/usuario1\nshell: /bin/bash\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: ficha-usuario.sh USUARIO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  },
+  "info-fichero": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "tipo: directorio\npropietario: root\ngrupo: root\npermisos: 1777\nespecial: sticky\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "tipo: fichero\npropietario: root\ngrupo: root\npermisos: 4755\nespecial: suid\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: info-fichero.sh RUTA\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "la ruta no existe\n",
+    "stdout": ""
+   }
+  },
+  "miembros-grupo": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "primarios: p13g1 p13g2\nsecundarios: p13g0 p13g3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: miembros-grupo.sh GRUPO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el grupo no existe\n",
+    "stdout": ""
+   }
+  },
+  "permisos-octal": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0764\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "4755\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: permisos-octal.sh PERMISOS\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "cadena de permisos no válida\n",
+    "stdout": ""
+   }
+  },
+  "politica": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "política aplicada a p13p\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: politica.sh USUARIO MAX AVISO GRACIA [FECHA]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "los días deben ser números\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "la fecha no tiene el formato AAAA-MM-DD\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   },
+   "5": {
+    "exit_code": 5,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "umask-permisos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "fichero: 644\ndirectorio: 755\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "fichero: 644\ndirectorio: 744\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: umask-permisos.sh MASCARA\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "máscara no válida\n",
+    "stdout": ""
+   }
+  }
+ },
+ "2-1": {
+  "campos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/bin/bash:root\n/usr/sbin/nologin:bin\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: campos.sh CAMPO1 CAMPO2 [FICHERO]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "los campos deben ser números\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "los campos deben estar entre 1 y 7\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "codigo-ls": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ls devolvió 2\nla ruta no existe\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: codigo-ls.sh RUTA\n",
+    "stdout": ""
+   }
+  },
+  "consulta": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "existe el usuario root\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "no existe el grupo nadie\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: consulta.sh -u|-g NOMBRE\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "opción no válida\n",
+    "stdout": ""
+   }
+  },
+  "existe": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "el fichero existe\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "el fichero no existe\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: existe.sh FICHERO\n",
+    "stdout": ""
+   }
+  },
+  "grupos-de": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "el usuario existe\ngrupos: root\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: grupos-de.sh USUARIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  },
+  "hola": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "1: hola, mundo\n2: hola, mundo\n3: hola, mundo\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: hola.sh iteraciones\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el argumento debe ser un entero positivo\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "el argumento debe estar entre 2 y 20\n",
+    "stdout": ""
+   }
+  },
+  "hola-fichero": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "3 líneas añadidas\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: hola-fichero.sh ITERACIONES DIRECTORIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el argumento debe ser un entero positivo\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no se ha podido crear el directorio\n",
+    "stdout": ""
+   }
+  },
+  "interprete": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "interprete: /usr/bin/bash\nejecutable: sí\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "interprete: ninguno\nejecutable: no\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: interprete.sh FICHERO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "letra": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "1914\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: letra.sh LETRA\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el argumento debe ser una letra\n",
+    "stdout": ""
+   }
+  },
+  "numero": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "es un número de dos dígitos\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "no es un número\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: numero.sh CADENA\n",
+    "stdout": ""
+   }
+  },
+  "perfil": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "el usuario existe\ndirectorio bajo /home: no\nshell /bin/bash: sí\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: perfil.sh USUARIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  },
+  "secundarios": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "el grupo existe\nusuario1\nusuario2\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: secundarios.sh GRUPO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el grupo no existe\n",
+    "stdout": ""
+   }
+  },
+  "suma": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Resultado: 300\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: suma.sh sumando1 sumando2\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "los argumentos deben ser enteros positivos\n",
+    "stdout": ""
+   }
+  }
+ },
+ "2-2": {
+  "canales": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "25 registros escritos\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: canales.sh [-a] SALIDA CAMPO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "campo no válido\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no se puede abrir la salida\n",
+    "stdout": ""
+   }
+  },
+  "columnas": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Registro 1:\t/bin/bash\troot\nRegistro 2:\t/usr/sbin/nologin\tbin\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: columnas.sh campos...\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "x no es un entero positivo\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "9 está fuera del rango de valores aceptado\n",
+    "stdout": ""
+   }
+  },
+  "cuenta-shell": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "bash: 5\nnologin: 16\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: cuenta-shell.sh INTERPRETE...\n",
+    "stdout": ""
+   }
+  },
+  "entrelaza": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/bin/sh\n# useradd defaults file\n/bin/bash\nGROUP=100\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: entrelaza.sh FICHERO1 FICHERO2\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "homes-bajo": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "adm\nlp\nmail\nftp\nunbound\ngeoclue\nUsuarios: 6\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Ningún usuario cumple la condición\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: homes-bajo.sh DIRECTORIO\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "la ruta debe ser absoluta\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "el directorio no existe\n",
+    "stdout": ""
+   }
+  },
+  "lineas": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "passwd: 25\ngroup: 47\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: lineas.sh [DIRECTORIO] FICHERO...\n",
+    "stdout": ""
+   }
+  },
+  "pares": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/bin/sh\n/usr/bin/sh\n/usr/bin/tmux\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: pares.sh -p|-i FICHERO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "opción no válida\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "parte-linea": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "a=root:x:0:0:Super\nb=User:/root:/bin/bash\nresto=\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "a=root\nb=x\nresto=0:0:Super User:/root:/bin/bash\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: parte-linea.sh [SEPARADOR]\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no hay nada que leer\n",
+    "stdout": ""
+   }
+  },
+  "rango-uid": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "learner 1000\nusuario1 1001\nusuario2 1002\np22x 1003\np22sh 1004\nUsuarios: 5\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "adm 3\nUsuarios: 1\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: rango-uid.sh [MIN MAX]\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 2,
+    "stderr": "los límites deben ser números\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 3,
+    "stderr": "el mínimo supera al máximo\n",
+    "stdout": ""
+   }
+  },
+  "registro": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Registro 24: p22x\nRegistro 25: p22sh\nTotal de registros: 25\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: registro.sh campo\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el campo debe ser un entero positivo\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "el campo está fuera del rango de valores aceptado\n",
+    "stdout": ""
+   }
+  },
+  "shells-invalidos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/bin/sync\n/sbin/halt\n/sbin/nologin\n/sbin/shutdown\n/usr/local/bin/p22sh\n/usr/sbin/nologin\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: shells-invalidos.sh [-u]\n",
+    "stdout": ""
+   }
+  },
+  "solo-uno": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/home/learner/aso/p22/d1/passwd\n/home/learner/aso/p22/d1/shells\n/home/learner/aso/p22/d2/hostname\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: solo-uno.sh DIRECTORIO1 DIRECTORIO2\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "no es un directorio\n",
+    "stdout": ""
+   }
+  },
+  "uid-gid": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "p22x 1003 1003\np22sh 1004 1004\nUsuarios: 16\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "Ningún usuario cumple la condición\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: uid-gid.sh [-d] [FICHERO]\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no se puede leer el fichero\n",
+    "stdout": ""
+   }
+  }
+ },
+ "3-1": {
+  "antiguos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "      1 docker-init     00:00:00       00:23\n      7 supervisord     00:00:00       00:23\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: antiguos.sh [N]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "N debe ser un entero positivo\n",
+    "stdout": ""
+   }
+  },
+  "buscar-cmd": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "4\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: buscar-cmd.sh [-c] CADENA\n",
+    "stdout": ""
+   }
+  },
+  "estado": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "   9582 p31b     Ts\n   9583 p31b     Ts\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: estado.sh ESTADO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "estado no válido\n",
+    "stdout": ""
+   }
+  },
+  "gid-umbral": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "p31g1: 3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: gid-umbral.sh G P\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "G y P deben ser enteros\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "ningún usuario tiene ese grupo primario\n",
+    "stdout": ""
+   }
+  },
+  "hijos": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "      7 supervisord\n     59 dconf-service\n     87 at-spi-bus-laun\n     98 xfconfd\n    116 at-spi2-registr\n   5449 sleep\n   5452 bash\n   7186 bash\n   8707 sleep\n   8708 sleep\n   8710 sleep\n   8714 sleep\n   9446 sleep\n   9447 sleep\n   9449 sleep\n   9582 sleep\n   9583 sleep\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: hijos.sh PID\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el PID debe ser un número\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "el proceso no existe\n",
+    "stdout": ""
+   }
+  },
+  "lanza": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "lanzados: 3\nterminados: 3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: lanza.sh N\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "N debe ser un entero positivo\n",
+    "stdout": ""
+   }
+  },
+  "mas-cpu": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "     27 websockify      00:00:00\n     80 xfce4-terminal  00:00:00\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: mas-cpu.sh [N]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "N debe ser un entero positivo\n",
+    "stdout": ""
+   }
+  },
+  "matar": {
+   "0": {
+    "exit_code": 4,
+    "stderr": "no se puede enviar señales a ese proceso\n",
+    "stdout": ""
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: matar.sh PID\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "el PID debe ser un número\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "no se puede enviar señales a ese proceso\n",
+    "stdout": ""
+   }
+  },
+  "no-root": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "   9446 p31a     sleep             5548\n   9447 p31a     sleep             5548\n   9449 p31a     sleep             5548\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: no-root.sh\n",
+    "stdout": ""
+   }
+  },
+  "por-tamano": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "1 docker-init 304\n5449 sleep 336\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: por-tamano.sh\n",
+    "stdout": ""
+   }
+  },
+  "por-usuario": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "   8714 p31g2    sleep 900\n      1 root     /sbin/docker-init -- supervisord -n -c /etc/supervisord.conf\n      7 root     /usr/bin/python3 -sP /usr/sbin/supervisord -n -c /etc/supervisord.conf\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: por-usuario.sh\n",
+    "stdout": ""
+   }
+  },
+  "procs-usuario": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "p31a: 3\np31b: 1\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: procs-usuario.sh USUARIO...\n",
+    "stdout": ""
+   }
+  },
+  "senal": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "KILL\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "15\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: senal.sh NUMERO|NOMBRE\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "señal desconocida\n",
+    "stdout": ""
+   }
+  },
+  "top-lote": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "3\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: top-lote.sh USUARIO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el usuario no existe\n",
+    "stdout": ""
+   }
+  }
+ },
+ "3-2": {
+  "actividad": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "3 drop-ins en /etc/systemd/system/atd.service.d\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: actividad.sh UNIDAD\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   }
+  },
+  "conmuta": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "atd.service: enabled\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: conmuta.sh enable|disable UNIDAD\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "acción no válida\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   }
+  },
+  "demonios": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "25\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: demonios.sh [-c]\n",
+    "stdout": ""
+   }
+  },
+  "dropin": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/etc/systemd/system/atd.service.d/restart-policy.conf\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "sección no válida\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "propiedad no válida\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   },
+   "5": {
+    "exit_code": 5,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "exec-debug": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "ExecStart=/usr/sbin/atd -f $OPTS -d\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: exec-debug.sh UNIDAD OPCION\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 5,
+    "stderr": "la unidad no tiene ExecStart\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 6,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "limites": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "memoria: 2048 MiB\nprocesos: 256\ncpu: 200%\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: limites.sh\n",
+    "stdout": ""
+   }
+  },
+  "propiedad": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/usr/sbin/atd -f $OPTS\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: propiedad.sh UNIDAD SECCION CLAVE\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 5,
+    "stderr": "la propiedad no existe en esa sección\n",
+    "stdout": ""
+   }
+  },
+  "reparto-cpu": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "50: 33%\n100: 66%\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: reparto-cpu.sh PESO1 [PESO2]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "los pesos deben ser enteros\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "los pesos deben estar entre 1 y 10000\n",
+    "stdout": ""
+   }
+  },
+  "revertir": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "eliminados: 2\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: revertir.sh UNIDAD [NOMBRE]\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 3,
+    "stderr": "hay que ser root\n",
+    "stdout": ""
+   }
+  },
+  "servicios": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "atd.service\nauthselect-apply-changes.service\ncrond.service\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: servicios.sh ESTADO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "estado no válido\n",
+    "stdout": ""
+   }
+  },
+  "targets": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "0 poweroff.target\n1 rescue.target\n2 multi-user.target\n3 multi-user.target\n4 multi-user.target\n5 graphical.target\n6 reboot.target\n"
+   },
+   "1": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "graphical.target\n"
+   },
+   "2": {
+    "exit_code": 1,
+    "stderr": "uso: targets.sh [-d]\n",
+    "stdout": ""
+   }
+  },
+  "ubicacion": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "/usr/lib/systemd/system/atd.service\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: ubicacion.sh UNIDAD\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "la unidad no existe\n",
+    "stdout": ""
+   }
+  },
+  "vi-borra": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "quedan 4 líneas\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: vi-borra.sh FICHERO INICIO FIN\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 2,
+    "stderr": "inicio y fin deben ser enteros positivos\n",
+    "stdout": ""
+   },
+   "3": {
+    "exit_code": 3,
+    "stderr": "rango de líneas no válido\n",
+    "stdout": ""
+   },
+   "4": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "vi-sustituye": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "líneas con /bin/: 6\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: vi-sustituye.sh FICHERO ORIGEN DESTINO\n",
+    "stdout": ""
+   },
+   "2": {
+    "exit_code": 4,
+    "stderr": "el fichero no existe\n",
+    "stdout": ""
+   }
+  },
+  "wants": {
+   "0": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "basic.target: rpmdb-rebuild.service\nfactory-reset.target: systemd-tpm2-clear.service\ngetty.target: getty@tty1.service\n"
+   },
+   "1": {
+    "exit_code": 1,
+    "stderr": "uso: wants.sh\n",
+    "stdout": ""
+   }
+  }
+ }
+}

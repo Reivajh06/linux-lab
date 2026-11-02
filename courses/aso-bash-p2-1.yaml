@@ -1,0 +1,2484 @@
+schema_version: 1
+id: aso-bash-p2-1
+version: '1.0'
+title: ASO Bash 2.1 · Programación de scripts en Bash
+description: "Los scripts que desarrolla la Práctica 2.1, las dos actividades de laboratorio\
+  \ y los seis ejercicios autónomos: validación de argumentos, `if`, `while`, `((\
+  \ ))`, `[[ ]]`, `=~`, `$?`, funciones y sustitución de comandos.\n    Se aplican\
+  \ las buenas prácticas de la hoja: validar número y formato de argumentos, limitar\
+  \ la salida a lo previsto, usar el canal adecuado y un código distinto para cada\
+  \ error.\n\nCada ejercicio es un **script de Bash** en `/home/learner/aso/p21/`:\
+  \ empieza por `#!/bin/bash`, hazlo ejecutable con `chmod u+x`, envía los resultados\
+  \ a stdout y los errores a stderr, y usa un código de salida distinto para cada\
+  \ error. Los ejercicios trabajan con ficheros y procesos reales del sistema (`/etc/passwd`,\
+  \ `/etc/group`, `/proc`, `/usr/share/dict/words`...): la salida esperada se calcula\
+  \ al evaluar, así que no vale escribir el resultado a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p21
+
+    id usuario1 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 1'' usuario1
+
+    id usuario2 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 2'' usuario2
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: hola
+  title: Mensaje repetido con validación
+  description: 'El script guía de los apartados 3 a 3.2: muestra `k: hola, mundo`
+    tantas veces como indique el argumento, que debe ser un entero entre 2 y 20, **ambos
+    incluidos**.
+
+
+    **Comandos a practicar:** `echo`
+
+
+    **Estructuras de Bash:** `while ((k<=$1))`, `((k++))`, `if/elif`, `[[ ! $1 =~
+    ^[0-9]+$ ]]`, `$#`, `$0`, `exit`
+
+
+    **Detalle importante:** Sin espacios en `mensaje="hola"`. Cuidado con los límites:
+    la hoja usa `-le 2 || -ge 20`, que **excluye** el 2 y el 20 aunque el mensaje
+    los admita. Aquí deben aceptarse.'
+  script:
+    path: /home/learner/aso/p21/hola.sh
+    usage: hola.sh ITERACIONES
+  input_requirements:
+  - description: Recibe exactamente un argumento.
+    error: uso
+  - description: El argumento es un entero positivo.
+    error: formato
+  - description: El valor está entre 2 y 20.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: Una línea por iteración.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: hola.sh iteraciones'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el argumento debe ser un entero positivo
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: el argumento debe estar entre 2 y 20
+  examples:
+  - command: /home/learner/aso/p21/hola.sh 3
+    stdout: '1: hola, mundo
+
+      2: hola, mundo
+
+      3: hola, mundo
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/hola.sh
+    stdout: ''
+    stderr: 'uso: hola.sh iteraciones
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/hola.sh tres
+    stdout: ''
+    stderr: 'el argumento debe ser un entero positivo
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p21/hola.sh 1
+    stdout: ''
+    stderr: 'el argumento debe estar entre 2 y 20
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: iteraciones
+    description: Repite el mensaje, incluidos los límites.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1: hola, mundo
+
+          2: hola, mundo
+
+          3: hola, mundo'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1: hola, mundo
+
+          2: hola, mundo'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '20'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1: hola, mundo
+
+          2: hola, mundo
+
+          3: hola, mundo
+
+          4: hola, mundo
+
+          5: hola, mundo
+
+          6: hola, mundo
+
+          7: hola, mundo
+
+          8: hola, mundo
+
+          9: hola, mundo
+
+          10: hola, mundo
+
+          11: hola, mundo
+
+          12: hola, mundo
+
+          13: hola, mundo
+
+          14: hola, mundo
+
+          15: hola, mundo
+
+          16: hola, mundo
+
+          17: hola, mundo
+
+          18: hola, mundo
+
+          19: hola, mundo
+
+          20: hola, mundo'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un argumento.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: hola.sh iteraciones'
+    - type: run
+      args:
+      - '3'
+      - '4'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: hola.sh iteraciones'
+  - id: error-formato
+    description: 'Rechaza la entrada: El argumento es un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - tres
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser un entero positivo
+    - type: run
+      args:
+      - '-5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser un entero positivo
+    - type: run
+      args:
+      - '2.5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser un entero positivo
+    - type: run
+      args:
+      - ''
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser un entero positivo
+  - id: error-rango
+    description: 'Rechaza la entrada: El valor está entre 2 y 20.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el argumento debe estar entre 2 y 20
+    - type: run
+      args:
+      - '21'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el argumento debe estar entre 2 y 20
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el argumento debe estar entre 2 y 20
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 3
+    - 4
+    - 5
+    - 6
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: hola-fichero
+  title: Volcar la salida a un fichero
+  description: 'Apartado 3.4. Añade las líneas `k: hola, mundo` al fichero `salida.txt`
+    dentro de `DIRECTORIO`, creándolo si no existe. Por pantalla muestra solo `N líneas
+    añadidas`.
+
+
+    **Comandos a practicar:** `mkdir -p`, `>>`, `2>/dev/null`
+
+
+    **Estructuras de Bash:** `if ! mkdir -p "$dir" 2>/dev/null; then`, `$?`
+
+
+    **Detalle importante:** Un comando es «verdadero» si devuelve 0, así que puedes
+    integrarlo en el `if`. Sin `2>/dev/null` el mensaje de `mkdir` se mezclaría con
+    el tuyo.'
+  script:
+    path: /home/learner/aso/p21/hola-fichero.sh
+    usage: hola-fichero.sh ITERACIONES DIRECTORIO
+  input_requirements:
+  - description: Recibe iteraciones y directorio.
+    error: uso
+  - description: Las iteraciones son un entero positivo.
+    error: formato
+  - description: El directorio se puede crear.
+    error: crear
+  output_requirements:
+  - id: correcto
+    description: La línea de confirmación; el fichero contiene las líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: hola-fichero.sh ITERACIONES DIRECTORIO'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el argumento debe ser un entero positivo
+  - id: crear
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no se ha podido crear el directorio
+  examples:
+  - command: /home/learner/aso/p21/hola-fichero.sh 3 /home/learner/aso/p21/salida/ejemplo
+    stdout: '3 líneas añadidas
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/hola-fichero.sh 3
+    stdout: ''
+    stderr: 'uso: hola-fichero.sh ITERACIONES DIRECTORIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/hola-fichero.sh x /home/learner/aso/p21/salida
+    stdout: ''
+    stderr: 'el argumento debe ser un entero positivo
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p21/hola-fichero.sh 3 /proc/nada/x
+    stdout: ''
+    stderr: 'no se ha podido crear el directorio
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: crea
+    description: Crea el directorio y el fichero.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '3'
+      - /home/learner/aso/p21/salida/uno/dos
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 3 líneas añadidas
+      stderr:
+        match: empty
+      prepare: rm -rf /home/learner/aso/p21/salida
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p21/hola-fichero.sh
+
+        D=/home/learner/aso/p21
+
+        [ "$(cat $D/salida/uno/dos/salida.txt)" = "1: hola, mundo
+
+        2: hola, mundo
+
+        3: hola, mundo" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: anade
+    description: Añade sin sobrescribir.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '2'
+      - /home/learner/aso/p21/salida/uno/dos
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 2 líneas añadidas
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p21/hola-fichero.sh
+
+        D=/home/learner/aso/p21
+
+        [ "$(wc -l < $D/salida/uno/dos/salida.txt)" = 5 ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe iteraciones y directorio.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: hola-fichero.sh ITERACIONES DIRECTORIO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: hola-fichero.sh ITERACIONES DIRECTORIO'
+  - id: error-formato
+    description: 'Rechaza la entrada: Las iteraciones son un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      - /home/learner/aso/p21/salida
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser un entero positivo
+  - id: error-crear
+    description: 'Rechaza la entrada: El directorio se puede crear.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '3'
+      - /proc/nada/x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: crear
+      stderr:
+        match: exact
+        value: no se ha podido crear el directorio
+    - type: run
+      args:
+      - '3'
+      - /etc/passwd/x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: crear
+      stderr:
+        match: exact
+        value: no se ha podido crear el directorio
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 7
+    - 8
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: suma
+  title: 'Funciones: error y sumar'
+  description: 'Apartado 4. Suma dos enteros positivos y muestra `Resultado: N`. Usa
+    una función `error()` para los errores y una función `sumar()` para el cálculo.
+
+
+    **Comandos a practicar:** `echo`
+
+
+    **Estructuras de Bash:** funciones, `$(( ))`, `$(funcion args)`, `&&`
+
+
+    **Detalle importante:** `return` no devuelve resultados: solo un código de 0 a
+    255. Con `return $(($1+$2))`, 200+100 daría 44. La función debe **imprimir** el
+    resultado y capturarlo con `$(sumar $1 $2)`.'
+  script:
+    path: /home/learner/aso/p21/suma.sh
+    usage: suma.sh SUMANDO1 SUMANDO2
+  input_requirements:
+  - description: Recibe dos sumandos.
+    error: uso
+  - description: Ambos son enteros positivos.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: La línea con el resultado.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: suma.sh sumando1 sumando2'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: los argumentos deben ser enteros positivos
+  examples:
+  - command: /home/learner/aso/p21/suma.sh 200 100
+    stdout: 'Resultado: 300
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/suma.sh 1
+    stdout: ''
+    stderr: 'uso: suma.sh sumando1 sumando2
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/suma.sh a 1
+    stdout: ''
+    stderr: 'los argumentos deben ser enteros positivos
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: sumas
+    description: Suma, también por encima de 255.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '2'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'Resultado: 5'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '200'
+      - '100'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'Resultado: 300'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '0'
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'Resultado: 0'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '100000'
+      - '234567'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'Resultado: 334567'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe dos sumandos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: suma.sh sumando1 sumando2'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: suma.sh sumando1 sumando2'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: suma.sh sumando1 sumando2'
+  - id: error-formato
+    description: 'Rechaza la entrada: Ambos son enteros positivos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los argumentos deben ser enteros positivos
+    - type: run
+      args:
+      - '1'
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los argumentos deben ser enteros positivos
+    - type: run
+      args:
+      - '-1'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los argumentos deben ser enteros positivos
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 9
+    - 10
+    - 11
+    - 12
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: letra
+  title: 'Actividad 1: palabras por letra'
+  description: 'Actividad de laboratorio 1. Recibe una única letra, mayúscula o minúscula,
+    y muestra cuántas palabras de `/usr/share/dict/words` empiezan por ella, sin distinguir
+    entre ambas.
+
+
+    **Comandos a practicar:** `grep -ic`
+
+
+    **Estructuras de Bash:** `[[ =~ ^[A-Za-z]$ ]]`
+
+
+    **Detalle importante:** Ancla con `^` y entrecomilla: `grep -ic "^$1"`. Sin el
+    ancla contarías las palabras que **contienen** la letra.'
+  script:
+    path: /home/learner/aso/p21/letra.sh
+    usage: letra.sh LETRA
+  input_requirements:
+  - description: Recibe exactamente un argumento.
+    error: uso
+  - description: El argumento es una sola letra.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: Un número.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: letra.sh LETRA'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el argumento debe ser una letra
+  examples:
+  - command: /home/learner/aso/p21/letra.sh z
+    stdout: '1914
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/letra.sh
+    stdout: ''
+    stderr: 'uso: letra.sh LETRA
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/letra.sh ab
+    stdout: ''
+    stderr: 'el argumento debe ser una letra
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: letras
+    description: Cuenta sin distinguir mayúsculas.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - a
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: grep -ic '^a' /usr/share/dict/words
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - A
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: grep -ic '^a' /usr/share/dict/words
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - z
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: grep -ic '^z' /usr/share/dict/words
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un argumento.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: letra.sh LETRA'
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: letra.sh LETRA'
+  - id: error-formato
+    description: 'Rechaza la entrada: El argumento es una sola letra.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ab
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser una letra
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser una letra
+    - type: run
+      args:
+      - ''
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el argumento debe ser una letra
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 12
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: campos
+  title: 'Actividad 2: dos campos de un fichero'
+  description: 'Actividad de laboratorio 2. Muestra `CAMPO1:CAMPO2` de cada línea
+    de un fichero con formato de `/etc/passwd`. El tercer argumento es opcional; por
+    defecto se usa `/etc/passwd`. Los campos se muestran **en el orden pedido**.
+
+
+    **Comandos a practicar:** `cut`, o `read`
+
+
+    **Estructuras de Bash:** `${3:-/etc/passwd}`, `(( ))`, `||` en condiciones
+
+
+    **Detalle importante:** `cut -f7,1` muestra los campos en el orden del fichero,
+    no en el pedido: `cut -d: -f7,1` y `-f1,7` dan lo mismo. Hace falta otro enfoque,
+    como dos `cut` o `read`.'
+  script:
+    path: /home/learner/aso/p21/campos.sh
+    usage: campos.sh CAMPO1 CAMPO2 [FICHERO]
+  input_requirements:
+  - description: Recibe dos o tres argumentos.
+    error: uso
+  - description: Los campos son números.
+    error: formato
+  - description: Los campos están entre 1 y 7.
+    error: rango
+  - description: El fichero existe.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: Una línea por registro.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: los campos deben ser números
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: los campos deben estar entre 1 y 7
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p21/campos.sh 7 1 | head -n 2
+    stdout: '/bin/bash:root
+
+      /usr/sbin/nologin:bin
+
+      '
+    stderr: ''
+    exit_code: 0
+    description: Respeta el orden pedido.
+  - command: /home/learner/aso/p21/campos.sh 1
+    stdout: ''
+    stderr: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/campos.sh a 1
+    stdout: ''
+    stderr: 'los campos deben ser números
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p21/campos.sh 0 1
+    stdout: ''
+    stderr: 'los campos deben estar entre 1 y 7
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p21/campos.sh 1 2 /etc/nada
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: defecto
+    description: Usa /etc/passwd y respeta el orden.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print $1 ":" $3}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '7'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print $7 ":" $1}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '6'
+      - '6'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print $6 ":" $6}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: fichero
+    description: Acepta un fichero.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '7'
+      - /home/learner/aso/p21/copia
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print $1 ":" $7}'' /etc/passwd'
+      stderr:
+        match: empty
+      prepare: 'cp /etc/passwd /home/learner/aso/p21/copia; chown learner: /home/learner/aso/p21/copia'
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe dos o tres argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: campos.sh CAMPO1 CAMPO2 [FICHERO]'
+  - id: error-formato
+    description: 'Rechaza la entrada: Los campos son números.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los campos deben ser números
+    - type: run
+      args:
+      - '1'
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los campos deben ser números
+  - id: error-rango
+    description: 'Rechaza la entrada: Los campos están entre 1 y 7.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '0'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: los campos deben estar entre 1 y 7
+    - type: run
+      args:
+      - '1'
+      - '8'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: los campos deben estar entre 1 y 7
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 12
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: existe
+  title: 'Autónomo 1: ¿existe el fichero?'
+  description: 'Muestra `el fichero existe` o `el fichero no existe` (ambos por stdout
+    y con código 0). Resuélvelo en una línea con `&&` y `||`.
+
+
+    **Comandos a practicar:** `test -e`
+
+
+    **Estructuras de Bash:** `[[ -e "$1" ]] && ... || ...`
+
+
+    **Detalle importante:** Entrecomilla el argumento: un nombre con espacios se partiría
+    en dos con `[ -e $1 ]`.'
+  script:
+    path: /home/learner/aso/p21/existe.sh
+    usage: existe.sh FICHERO
+  input_requirements:
+  - description: Recibe exactamente un argumento.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Uno de los dos mensajes.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: existe.sh FICHERO'
+  examples:
+  - command: /home/learner/aso/p21/existe.sh /etc/passwd
+    stdout: 'el fichero existe
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/existe.sh /nada
+    stdout: 'el fichero no existe
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/existe.sh
+    stdout: ''
+    stderr: 'uso: existe.sh FICHERO
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: rutas
+    description: Distingue rutas reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: el fichero existe
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /nada/de/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: el fichero no existe
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: el fichero existe
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /home/learner/aso/p21/con espacio
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: el fichero existe
+      stderr:
+        match: empty
+      prepare: touch '/home/learner/aso/p21/con espacio'
+    - type: run
+      args:
+      - /home/learner/aso/p21/con otro
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: el fichero no existe
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un argumento.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: existe.sh FICHERO'
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: existe.sh FICHERO'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: numero
+  title: 'Autónomo 2: cuántos dígitos'
+  description: 'Muestra `no es un número`, `es un número de un dígito`, `es un número
+    de dos dígitos` o `es un número de tres o más dígitos` según la cadena recibida.
+    Todos son resultados normales con código 0.
+
+
+    **Comandos a practicar:** `echo`
+
+
+    **Estructuras de Bash:** `[[ =~ ]]`, `${#1}`, `if/elif/else` o `case`
+
+
+    **Detalle importante:** `${#var}` da la longitud de la cadena. `007` tiene tres
+    dígitos aunque valga 7: no compares su valor numérico.'
+  script:
+    path: /home/learner/aso/p21/numero.sh
+    usage: numero.sh CADENA
+  input_requirements:
+  - description: Recibe exactamente un argumento.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Uno de los cuatro mensajes.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: numero.sh CADENA'
+  examples:
+  - command: /home/learner/aso/p21/numero.sh 42
+    stdout: 'es un número de dos dígitos
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/numero.sh abc
+    stdout: 'no es un número
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/numero.sh
+    stdout: ''
+    stderr: 'uso: numero.sh CADENA
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: cadenas
+    description: Clasifica las cadenas.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - abc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no es un número
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - ''
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no es un número
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '-5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no es un número
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - 1a
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no es un número
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '7'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: es un número de un dígito
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '42'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: es un número de dos dígitos
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '123'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: es un número de tres o más dígitos
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '007'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: es un número de tres o más dígitos
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un argumento.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: numero.sh CADENA'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: numero.sh CADENA'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: consulta
+  title: 'Autónomo 3: usuario o grupo'
+  description: 'Con `-u` indica si existe un usuario y con `-g` si existe un grupo:
+    `existe el usuario X`, `no existe el usuario X`, `existe el grupo X` o `no existe
+    el grupo X`.
+
+
+    **Comandos a practicar:** `grep -q`, `getent`
+
+
+    **Estructuras de Bash:** `case`, variables con la ruta y el texto
+
+
+    **Detalle importante:** Busca `^nombre:`. Sin los dos puntos, `ad` coincidiría
+    con `adm`; sin `^`, `dm:` también.'
+  script:
+    path: /home/learner/aso/p21/consulta.sh
+    usage: consulta.sh -u|-g NOMBRE
+  input_requirements:
+  - description: Recibe opción y nombre.
+    error: uso
+  - description: La opción es -u o -g.
+    error: opcion
+  output_requirements:
+  - id: correcto
+    description: Uno de los cuatro mensajes.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: consulta.sh -u|-g NOMBRE'
+  - id: opcion
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  examples:
+  - command: /home/learner/aso/p21/consulta.sh -u root
+    stdout: 'existe el usuario root
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/consulta.sh -g nadie
+    stdout: 'no existe el grupo nadie
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/consulta.sh -u
+    stdout: ''
+    stderr: 'uso: consulta.sh -u|-g NOMBRE
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/consulta.sh -x root
+    stdout: ''
+    stderr: 'opción no válida
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: usuarios
+    description: Consulta /etc/passwd.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -u
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: existe el usuario root
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -u
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no existe el usuario nadie
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -u
+      - ad
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no existe el usuario ad
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -u
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: existe el usuario usuario1
+      stderr:
+        match: empty
+  - id: grupos
+    description: Consulta /etc/group.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -g
+      - wheel
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: existe el grupo wheel
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -g
+      - whee
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: no existe el grupo whee
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -g
+      - adm
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: existe el grupo adm
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe opción y nombre.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: consulta.sh -u|-g NOMBRE'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: consulta.sh -u|-g NOMBRE'
+  - id: error-opcion
+    description: 'Rechaza la entrada: La opción es -u o -g.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: opcion
+      stderr:
+        match: exact
+        value: opción no válida
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: secundarios
+  title: 'Autónomo 4: usuarios secundarios de un grupo'
+  description: 'Si el grupo existe, muestra `el grupo existe` y después los usuarios
+    que lo tienen como secundario, uno por línea. Si no tiene ninguno, la segunda
+    línea es `sin usuarios secundarios`.
+
+
+    **Comandos a practicar:** `grep`, `cut -d: -f4`, `tr '','' ''\n''`
+
+
+    **Estructuras de Bash:** variable intermedia, `[[ -z ]]`
+
+
+    **Detalle importante:** El cuarto campo de `/etc/group` separa los usuarios por
+    comas y **no incluye** a quienes lo tienen como grupo primario.'
+  script:
+    path: /home/learner/aso/p21/secundarios.sh
+    usage: secundarios.sh GRUPO
+  input_requirements:
+  - description: Recibe exactamente un grupo.
+    error: uso
+  - description: El grupo existe.
+    error: grupo
+  output_requirements:
+  - id: correcto
+    description: La línea de existencia y la lista.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: secundarios.sh GRUPO'
+  - id: grupo
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el grupo no existe
+  examples:
+  - command: /home/learner/aso/p21/secundarios.sh p21g
+    stdout: 'el grupo existe
+
+      usuario1
+
+      usuario2
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/secundarios.sh
+    stdout: ''
+    stderr: 'uso: secundarios.sh GRUPO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/secundarios.sh nadie
+    stdout: ''
+    stderr: 'el grupo no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: grupos
+    description: Muestra la lista real.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p21g
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+          usuario1
+
+          usuario2'
+      stderr:
+        match: empty
+      prepare: getent group p21g >/dev/null || groupadd p21g; gpasswd -M usuario1,usuario2
+        p21g >/dev/null; getent group p21v >/dev/null || groupadd p21v
+    - type: run
+      args:
+      - p21v
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+          sin usuarios secundarios'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el grupo existe
+
+          sin usuarios secundarios'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un grupo.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: secundarios.sh GRUPO'
+  - id: error-grupo
+    description: 'Rechaza la entrada: El grupo existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: grupo
+      stderr:
+        match: exact
+        value: el grupo no existe
+    - type: run
+      args:
+      - p21
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: grupo
+      stderr:
+        match: exact
+        value: el grupo no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: grupos-de
+  title: 'Autónomo 5: grupos de un usuario'
+  description: 'Si el usuario existe, muestra `el usuario existe` y después sus grupos
+    en una línea `grupos: A B C`, con el grupo primario en primer lugar.
+
+
+    **Comandos a practicar:** `id -nG`
+
+
+    **Estructuras de Bash:** `if ! grupos=$(id -nG "$1" 2>/dev/null); then`
+
+
+    **Detalle importante:** Puedes asignar y comprobar a la vez: una asignación con
+    `$( )` devuelve el código del comando interior.'
+  script:
+    path: /home/learner/aso/p21/grupos-de.sh
+    usage: grupos-de.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: grupos-de.sh USUARIO'
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p21/grupos-de.sh root
+    stdout: 'el usuario existe
+
+      grupos: root
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/grupos-de.sh
+    stdout: ''
+    stderr: 'uso: grupos-de.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/grupos-de.sh nadie
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: usuarios
+    description: Coincide con id.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo ''el usuario existe''; echo "grupos: $(id -nG root)"'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo ''el usuario existe''; echo "grupos: $(id -nG usuario1)"'
+      stderr:
+        match: empty
+      prepare: getent group p21g >/dev/null || groupadd p21g; gpasswd -M usuario1,usuario2
+        p21g >/dev/null; getent group p21v >/dev/null || groupadd p21v
+    - type: run
+      args:
+      - adm
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo ''el usuario existe''; echo "grupos: $(id -nG adm)"'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: grupos-de.sh USUARIO'
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: perfil
+  title: 'Autónomo 6: home y shell de un usuario'
+  description: 'Si el usuario existe, muestra tres líneas:
+
+
+    ```text
+
+    el usuario existe
+
+    directorio bajo /home: sí      (o no)
+
+    shell /bin/bash: sí            (o no)
+
+    ```
+
+
+    **Comandos a practicar:** `grep`, `cut`
+
+
+    **Estructuras de Bash:** `[[ $home == /home/* ]]`, `IFS=: read`, `<<<`, `&& ...
+    || ...`
+
+
+    **Detalle importante:** El comodín de `[[ == ]]` funciona solo **sin comillas**
+    en el patrón. Y `/homeless/x` empieza por `/home` pero no está bajo `/home`: incluye
+    la barra.'
+  script:
+    path: /home/learner/aso/p21/perfil.sh
+    usage: perfil.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Las tres líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: perfil.sh USUARIO'
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p21/perfil.sh root
+    stdout: 'el usuario existe
+
+      directorio bajo /home: no
+
+      shell /bin/bash: sí
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/perfil.sh
+    stdout: ''
+    stderr: 'uso: perfil.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/perfil.sh nadie
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: usuarios
+    description: Evalúa home y shell.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: sí
+
+          shell /bin/bash: sí'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: no
+
+          shell /bin/bash: sí'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - daemon
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: no
+
+          shell /bin/bash: no'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - p21lejos
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: no
+
+          shell /bin/bash: sí'
+      stderr:
+        match: empty
+      prepare: 'id p21lejos >/dev/null 2>&1 || useradd -M -d /homeless/p21lejos -s
+        /bin/bash p21lejos
+
+        id p21sh >/dev/null 2>&1 || useradd -M -d /home/p21sh -s /bin/sh p21sh'
+    - type: run
+      args:
+      - p21sh
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'el usuario existe
+
+          directorio bajo /home: sí
+
+          shell /bin/bash: no'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: perfil.sh USUARIO'
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+    - type: run
+      args:
+      - roo
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 13
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: interprete
+  title: Shebang y permiso de ejecución
+  description: 'Apartado 2. Examina un fichero real y muestra su intérprete (lo que
+    sigue a `#!` en la primera línea) y si es ejecutable para quien lanza el script:
+
+
+    ```text
+
+    interprete: /bin/sh     (ninguno si no hay shebang)
+
+    ejecutable: sí          (o no)
+
+    ```
+
+
+    **Comandos a practicar:** `head -n 1`, `file`, `chmod`
+
+
+    **Estructuras de Bash:** `read`, `[[ $linea == ''#!''* ]]`, `${linea#\#!}`, `-x`
+
+
+    **Detalle importante:** `./script` obedece al shebang: con `#!/bin/false` no haría
+    nada. Comprueba con `file` cómo cambia la descripción de un fichero según su primera
+    línea.'
+  script:
+    path: /home/learner/aso/p21/interprete.sh
+    usage: interprete.sh FICHERO
+  input_requirements:
+  - description: Recibe exactamente un fichero.
+    error: uso
+  - description: El fichero existe y es regular.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: interprete.sh FICHERO'
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p21/interprete.sh /usr/bin/ldd
+    stdout: 'interprete: /usr/bin/bash
+
+      ejecutable: sí
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/interprete.sh /etc/passwd
+    stdout: 'interprete: ninguno
+
+      ejecutable: no
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/interprete.sh
+    stdout: ''
+    stderr: 'uso: interprete.sh FICHERO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p21/interprete.sh /nada
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Examina scripts del sistema.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /usr/bin/ldd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'head -n 1 /usr/bin/ldd | sed ''s/^#! *//; s/^/interprete: /'';
+          echo ''ejecutable: sí'''
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /usr/bin/gunzip
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'head -n 1 /usr/bin/gunzip | sed ''s/^#! *//; s/^/interprete:
+          /''; echo ''ejecutable: sí'''
+      stderr:
+        match: empty
+  - id: sin-shebang
+    description: Reconoce ficheros sin shebang.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'interprete: ninguno
+
+          ejecutable: no'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /usr/bin/ls
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'interprete: ninguno
+
+          ejecutable: sí'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un fichero.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: interprete.sh FICHERO'
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe y es regular.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+    - type: run
+      args:
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 2
+    - 3
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: codigo-ls
+  title: Guardar el código de salida
+  description: 'Apartado 3.4. Ejecuta `ls -l` sobre una ruta sin mostrar su salida
+    ni sus errores, y muestra dos líneas: `ls devolvió N` y `la ruta existe` o `la
+    ruta no existe`, según ese código. El script siempre termina con 0.
+
+
+    **Comandos a practicar:** `ls -l`, `>/dev/null 2>&1`
+
+
+    **Estructuras de Bash:** `$?`, guardar en variable, `(( ))`
+
+
+    **Detalle importante:** `$?` es el código del **último** comando: tras un `echo`
+    ya vale 0. Guárdalo en una variable justo después de ejecutar el comando que te
+    interesa.'
+  script:
+    path: /home/learner/aso/p21/codigo-ls.sh
+    usage: codigo-ls.sh RUTA
+  input_requirements:
+  - description: Recibe exactamente una ruta.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: codigo-ls.sh RUTA'
+  examples:
+  - command: /home/learner/aso/p21/codigo-ls.sh /nada
+    stdout: 'ls devolvió 2
+
+      la ruta no existe
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p21/codigo-ls.sh
+    stdout: ''
+    stderr: 'uso: codigo-ls.sh RUTA
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: codigos
+    description: Refleja el código real de ls.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'ls devolvió 0
+
+          la ruta existe'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'ls devolvió 2
+
+          la ruta no existe'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una ruta.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: codigo-ls.sh RUTA'
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: codigo-ls.sh RUTA'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: efd91fbc43b01be04792f99c5f99517d0c31ea71b2991ff5ba99d49ab0ac3a74
+    title: Práctica-2.1
+    pages:
+    - 7
+    - 8
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.

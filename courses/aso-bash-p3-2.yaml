@@ -1,0 +1,2797 @@
+schema_version: 1
+id: aso-bash-p3-2
+version: '1.0'
+title: ASO Bash 3.2 · Servicios, drop-ins, vi y recursos
+description: "Trabaja con los **ficheros de unidad reales** de Fedora en `/usr/lib/systemd/system`\
+  \ y `/etc/systemd/system`, con `systemctl --root=/`, con ficheros *drop-in*, con\
+  \ `vi` en modo no interactivo y con los límites `cgroup` que el contenedor tiene\
+  \ aplicados.\n    Este contenedor no arranca `systemd` como PID 1, por lo que `systemctl\
+  \ start/stop/status/show`, `systemd-run`, `systemd-cgls`, Apache y `firewall-cmd`\
+  \ necesitan una máquina virtual: esa parte de la hoja no se evalúa aquí.\n    En\
+  \ lugar de simular esos comandos, los ejercicios usan lo que sí es real: `list-unit-files`,\
+  \ `is-enabled`, `enable`, `disable`, `get-default` y `systemd-delta`. Como `httpd`\
+  \ no está instalado, los drop-ins se aplican a `atd.service`.\n\nCada ejercicio\
+  \ es un **script de Bash** en `/home/learner/aso/p32/`: empieza por `#!/bin/bash`,\
+  \ hazlo ejecutable con `chmod u+x`, envía los resultados a stdout y los errores\
+  \ a stderr, y usa un código de salida distinto para cada error. Los ejercicios trabajan\
+  \ con ficheros y procesos reales del sistema (`/etc/passwd`, `/etc/group`, `/proc`,\
+  \ `/usr/share/dict/words`...): la salida esperada se calcula al evaluar, así que\
+  \ no vale escribir el resultado a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p32
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: targets
+  title: Niveles de ejecución y target por defecto
+  description: 'Apartado 1.1. Sin argumentos, muestra una línea `N TARGET` para cada
+    nivel del 0 al 6, leyendo los enlaces reales `runlevelN.target`. Con `-d` muestra
+    solo el target por defecto.
+
+
+    **Comandos a practicar:** `readlink`, `systemctl get-default`
+
+
+    **Estructuras de Bash:** `for n in {0..6}`, `case`
+
+
+    **Detalle importante:** Los niveles 2, 3 y 4 apuntan al mismo `multi-user.target`:
+    los números solo se conservan por compatibilidad.'
+  script:
+    path: /home/learner/aso/p32/targets.sh
+    usage: targets.sh [-d]
+  input_requirements:
+  - description: Recibe como mucho la opción -d.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: La tabla, o el target por defecto.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: targets.sh [-d]'
+  examples:
+  - command: /home/learner/aso/p32/targets.sh
+    stdout: '0 poweroff.target
+
+      1 rescue.target
+
+      2 multi-user.target
+
+      3 multi-user.target
+
+      4 multi-user.target
+
+      5 graphical.target
+
+      6 reboot.target
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/targets.sh -d
+    stdout: 'graphical.target
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/targets.sh -x
+    stdout: ''
+    stderr: 'uso: targets.sh [-d]
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: tabla
+    description: Lee los enlaces.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '0 poweroff.target
+
+          1 rescue.target
+
+          2 multi-user.target
+
+          3 multi-user.target
+
+          4 multi-user.target
+
+          5 graphical.target
+
+          6 reboot.target'
+      stderr:
+        match: empty
+  - id: defecto
+    description: Lee el target por defecto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -d
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: systemctl get-default
+      stderr:
+        match: empty
+      prepare: rm -rf /run/systemd/system
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho la opción -d.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: targets.sh [-d]'
+    - type: run
+      args:
+      - -d
+      - -d
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: targets.sh [-d]'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: ubicacion
+  title: Qué fichero de unidad manda
+  description: 'Apartado 1.2. Muestra la ruta del fichero de unidad que tiene prioridad,
+    buscando en este orden: `/etc/systemd/system`, `/run/systemd/system` y `/usr/lib/systemd/system`.
+
+
+    **Comandos a practicar:** `/etc/systemd/system`, `/run/systemd/system`, `/usr/lib/systemd/system`
+
+
+    **Estructuras de Bash:** `for d in a b c`, `-e`, `exit` dentro del bucle
+
+
+    **Detalle importante:** La configuración del administrador en `/etc` gana a la
+    del tiempo de ejecución en `/run`, y esta a la de los paquetes en `/usr/lib`.
+    Por eso los paquetes no pisan tus cambios al actualizarse. En este contenedor
+    no dejes creado `/run/systemd/system`: su existencia hace creer a `systemctl`
+    que `systemd` está en marcha.'
+  script:
+    path: /home/learner/aso/p32/ubicacion.sh
+    usage: ubicacion.sh UNIDAD
+  input_requirements:
+  - description: Recibe exactamente una unidad.
+    error: uso
+  - description: La unidad existe en alguno de los directorios.
+    error: unidad
+  output_requirements:
+  - id: correcto
+    description: La ruta efectiva.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: ubicacion.sh UNIDAD'
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  examples:
+  - command: /home/learner/aso/p32/ubicacion.sh atd.service
+    stdout: '/usr/lib/systemd/system/atd.service
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/ubicacion.sh
+    stdout: ''
+    stderr: 'uso: ubicacion.sh UNIDAD
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/ubicacion.sh noexiste.service
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: prioridad
+    description: Respeta el orden de prioridad.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /usr/lib/systemd/system/atd.service
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/atd.service; rm -rf /run/systemd/system
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /run/systemd/system/atd.service
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/atd.service; rm -rf /run/systemd/system;
+        mkdir -p /run/systemd/system; cp /usr/lib/systemd/system/atd.service /run/systemd/system/
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /etc/systemd/system/atd.service
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/atd.service; rm -rf /run/systemd/system;
+        mkdir -p /run/systemd/system; cp /usr/lib/systemd/system/atd.service /run/systemd/system/;
+        cp /usr/lib/systemd/system/atd.service /etc/systemd/system/
+    - type: run
+      args:
+      - crond.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /usr/lib/systemd/system/crond.service
+      stderr:
+        match: empty
+      prepare: rm -f /etc/systemd/system/atd.service; rm -rf /run/systemd/system
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una unidad.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: ubicacion.sh UNIDAD'
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe en alguno de los directorios.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - noexiste.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: propiedad
+  title: Leer una propiedad de un fichero de unidad
+  description: 'Apartado 5.1. Muestra el valor de una propiedad dentro de una sección
+    de un fichero de `/usr/lib/systemd/system`. La misma clave en otra sección no
+    cuenta. Si aparece varias veces en la sección, gana la última.
+
+
+    **Comandos a practicar:** `/usr/lib/systemd/system/*.service`, `less`
+
+
+    **Estructuras de Bash:** `while IFS= read -r linea`, `case "$linea" in`, una variable
+    de estado `dentro`, `${linea#*=}`
+
+
+    **Detalle importante:** Una línea `[Sección]` cambia de sección. El valor puede
+    contener `=`: quita solo hasta el **primer** `=` con `${linea#*=}`.'
+  script:
+    path: /home/learner/aso/p32/propiedad.sh
+    usage: propiedad.sh UNIDAD SECCION CLAVE
+  input_requirements:
+  - description: Recibe unidad, sección y clave.
+    error: uso
+  - description: La unidad existe.
+    error: unidad
+  - description: La clave existe en esa sección.
+    error: clave
+  output_requirements:
+  - id: correcto
+    description: El valor de la propiedad.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: propiedad.sh UNIDAD SECCION CLAVE'
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  - id: clave
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: la propiedad no existe en esa sección
+  examples:
+  - command: /home/learner/aso/p32/propiedad.sh atd.service Service ExecStart
+    stdout: '/usr/sbin/atd -f $OPTS
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/propiedad.sh a b
+    stdout: ''
+    stderr: 'uso: propiedad.sh UNIDAD SECCION CLAVE
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/propiedad.sh no.service Unit Description
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p32/propiedad.sh atd.service Unit ExecStart
+    stdout: ''
+    stderr: 'la propiedad no existe en esa sección
+
+      '
+    exit_code: 5
+  evaluations:
+  - id: reales
+    description: Lee unidades reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - Unit
+      - Description
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk -v s='[Unit]' -v k=Description '/^\[/{c=($0==s)} c && index($0,k"=")==1{v=substr($0,length(k)+2)}
+          END{print v}' /usr/lib/systemd/system/atd.service
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - atd.service
+      - Service
+      - ExecStart
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk -v s='[Service]' -v k=ExecStart '/^\[/{c=($0==s)} c && index($0,k"=")==1{v=substr($0,length(k)+2)}
+          END{print v}' /usr/lib/systemd/system/atd.service
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - atd.service
+      - Install
+      - WantedBy
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk -v s='[Install]' -v k=WantedBy '/^\[/{c=($0==s)} c && index($0,k"=")==1{v=substr($0,length(k)+2)}
+          END{print v}' /usr/lib/systemd/system/atd.service
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - crond.service
+      - Service
+      - ExecStart
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk -v s='[Service]' -v k=ExecStart '/^\[/{c=($0==s)} c && index($0,k"=")==1{v=substr($0,length(k)+2)}
+          END{print v}' /usr/lib/systemd/system/crond.service
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe unidad, sección y clave.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: propiedad.sh UNIDAD SECCION CLAVE'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: propiedad.sh UNIDAD SECCION CLAVE'
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - no.service
+      - Unit
+      - Description
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  - id: error-clave
+    description: 'Rechaza la entrada: La clave existe en esa sección.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - Unit
+      - ExecStart
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: clave
+      stderr:
+        match: exact
+        value: la propiedad no existe en esa sección
+    - type: run
+      args:
+      - atd.service
+      - Nada
+      - Description
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: clave
+      stderr:
+        match: exact
+        value: la propiedad no existe en esa sección
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: servicios
+  title: Servicios por estado
+  description: 'Apartado 4. Lista solo el nombre de los ficheros de unidad de tipo
+    servicio que están en el estado indicado: `enabled`, `disabled` o `static`.
+
+
+    **Comandos a practicar:** `systemctl --root=/ list-unit-files --type=service --state=
+    --no-legend --no-pager`, `cut` o `awk`
+
+
+    **Estructuras de Bash:** `case`, tuberías
+
+
+    **Detalle importante:** `--root=/` trabaja sobre los ficheros sin hablar con `systemd`,
+    por eso funciona aquí. `--no-legend` quita cabecera y pie, y `--no-pager` evita
+    el paginador.'
+  script:
+    path: /home/learner/aso/p32/servicios.sh
+    usage: servicios.sh ESTADO
+  input_requirements:
+  - description: Recibe exactamente un estado.
+    error: uso
+  - description: El estado es enabled, disabled o static.
+    error: estado
+  output_requirements:
+  - id: correcto
+    description: Un nombre por línea.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: servicios.sh ESTADO'
+  - id: estado
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: estado no válido
+  examples:
+  - command: /home/learner/aso/p32/servicios.sh enabled | head -n 3
+    stdout: 'atd.service
+
+      authselect-apply-changes.service
+
+      crond.service
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/servicios.sh
+    stdout: ''
+    stderr: 'uso: servicios.sh ESTADO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/servicios.sh activo
+    stdout: ''
+    stderr: 'estado no válido
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: estados
+    description: Lista cada estado.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - enabled
+      cwd: /home/learner
+      user: learner
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: systemctl --root=/ list-unit-files --type=service --state=enabled
+          --no-legend --no-pager | awk '{print $1}'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - disabled
+      cwd: /home/learner
+      user: learner
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: systemctl --root=/ list-unit-files --type=service --state=disabled
+          --no-legend --no-pager | awk '{print $1}'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - static
+      cwd: /home/learner
+      user: learner
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: systemctl --root=/ list-unit-files --type=service --state=static
+          --no-legend --no-pager | awk '{print $1}'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un estado.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: servicios.sh ESTADO'
+  - id: error-estado
+    description: 'Rechaza la entrada: El estado es enabled, disabled o static.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - activo
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: estado
+      stderr:
+        match: exact
+        value: estado no válido
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: wants
+  title: Enlaces de los servicios habilitados
+  description: 'Apartado 3.2. Habilitar crea un enlace en `/etc/systemd/system/TARGET.wants/`.
+    Recorre esos directorios y muestra `TARGET: SERVICIO` por cada enlace a un `.service`,
+    ordenado.
+
+
+    **Comandos a practicar:** `ls`, `sort`
+
+
+    **Estructuras de Bash:** `for d in /etc/systemd/system/*.wants`, `${d##*/}`, `${x%.wants}`,
+    bucle anidado, `-L`
+
+
+    **Detalle importante:** Quita ruta y sufijo con expansiones: `${d##*/}` elimina
+    hasta la última barra y `${d%.wants}` elimina el final. Encadena `done | sort`.'
+  script:
+    path: /home/learner/aso/p32/wants.sh
+    usage: wants.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea por enlace.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: wants.sh'
+  examples:
+  - command: /home/learner/aso/p32/wants.sh | head -n 3
+    stdout: 'basic.target: rpmdb-rebuild.service
+
+      factory-reset.target: systemd-tpm2-clear.service
+
+      getty.target: getty@tty1.service
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/wants.sh x
+    stdout: ''
+    stderr: 'uso: wants.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: enlaces
+    description: Coincide con los enlaces reales.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'find /etc/systemd/system -mindepth 2 -maxdepth 2 -path ''*.wants/*.service''
+          -printf ''%h: %f\n'' | sed ''s|^.*/||; s|\.wants: |: |'' | sort'
+      stderr:
+        match: empty
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: 'multi-user.target: atd.service'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: wants.sh'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: conmuta
+  title: Habilitar y deshabilitar
+  description: 'Apartado 3.2. Habilita o deshabilita una unidad con `systemctl --root=/`
+    sin mostrar los mensajes del comando, y muestra `UNIDAD: ESTADO` con el estado
+    final de `is-enabled`. Se evalúa como root.
+
+
+    **Comandos a practicar:** `systemctl --root=/ enable`, `disable`, `is-enabled`
+
+
+    **Estructuras de Bash:** `case`, `$EUID`, `$(...)`
+
+
+    **Detalle importante:** Activar y habilitar son operaciones distintas. `is-enabled`
+    devuelve 1 si la unidad está deshabilitada, pero imprime igualmente el estado:
+    captura la salida, no el código.'
+  script:
+    path: /home/learner/aso/p32/conmuta.sh
+    usage: conmuta.sh enable|disable UNIDAD
+  input_requirements:
+  - description: Recibe acción y unidad.
+    error: uso
+  - description: La acción es enable o disable.
+    error: accion
+  - description: Se ejecuta como root.
+    error: permiso
+  - description: La unidad existe.
+    error: unidad
+  output_requirements:
+  - id: correcto
+    description: Una línea con el estado final.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: conmuta.sh enable|disable UNIDAD'
+  - id: accion
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: acción no válida
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  examples:
+  - command: /home/learner/aso/p32/conmuta.sh enable atd.service
+    stdout: 'atd.service: enabled
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/conmuta.sh enable
+    stdout: ''
+    stderr: 'uso: conmuta.sh enable|disable UNIDAD
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/conmuta.sh start atd.service
+    stdout: ''
+    stderr: 'acción no válida
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p32/conmuta.sh enable atd.service
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p32/conmuta.sh enable no.service
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: disable
+    description: Deshabilita y elimina el enlace.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - disable
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'atd.service: disabled'
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/conmuta.sh
+
+        D=/home/learner/aso/p32
+
+        [ ! -e /etc/systemd/system/multi-user.target.wants/atd.service ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: enable
+    description: Habilita y crea el enlace.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - enable
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'atd.service: enabled'
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/conmuta.sh
+
+        D=/home/learner/aso/p32
+
+        [ -L /etc/systemd/system/multi-user.target.wants/atd.service ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe acción y unidad.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - enable
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: conmuta.sh enable|disable UNIDAD'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: conmuta.sh enable|disable UNIDAD'
+  - id: error-accion
+    description: 'Rechaza la entrada: La acción es enable o disable.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - start
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: accion
+      stderr:
+        match: exact
+        value: acción no válida
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - enable
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - enable
+      - no.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: dropin
+  title: Crear un fichero drop-in
+  description: 'Apartado 5. Crea `/etc/systemd/system/UNIDAD.d/NOMBRE.conf` con la
+    cabecera de la sección y una línea por cada propiedad, sustituyendo el fichero
+    si ya existía. Termina mostrando la ruta. Se evalúa como root.
+
+
+    **Comandos a practicar:** `mkdir -p`, `systemd-delta`, `man 5 systemd.service`
+
+
+    **Estructuras de Bash:** `shift 3`, `for p in "$@"`, agrupación `{ ...; } > fichero`
+
+
+    **Detalle importante:** El directorio se llama `atd.service.d`. Valida todas las
+    propiedades **antes** de escribir para no dejar un fichero a medias. `systemd-delta`
+    lista la unidad como `[EXTENDED]`. Tras un cambio real haría falta `systemctl
+    daemon-reload`.'
+  script:
+    path: /home/learner/aso/p32/dropin.sh
+    usage: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...
+  input_requirements:
+  - description: Recibe unidad, nombre, sección y al menos una propiedad.
+    error: uso
+  - description: La sección es Unit, Service o Install.
+    error: seccion
+  - description: Cada propiedad tiene la forma Clave=valor.
+    error: propiedad
+  - description: La unidad existe.
+    error: unidad
+  - description: Se ejecuta como root.
+    error: permiso
+  output_requirements:
+  - id: correcto
+    description: La ruta creada.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...'
+  - id: seccion
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: sección no válida
+  - id: propiedad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: propiedad no válida
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: hay que ser root
+  examples:
+  - command: /home/learner/aso/p32/dropin.sh atd.service restart-policy Service Restart=on-failure
+      RestartSec=20
+    stdout: '/etc/systemd/system/atd.service.d/restart-policy.conf
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/dropin.sh atd.service x Service
+    stdout: ''
+    stderr: 'uso: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/dropin.sh atd.service x Nada A=1
+    stdout: ''
+    stderr: 'sección no válida
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p32/dropin.sh atd.service x Service sinigual
+    stdout: ''
+    stderr: 'propiedad no válida
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p32/dropin.sh no.service x Service A=1
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p32/dropin.sh atd.service x Service A=1
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 5
+  evaluations:
+  - id: crea
+    description: Crea el drop-in con el formato correcto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - restart-policy
+      - Service
+      - Restart=on-failure
+      - RestartSec=20
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /etc/systemd/system/atd.service.d/restart-policy.conf
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/dropin.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat /etc/systemd/system/atd.service.d/restart-policy.conf)" = "[Service]
+
+        Restart=on-failure
+
+        RestartSec=20" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/dropin.sh
+
+        D=/home/learner/aso/p32
+
+        systemd-delta --no-pager --type=extended | grep -q ''/etc/systemd/system/atd.service.d/restart-policy.conf'''
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: sustituye
+    description: Sustituye el fichero existente.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - restart-policy
+      - Service
+      - RestartSec=5
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: /etc/systemd/system/atd.service.d/restart-policy.conf
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/dropin.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat /etc/systemd/system/atd.service.d/restart-policy.conf)" = "[Service]
+
+        RestartSec=5" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe unidad, nombre, sección y al menos una
+      propiedad.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - x
+      - Service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: dropin.sh UNIDAD NOMBRE SECCION CLAVE=VALOR...'
+  - id: error-seccion
+    description: 'Rechaza la entrada: La sección es Unit, Service o Install.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - x
+      - Nada
+      - A=1
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: seccion
+      stderr:
+        match: exact
+        value: sección no válida
+  - id: error-propiedad
+    description: 'Rechaza la entrada: Cada propiedad tiene la forma Clave=valor.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - x
+      - Service
+      - sinigual
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: propiedad
+      stderr:
+        match: exact
+        value: propiedad no válida
+    - type: run
+      args:
+      - atd.service
+      - x
+      - Service
+      - A=1
+      - =2
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: propiedad
+      stderr:
+        match: exact
+        value: propiedad no válida
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - no.service
+      - x
+      - Service
+      - A=1
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - x
+      - Service
+      - A=1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: exec-debug
+  title: Sustituir ExecStart
+  description: 'Apartado 5.2. Crea el drop-in `execstart-debug.conf` de una unidad
+    para añadir una opción a su comando de inicio. Lee el `ExecStart` del fichero
+    original y escribe:
+
+
+    ```ini
+
+    [Service]
+
+    ExecStart=
+
+    ExecStart=COMANDO-ORIGINAL OPCION
+
+    ```
+
+
+    Termina mostrando la nueva línea `ExecStart=...`. Se evalúa como root.
+
+
+    **Comandos a practicar:** `grep ^ExecStart=`, `cut -d= -f2-`, `systemd-delta`
+
+
+    **Estructuras de Bash:** agrupación con redirección, `printf`
+
+
+    **Detalle importante:** `ExecStart` tiene una peculiaridad: para sustituirlo hay
+    que **vaciarlo primero** con `ExecStart=`, o `systemd` lo tomaría como un segundo
+    comando. Este cambio además exige `daemon-reload` y reiniciar el servicio.'
+  script:
+    path: /home/learner/aso/p32/exec-debug.sh
+    usage: exec-debug.sh UNIDAD OPCION
+  input_requirements:
+  - description: Recibe unidad y opción.
+    error: uso
+  - description: La unidad existe.
+    error: unidad
+  - description: La unidad tiene ExecStart.
+    error: sin-exec
+  - description: Se ejecuta como root.
+    error: permiso
+  output_requirements:
+  - id: correcto
+    description: La nueva línea.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: exec-debug.sh UNIDAD OPCION'
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  - id: sin-exec
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: la unidad no tiene ExecStart
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 6
+    stream: stderr
+    message: hay que ser root
+  examples:
+  - command: /home/learner/aso/p32/exec-debug.sh atd.service -d
+    stdout: 'ExecStart=/usr/sbin/atd -f $OPTS -d
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/exec-debug.sh a
+    stdout: ''
+    stderr: 'uso: exec-debug.sh UNIDAD OPCION
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/exec-debug.sh no.service -d
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p32/exec-debug.sh multi-user.target -d
+    stdout: ''
+    stderr: 'la unidad no tiene ExecStart
+
+      '
+    exit_code: 5
+  - command: /home/learner/aso/p32/exec-debug.sh atd.service -d
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 6
+  evaluations:
+  - id: crea
+    description: Escribe el vaciado y el comando nuevo.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - -d
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: echo "$(grep '^ExecStart=' /usr/lib/systemd/system/atd.service)
+          -d"
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/exec-debug.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat /etc/systemd/system/atd.service.d/execstart-debug.conf)" = "[Service]
+
+        ExecStart=
+
+        $(grep ''^ExecStart='' /usr/lib/systemd/system/atd.service) -d" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe unidad y opción.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: exec-debug.sh UNIDAD OPCION'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: exec-debug.sh UNIDAD OPCION'
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - no.service
+      - -d
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  - id: error-sin-exec
+    description: 'Rechaza la entrada: La unidad tiene ExecStart.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - multi-user.target
+      - -d
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: sin-exec
+      stderr:
+        match: exact
+        value: la unidad no tiene ExecStart
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - -d
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: actividad
+  title: Actividad de laboratorio
+  description: 'Apartado 7, puntos 3 a 5, aplicados a la unidad indicada (`httpd.service`
+    en la máquina virtual; aquí, `atd.service`). Crea tres drop-ins en `/etc/systemd/system/UNIDAD.d/`:
+
+
+    - `description.conf`: la descripción pasa a ser `My Apache HTTP Server`.
+
+    - `restart-policy.conf`: se reinicia ante un fallo, 10 segundos después.
+
+    - `memoria.conf`: mínimo garantizado de 1 GB y máximo de 2 GB.
+
+
+    Termina mostrando `3 drop-ins en DIRECTORIO`. Se evalúa como root.
+
+
+    **Comandos a practicar:** `Description=`, `Restart=on-failure`, `RestartSec=`,
+    `MemoryMin=`, `MemoryMax=`, `man 5 systemd.resource-control`
+
+
+    **Estructuras de Bash:** función `escribe()`, `printf ''%s\n''`
+
+
+    **Detalle importante:** `Description` va en `[Unit]`; el resto, en `[Service]`.
+    Un fichero por motivo permite deshacer cada cambio borrando solo ese fichero.'
+  script:
+    path: /home/learner/aso/p32/actividad.sh
+    usage: actividad.sh UNIDAD
+  input_requirements:
+  - description: Recibe exactamente una unidad.
+    error: uso
+  - description: Se ejecuta como root.
+    error: permiso
+  - description: La unidad existe.
+    error: unidad
+  output_requirements:
+  - id: correcto
+    description: La línea de confirmación.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: actividad.sh UNIDAD'
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  - id: unidad
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la unidad no existe
+  examples:
+  - command: /home/learner/aso/p32/actividad.sh atd.service
+    stdout: '3 drop-ins en /etc/systemd/system/atd.service.d
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/actividad.sh
+    stdout: ''
+    stderr: 'uso: actividad.sh UNIDAD
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/actividad.sh atd.service
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p32/actividad.sh no.service
+    stdout: ''
+    stderr: 'la unidad no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: ficheros
+    description: Crea los tres drop-ins.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 3 drop-ins en /etc/systemd/system/atd.service.d
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/actividad.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(ls /etc/systemd/system/atd.service.d | wc -l)" = 3 ] && systemd-delta
+        --no-pager --type=extended | grep -q /etc/systemd/system/atd.service.d/memoria.conf'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: descripcion
+    description: Cambia la descripción.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/actividad.sh
+
+        D=/home/learner/aso/p32
+
+        grep -qx ''\[Unit\]'' /etc/systemd/system/atd.service.d/description.conf &&
+        grep -qx ''Description=My Apache HTTP Server'' /etc/systemd/system/atd.service.d/description.conf'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: reinicio
+    description: Política de reinicio.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/actividad.sh
+
+        D=/home/learner/aso/p32
+
+        grep -qx ''\[Service\]'' /etc/systemd/system/atd.service.d/restart-policy.conf
+        && grep -qx ''Restart=on-failure'' /etc/systemd/system/atd.service.d/restart-policy.conf
+        && grep -qx ''RestartSec=10'' /etc/systemd/system/atd.service.d/restart-policy.conf'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: memoria
+    description: Límites de memoria.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/actividad.sh
+
+        D=/home/learner/aso/p32
+
+        grep -qx ''\[Service\]'' /etc/systemd/system/atd.service.d/memoria.conf &&
+        grep -qx ''MemoryMin=1G'' /etc/systemd/system/atd.service.d/memoria.conf &&
+        grep -qx ''MemoryMax=2G'' /etc/systemd/system/atd.service.d/memoria.conf'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una unidad.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: actividad.sh UNIDAD'
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  - id: error-unidad
+    description: 'Rechaza la entrada: La unidad existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - no.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: unidad
+      stderr:
+        match: exact
+        value: la unidad no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: revertir
+  title: Deshacer drop-ins
+  description: 'Apartado 5.2. Elimina el drop-in `NOMBRE.conf` de una unidad o, sin
+    nombre, todos sus `.conf`. Si el directorio queda vacío, lo elimina también. Muestra
+    `eliminados: N`. Se evalúa como root.
+
+
+    **Comandos a practicar:** `rm`, `rmdir`, `shopt -s nullglob`
+
+
+    **Estructuras de Bash:** vector `f=("$dir"/*.conf)`, `${#f[@]}`, `(( ))`
+
+
+    **Detalle importante:** Borrar un fichero solo cambia el disco: en un sistema
+    real hay que ejecutar `systemctl daemon-reload`, y también reiniciar si afecta
+    al comando de inicio.'
+  script:
+    path: /home/learner/aso/p32/revertir.sh
+    usage: revertir.sh UNIDAD [NOMBRE]
+  input_requirements:
+  - description: Recibe una unidad y un nombre opcional.
+    error: uso
+  - description: Se ejecuta como root.
+    error: permiso
+  output_requirements:
+  - id: correcto
+    description: La línea con el recuento.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: revertir.sh UNIDAD [NOMBRE]'
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  examples:
+  - command: /home/learner/aso/p32/revertir.sh atd.service
+    stdout: 'eliminados: 2
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/revertir.sh
+    stdout: ''
+    stderr: 'uso: revertir.sh UNIDAD [NOMBRE]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/revertir.sh atd.service
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: uno
+    description: Elimina uno y conserva el resto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      - a
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'eliminados: 1'
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d; mkdir -p /etc/systemd/system/atd.service.d;
+        echo '[Service]' > /etc/systemd/system/atd.service.d/a.conf; echo '[Service]'
+        > /etc/systemd/system/atd.service.d/b.conf; echo otro > /etc/systemd/system/atd.service.d/nota.txt
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/revertir.sh
+
+        D=/home/learner/aso/p32
+
+        [ ! -e /etc/systemd/system/atd.service.d/a.conf ] && [ -e /etc/systemd/system/atd.service.d/b.conf
+        ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: todos
+    description: Elimina todos los .conf.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'eliminados: 2'
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d; mkdir -p /etc/systemd/system/atd.service.d;
+        echo '[Service]' > /etc/systemd/system/atd.service.d/a.conf; echo '[Service]'
+        > /etc/systemd/system/atd.service.d/b.conf; echo otro > /etc/systemd/system/atd.service.d/nota.txt
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/revertir.sh
+
+        D=/home/learner/aso/p32
+
+        [ -e /etc/systemd/system/atd.service.d/nota.txt ] && [ ! -e /etc/systemd/system/atd.service.d/a.conf
+        ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: directorio
+    description: Elimina el directorio si queda vacío.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'eliminados: 2'
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d; mkdir -p /etc/systemd/system/atd.service.d;
+        echo '[Service]' > /etc/systemd/system/atd.service.d/a.conf; echo '[Service]'
+        > /etc/systemd/system/atd.service.d/b.conf; echo otro > /etc/systemd/system/atd.service.d/nota.txt;
+        rm /etc/systemd/system/atd.service.d/nota.txt
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/revertir.sh
+
+        D=/home/learner/aso/p32
+
+        [ ! -e /etc/systemd/system/atd.service.d ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: nada
+    description: Sin drop-ins no falla.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'eliminados: 0'
+      stderr:
+        match: empty
+      prepare: rm -rf /etc/systemd/system/atd.service.d
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe una unidad y un nombre opcional.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: revertir.sh UNIDAD [NOMBRE]'
+    - type: run
+      args:
+      - a
+      - b
+      - c
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: revertir.sh UNIDAD [NOMBRE]'
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - atd.service
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: vi-sustituye
+  title: Sustituir con vi desde un script
+  description: 'Apartado 2.1. Aplica `:%s/ORIGEN/DESTINO/g` a un fichero usando `vi`
+    en modo no interactivo, guarda y muestra `líneas con ORIGEN: N`, contando antes
+    de editar. Si no hay coincidencias, el fichero no cambia y la cuenta es 0. `ORIGEN`
+    y `DESTINO` son rutas o textos que pueden contener `/`.
+
+
+    **Comandos a practicar:** `vi -es -c ''...'' -c x`, `:%s`, `grep -c`
+
+
+    **Estructuras de Bash:** `#` como delimitador, sustitución de comandos
+
+
+    **Detalle importante:** La `g` sustituye todas las apariciones de cada línea y
+    el `%`, en todas las líneas. Cualquier carácter sirve de delimitador: `%s#/bin/#/sbin/#g`.
+    El indicador `e` evita el error de `vi` cuando no hay coincidencias.'
+  script:
+    path: /home/learner/aso/p32/vi-sustituye.sh
+    usage: vi-sustituye.sh FICHERO ORIGEN DESTINO
+  input_requirements:
+  - description: Recibe fichero, origen y destino.
+    error: uso
+  - description: El fichero existe.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: La línea con el recuento.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: vi-sustituye.sh FICHERO ORIGEN DESTINO'
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p32/vi-sustituye.sh /home/learner/aso/p32/shells /bin/
+      /sbin/
+    stdout: 'líneas con /bin/: 6
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/vi-sustituye.sh a b
+    stdout: ''
+    stderr: 'uso: vi-sustituye.sh FICHERO ORIGEN DESTINO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/vi-sustituye.sh /nada a b
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: copia-real
+    description: Modifica una copia de /etc/login.defs.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p32/defs
+      - UID
+      - IDU
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "líneas con UID: $(grep -c UID /etc/login.defs)"'
+      stderr:
+        match: empty
+      prepare: 'cp /etc/login.defs /home/learner/aso/p32/defs; cp /etc/shells /home/learner/aso/p32/shells;
+        chown learner: /home/learner/aso/p32/defs /home/learner/aso/p32/shells'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/vi-sustituye.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat $D/defs)" = "$(sed ''s/UID/IDU/g'' /etc/login.defs)" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: barras
+    description: Admite barras.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p32/shells
+      - /bin/
+      - /sbin/
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "líneas con /bin/: $(grep -c /bin/ /etc/shells)"'
+      stderr:
+        match: empty
+      prepare: 'cp /etc/login.defs /home/learner/aso/p32/defs; cp /etc/shells /home/learner/aso/p32/shells;
+        chown learner: /home/learner/aso/p32/defs /home/learner/aso/p32/shells'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/vi-sustituye.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat $D/shells)" = "$(sed ''s#/bin/#/sbin/#g'' /etc/shells)" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: sin-coincidencias
+    description: Sin coincidencias no cambia nada.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p32/defs
+      - zzzz
+      - y
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'líneas con zzzz: 0'
+      stderr:
+        match: empty
+      prepare: 'cp /etc/login.defs /home/learner/aso/p32/defs; cp /etc/shells /home/learner/aso/p32/shells;
+        chown learner: /home/learner/aso/p32/defs /home/learner/aso/p32/shells'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/vi-sustituye.sh
+
+        D=/home/learner/aso/p32
+
+        cmp -s $D/defs /etc/login.defs'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe fichero, origen y destino.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: vi-sustituye.sh FICHERO ORIGEN DESTINO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: vi-sustituye.sh FICHERO ORIGEN DESTINO'
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /nada
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: vi-borra
+  title: Borrar líneas con vi
+  description: 'Apartado 2.1. Borra el rango de líneas `INICIO`–`FIN`, ambos incluidos,
+    de un fichero usando `vi` en modo no interactivo y muestra `quedan N líneas`.
+    Es lo que hace `3dd` con el cursor en la línea adecuada.
+
+
+    **Comandos a practicar:** `vi -es -c ''I,Fd'' -c x`, `wc -l <`
+
+
+    **Estructuras de Bash:** `[[ =~ ]]`, `(( ))` con varias condiciones
+
+
+    **Detalle importante:** En `vi` el rango `2,4d` borra por número de línea. Con
+    `:q!` saldrías sin guardar: aquí `x` guarda y sale.'
+  script:
+    path: /home/learner/aso/p32/vi-borra.sh
+    usage: vi-borra.sh FICHERO INICIO FIN
+  input_requirements:
+  - description: Recibe fichero, inicio y fin.
+    error: uso
+  - description: Inicio y fin son enteros mayores que 0.
+    error: formato
+  - description: Inicio no supera a fin, ni fin al número de líneas.
+    error: rango
+  - description: El fichero existe.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: La línea con las líneas restantes.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: vi-borra.sh FICHERO INICIO FIN'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: inicio y fin deben ser enteros positivos
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: rango de líneas no válido
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p32/vi-borra.sh /home/learner/aso/p32/shells 2 3
+    stdout: 'quedan 4 líneas
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/vi-borra.sh a 1
+    stdout: ''
+    stderr: 'uso: vi-borra.sh FICHERO INICIO FIN
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/vi-borra.sh /etc/shells a 1
+    stdout: ''
+    stderr: 'inicio y fin deben ser enteros positivos
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p32/vi-borra.sh /etc/shells 3 2
+    stdout: ''
+    stderr: 'rango de líneas no válido
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p32/vi-borra.sh /nada 1 1
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: borra
+    description: Borra el rango en una copia real.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p32/shells
+      - '2'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: echo "quedan $(sed '2,3d' /etc/shells | wc -l) líneas"
+      stderr:
+        match: empty
+      prepare: 'cp /etc/login.defs /home/learner/aso/p32/defs; cp /etc/shells /home/learner/aso/p32/shells;
+        chown learner: /home/learner/aso/p32/defs /home/learner/aso/p32/shells'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p32/vi-borra.sh
+
+        D=/home/learner/aso/p32
+
+        [ "$(cat $D/shells)" = "$(sed ''2,3d'' /etc/shells)" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: una
+    description: Borra una sola línea.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p32/shells
+      - '1'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: echo "quedan $(sed '1d' /etc/shells | wc -l) líneas"
+      stderr:
+        match: empty
+      prepare: 'cp /etc/login.defs /home/learner/aso/p32/defs; cp /etc/shells /home/learner/aso/p32/shells;
+        chown learner: /home/learner/aso/p32/defs /home/learner/aso/p32/shells'
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe fichero, inicio y fin.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: vi-borra.sh FICHERO INICIO FIN'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: vi-borra.sh FICHERO INICIO FIN'
+  - id: error-formato
+    description: 'Rechaza la entrada: Inicio y fin son enteros mayores que 0.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc/shells
+      - a
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: inicio y fin deben ser enteros positivos
+    - type: run
+      args:
+      - /etc/shells
+      - '1'
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: inicio y fin deben ser enteros positivos
+  - id: error-rango
+    description: 'Rechaza la entrada: Inicio no supera a fin, ni fin al número de
+      líneas.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc/shells
+      - '3'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: rango de líneas no válido
+    - type: run
+      args:
+      - /etc/shells
+      - '1'
+      - '9999'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: rango de líneas no válido
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /nada
+      - '1'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: limites
+  title: Los cgroups de este contenedor
+  description: 'Apartado 6. Los límites de este entorno son `cgroups` reales: Linux
+    Lab los aplica al contenedor. Lee `memory.max`, `pids.max` y `cpu.max` de `/sys/fs/cgroup`
+    y muestra:
+
+
+    ```text
+
+    memoria: 2048 MiB      (o sin límite)
+
+    procesos: 256          (o sin límite)
+
+    cpu: 200%              (o sin límite)
+
+    ```
+
+
+    **Comandos a practicar:** `/sys/fs/cgroup/memory.max`, `pids.max`, `cpu.max`
+
+
+    **Estructuras de Bash:** `read cuota periodo < fichero`, función, `$(( ))`
+
+
+    **Detalle importante:** Un valor `max` significa sin límite. `cpu.max` contiene
+    `CUOTA PERIODO`: el porcentaje es `CUOTA*100/PERIODO`. Es lo que `CPUQuota=25%`
+    o `MemoryMax=300M` configuran en un servicio.'
+  script:
+    path: /home/learner/aso/p32/limites.sh
+    usage: limites.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Las tres líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: limites.sh'
+  examples:
+  - command: /home/learner/aso/p32/limites.sh
+    stdout: 'memoria: 2048 MiB
+
+      procesos: 256
+
+      cpu: 200%
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/limites.sh x
+    stdout: ''
+    stderr: 'uso: limites.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: reales
+    description: Coincide con el cgroup real.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'printf ''memoria: %s\nprocesos: %s\ncpu: %s\n'' "$(awk ''{print
+          ($1=="max" ? "sin límite" : int($1/1048576) " MiB")}'' /sys/fs/cgroup/memory.max)"
+          "$(awk ''{print ($1=="max" ? "sin límite" : $1)}'' /sys/fs/cgroup/pids.max)"
+          "$(awk ''{print ($1=="max" ? "sin límite" : int($1*100/$2) "%")}'' /sys/fs/cgroup/cpu.max)"'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: limites.sh'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: reparto-cpu
+  title: Reparto de CPU con CPUWeight
+  description: 'Apartado 6.2. Dados dos valores de `CPUWeight`, muestra qué porcentaje
+    entero (truncado) de CPU recibe cada servicio si compiten. El segundo es opcional
+    y vale 100, el valor por defecto de `CPUWeight`.
+
+
+    **Comandos a practicar:** `CPUWeight=`
+
+
+    **Estructuras de Bash:** `${2:-100}`, `$(( ))`, `for`
+
+
+    **Detalle importante:** La hoja reduce la prioridad a la mitad con `CPUWeight=50`:
+    frente a otro servicio con 100 recibe 1/3 de la CPU. El rango válido va de 1 a
+    10000.'
+  script:
+    path: /home/learner/aso/p32/reparto-cpu.sh
+    usage: reparto-cpu.sh PESO1 [PESO2]
+  input_requirements:
+  - description: Recibe uno o dos pesos.
+    error: uso
+  - description: Los pesos son enteros.
+    error: formato
+  - description: Los pesos están entre 1 y 10000.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: 'Dos líneas `PESO: N%`.'
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: reparto-cpu.sh PESO1 [PESO2]'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: los pesos deben ser enteros
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: los pesos deben estar entre 1 y 10000
+  examples:
+  - command: /home/learner/aso/p32/reparto-cpu.sh 50
+    stdout: '50: 33%
+
+      100: 66%
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/reparto-cpu.sh
+    stdout: ''
+    stderr: 'uso: reparto-cpu.sh PESO1 [PESO2]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p32/reparto-cpu.sh a
+    stdout: ''
+    stderr: 'los pesos deben ser enteros
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p32/reparto-cpu.sh 0
+    stdout: ''
+    stderr: 'los pesos deben estar entre 1 y 10000
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: repartos
+    description: Calcula el reparto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '50'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '50: 33%
+
+          100: 66%'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '100'
+      - '100'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '100: 50%
+
+          100: 50%'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '1'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1: 25%
+
+          3: 75%'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '10000'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '10000: 99%
+
+          1: 0%'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe uno o dos pesos.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: reparto-cpu.sh PESO1 [PESO2]'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: reparto-cpu.sh PESO1 [PESO2]'
+  - id: error-formato
+    description: 'Rechaza la entrada: Los pesos son enteros.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los pesos deben ser enteros
+    - type: run
+      args:
+      - '1'
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los pesos deben ser enteros
+  - id: error-rango
+    description: 'Rechaza la entrada: Los pesos están entre 1 y 10000.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: los pesos deben estar entre 1 y 10000
+    - type: run
+      args:
+      - '1'
+      - '10001'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: los pesos deben estar entre 1 y 10000
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: demonios
+  title: Servicios con nombre de demonio
+  description: 'Apartado 1. Muchos demonios tienen un nombre terminado en `d`. Lista
+    por orden alfabético los ficheros `.service` de `/usr/lib/systemd/system` cuyo
+    nombre, sin la extensión, termina en `d`. Excluye las plantillas (`nombre@.service`).
+    Con `-c` muestra solo cuántos son.
+
+
+    **Comandos a practicar:** `/usr/lib/systemd/system`, `sort`, `wc -l`
+
+
+    **Estructuras de Bash:** `for f in .../*.service`, `${f##*/}`, `[[ =~ ]]`
+
+
+    **Detalle importante:** `[[ $n =~ d\.service$ ]]`: el punto se escapa porque en
+    una expresión regular significa «cualquier carácter». `crond.service` cumple;
+    `getty@.service` no.'
+  script:
+    path: /home/learner/aso/p32/demonios.sh
+    usage: demonios.sh [-c]
+  input_requirements:
+  - description: Recibe como mucho la opción -c.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Los nombres, o el recuento.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: demonios.sh [-c]'
+  examples:
+  - command: /home/learner/aso/p32/demonios.sh -c
+    stdout: '25
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p32/demonios.sh -x
+    stdout: ''
+    stderr: 'uso: demonios.sh [-c]
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: lista
+    description: Filtra los nombres reales.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: find /usr/lib/systemd/system -maxdepth 1 -name '*d.service'
+          -printf '%f\n' | LC_ALL=C sort
+      stderr:
+        match: empty
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: crond.service
+      stderr:
+        match: empty
+  - id: cuenta
+    description: Cuenta con -c.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: find /usr/lib/systemd/system -maxdepth 1 -name '*d.service'
+          | wc -l
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho la opción -c.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: demonios.sh [-c]'
+    - type: run
+      args:
+      - -c
+      - -c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: demonios.sh [-c]'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.

@@ -81,6 +81,11 @@ exports and generated drafts use `evaluations`.
 
 The `courses/` directory bundles Linux Foundations and the ASO collections
 `aso-p1-2`, `aso-p1-3`, `aso-p2-1`, `aso-p2-2`, `aso-p3-1`, and `aso-p3-2`.
+The `aso-bash-p1-1` to `aso-bash-p3-2` courses cover each practice sheet as Bash
+scripts run against the container's real files and processes; expected output is
+computed live at evaluation. Edit them in `scripts/aso_bash/`, then run
+`scripts/aso_bash/verify.py` (Docker: stubs earn nothing, solutions earn everything,
+examples are captured) and `scripts/build_aso_bash.py`.
 The systemd and Apache parts of ASO Práctica 3.2 need a VM with systemd;
 use a VM for those sections instead of the Fedora practice container.
 The bundled answer scripts in `courses/foundations-solutions.json` exist for

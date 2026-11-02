@@ -1,0 +1,2506 @@
+schema_version: 1
+id: aso-bash-p2-2
+version: '1.0'
+title: ASO Bash 2.2 · Lectura de ficheros, vectores, argumentos y canales
+description: "Lee `/etc/passwd` y otros ficheros reales línea a línea: `while IFS=:\
+  \ read`, `case`, `read -a`, `shift`, `\"$@\"`, `continue`, y canales propios con\
+  \ `exec`, `read -u` y `>&4`.\n    Incluye los scripts guía, las dos actividades\
+  \ de laboratorio y los siete ejercicios autónomos de la Práctica 2.2.\n\nCada ejercicio\
+  \ es un **script de Bash** en `/home/learner/aso/p22/`: empieza por `#!/bin/bash`,\
+  \ hazlo ejecutable con `chmod u+x`, envía los resultados a stdout y los errores\
+  \ a stderr, y usa un código de salida distinto para cada error. Los ejercicios trabajan\
+  \ con ficheros y procesos reales del sistema (`/etc/passwd`, `/etc/group`, `/proc`,\
+  \ `/usr/share/dict/words`...): la salida esperada se calcula al evaluar, así que\
+  \ no vale escribir el resultado a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p22
+
+    id usuario1 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 1'' usuario1
+
+    id usuario2 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 2'' usuario2
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: registro
+  title: Un campo de cada registro con case
+  description: 'Script guía del apartado 1. Muestra `Registro N: VALOR` para cada
+    línea de `/etc/passwd` y termina con `Total de registros: N`. Lee cada línea en
+    **variables con nombre** y elige el campo con `case`.
+
+
+    **Comandos a practicar:** `/etc/passwd`
+
+
+    **Estructuras de Bash:** `while IFS=: read nombre clave uid gid gecos directorio
+    shell; do ... done < /etc/passwd`, `case`, `;;`, `esac`
+
+
+    **Detalle importante:** Redirige al bloque `while`. Si usas `cat /etc/passwd |
+    while ...`, el bucle corre en un sub-shell y el total saldría 0 al terminar la
+    tubería.'
+  script:
+    path: /home/learner/aso/p22/registro.sh
+    usage: registro.sh CAMPO
+  input_requirements:
+  - description: Recibe exactamente un campo.
+    error: uso
+  - description: El campo es un entero positivo.
+    error: formato
+  - description: El campo está entre 1 y 7.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: Una línea por registro y el total.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: registro.sh campo'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el campo debe ser un entero positivo
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: el campo está fuera del rango de valores aceptado
+  examples:
+  - command: /home/learner/aso/p22/registro.sh 1 | tail -n 3
+    stdout: 'Registro 24: p22x
+
+      Registro 25: p22sh
+
+      Total de registros: 25
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/registro.sh
+    stdout: ''
+    stderr: 'uso: registro.sh campo
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/registro.sh x
+    stdout: ''
+    stderr: 'el campo debe ser un entero positivo
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/registro.sh 0
+    stdout: ''
+    stderr: 'el campo está fuera del rango de valores aceptado
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: campos
+    description: Muestra el campo y el total correcto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print "Registro " NR ": " $1} END{print "Total de
+          registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print "Registro " NR ": " $3} END{print "Total de
+          registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print "Registro " NR ": " $5} END{print "Total de
+          registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '7'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{print "Registro " NR ": " $7} END{print "Total de
+          registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un campo.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: registro.sh campo'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: registro.sh campo'
+  - id: error-formato
+    description: 'Rechaza la entrada: El campo es un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el campo debe ser un entero positivo
+  - id: error-rango
+    description: 'Rechaza la entrada: El campo está entre 1 y 7.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el campo está fuera del rango de valores aceptado
+    - type: run
+      args:
+      - '8'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el campo está fuera del rango de valores aceptado
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 1
+    - 2
+    - 3
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: columnas
+  title: Varios campos con vectores
+  description: 'Apartados 2 y 3. Recibe una lista de campos y muestra por cada línea
+    `Registro N:` seguido de cada campo separado por tabuladores, en el orden pedido
+    y admitiendo repetidos. Termina con `Total de registros: N`. Valida **todos**
+    los campos antes de leer el fichero.
+
+
+    **Comandos a practicar:** `echo -e`, o `printf`
+
+
+    **Estructuras de Bash:** `IFS=: read -a vector`, `${vector[$((campo-1))]}`, `for
+    campo in "$@"`, concatenación
+
+
+    **Detalle importante:** Los vectores empiezan en 0, y `${vector[1]}` necesita
+    las llaves: `$vector[1]` imprime el primer elemento seguido del texto `[1]`.'
+  script:
+    path: /home/learner/aso/p22/columnas.sh
+    usage: columnas.sh CAMPO...
+  input_requirements:
+  - description: Recibe al menos un campo.
+    error: uso
+  - description: Todos los campos son enteros positivos.
+    error: formato
+  - description: Todos los campos están entre 1 y 7.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: Una línea por registro y el total.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: columnas.sh campos...'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: x no es un entero positivo
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: 9 está fuera del rango de valores aceptado
+  examples:
+  - command: /home/learner/aso/p22/columnas.sh 7 1 | head -n 2
+    stdout: "Registro 1:\t/bin/bash\troot\nRegistro 2:\t/usr/sbin/nologin\tbin\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/columnas.sh
+    stdout: ''
+    stderr: 'uso: columnas.sh campos...
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/columnas.sh 1 x
+    stdout: ''
+    stderr: 'x no es un entero positivo
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/columnas.sh 1 9
+    stdout: ''
+    stderr: '9 está fuera del rango de valores aceptado
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: campos
+    description: Admite desorden y repetidos.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{printf "Registro %d:", NR; printf "\t%s", $1; print
+          ""} END{print "Total de registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '7'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{printf "Registro %d:", NR; printf "\t%s", $7; printf
+          "\t%s", $1; print ""} END{print "Total de registros: " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '1'
+      - '5'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''{printf "Registro %d:", NR; printf "\t%s", $1; printf
+          "\t%s", $5; printf "\t%s", $1; print ""} END{print "Total de registros:
+          " NR}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos un campo.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: columnas.sh campos...'
+  - id: error-formato
+    description: 'Rechaza la entrada: Todos los campos son enteros positivos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: x no es un entero positivo
+  - id: error-rango
+    description: 'Rechaza la entrada: Todos los campos están entre 1 y 7.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '9'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: 9 está fuera del rango de valores aceptado
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 3
+    - 4
+    - 6
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: canales
+  title: Canales propios con exec
+  description: 'Apartado 4. Escribe en `SALIDA` las líneas `Registro N: VALOR` y el
+    total, usando el canal 3 para leer `/etc/passwd` y el 4 para escribir. Por defecto
+    el fichero se sobrescribe; con `-a` se añade al final. Por pantalla muestra solo
+    `N registros escritos`.
+
+
+    **Comandos a practicar:** `exec 3<`, `exec 4>`, `exec 4>>`, `exec 3<&-`, `exec
+    4>&-`
+
+
+    **Estructuras de Bash:** `read -u3`, `>&4`, `shift`
+
+
+    **Detalle importante:** `exec 4>fichero` vacía el fichero al abrirlo. El cierre
+    es `4>&-` tanto si se abrió con `>` como con `>>`. El descriptor recuerda la posición
+    de lectura entre un `read -u3` y el siguiente.'
+  script:
+    path: /home/learner/aso/p22/canales.sh
+    usage: canales.sh [-a] SALIDA CAMPO
+  input_requirements:
+  - description: Recibe salida y campo, con -a opcional delante.
+    error: uso
+  - description: El campo es un número entre 1 y 7.
+    error: campo
+  - description: La salida se puede abrir.
+    error: salida
+  output_requirements:
+  - id: correcto
+    description: La línea de confirmación; el fichero contiene los registros.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: canales.sh [-a] SALIDA CAMPO'
+  - id: campo
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: campo no válido
+  - id: salida
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no se puede abrir la salida
+  examples:
+  - command: /home/learner/aso/p22/canales.sh /home/learner/aso/p22/salida.txt 1
+    stdout: '25 registros escritos
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/canales.sh x
+    stdout: ''
+    stderr: 'uso: canales.sh [-a] SALIDA CAMPO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/canales.sh /home/learner/aso/p22/salida.txt 9
+    stdout: ''
+    stderr: 'campo no válido
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/canales.sh /proc/nada/x 1
+    stdout: ''
+    stderr: 'no se puede abrir la salida
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: sobrescribe
+    description: Sobrescribe por defecto.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/salida.txt
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: echo "$(wc -l < /etc/passwd) registros escritos"
+      stderr:
+        match: empty
+      prepare: 'echo viejo > /home/learner/aso/p22/salida.txt; chown learner: /home/learner/aso/p22/salida.txt'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p22/canales.sh
+
+        D=/home/learner/aso/p22
+
+        [ "$(cat $D/salida.txt)" = "$(awk -F: ''{print "Registro " NR ": " $1} END{print
+        "Total de registros: " NR}'' /etc/passwd)" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: anade
+    description: Añade con -a.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -a
+      - /home/learner/aso/p22/salida.txt
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: echo "$(wc -l < /etc/passwd) registros escritos"
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p22/canales.sh
+
+        D=/home/learner/aso/p22
+
+        [ "$(wc -l < $D/salida.txt)" = "$(( ($(wc -l < /etc/passwd)+1)*2 ))" ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe salida y campo, con -a opcional delante.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: canales.sh [-a] SALIDA CAMPO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: canales.sh [-a] SALIDA CAMPO'
+    - type: run
+      args:
+      - -a
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: canales.sh [-a] SALIDA CAMPO'
+  - id: error-campo
+    description: 'Rechaza la entrada: El campo es un número entre 1 y 7.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/salida.txt
+      - '9'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: campo
+      stderr:
+        match: exact
+        value: campo no válido
+    - type: run
+      args:
+      - /home/learner/aso/p22/salida.txt
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: campo
+      stderr:
+        match: exact
+        value: campo no válido
+  - id: error-salida
+    description: 'Rechaza la entrada: La salida se puede abrir.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /proc/nada/x
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: salida
+      stderr:
+        match: exact
+        value: no se puede abrir la salida
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 7
+    - 8
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: uid-gid
+  title: 'Actividad 1: UID y GID'
+  description: "Actividad de laboratorio 1. Muestra `NOMBRE UID GID` de los usuarios\
+    \ cuyo UID coincide con su GID o, con la opción `-d`, de aquellos en los que difieren.\
+    \ Al final muestra `Usuarios: N` o, si no hay ninguno, `Ningún usuario cumple\
+    \ la condición`.\n    Acepta un fichero opcional con el mismo formato; por defecto\
+    \ usa `/etc/passwd`. `/dev/null` es un fichero válido y vacío.\n\n**Comandos a\
+    \ practicar:** `/etc/passwd`, `/dev/null`\n\n**Estructuras de Bash:** `shift`,\
+    \ `while IFS=: read`, `(( ))`, contador\n\n**Detalle importante:** Procesa la\
+    \ opción y quítala con `shift`: así `$1` pasa a ser el fichero en ambos casos."
+  script:
+    path: /home/learner/aso/p22/uid-gid.sh
+    usage: uid-gid.sh [-d] [FICHERO]
+  input_requirements:
+  - description: Recibe como mucho -d y un fichero.
+    error: uso
+  - description: El fichero existe y se puede leer.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: Los usuarios y la línea final.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: uid-gid.sh [-d] [FICHERO]'
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no se puede leer el fichero
+  examples:
+  - command: /home/learner/aso/p22/uid-gid.sh | tail -n 3
+    stdout: 'p22x 1003 1003
+
+      p22sh 1004 1004
+
+      Usuarios: 16
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/uid-gid.sh /dev/null
+    stdout: 'Ningún usuario cumple la condición
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/uid-gid.sh a b
+    stdout: ''
+    stderr: 'uso: uid-gid.sh [-d] [FICHERO]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/uid-gid.sh /etc/nada
+    stdout: ''
+    stderr: 'no se puede leer el fichero
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: iguales
+    description: UID igual a GID.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''$3==$4{print $1 " " $3 " " $4; n++} END{print (n
+          ? "Usuarios: " n : "Ningún usuario cumple la condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: distintos
+    description: UID distinto de GID.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -d
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''$3!=$4{print $1 " " $3 " " $4; n++} END{print (n
+          ? "Usuarios: " n : "Ningún usuario cumple la condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: ninguno
+    description: Mensaje específico si no hay ninguno.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /dev/null
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: Ningún usuario cumple la condición
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -d
+      - /dev/null
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: Ningún usuario cumple la condición
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho -d y un fichero.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: uid-gid.sh [-d] [FICHERO]'
+    - type: run
+      args:
+      - -d
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: uid-gid.sh [-d] [FICHERO]'
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe y se puede leer.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: no se puede leer el fichero
+    - type: run
+      args:
+      - -d
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: no se puede leer el fichero
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: lineas
+  title: 'Actividad 2: líneas de cada fichero'
+  description: "Actividad de laboratorio 2. Muestra `NOMBRE: N` para cada fichero\
+    \ indicado. El primer argumento puede ser un directorio y entonces los ficheros\
+    \ se buscan en él; si no lo es, se buscan en el directorio actual.\n    Si un\
+    \ nombre no corresponde a un fichero regular, escribe `no es un fichero: NOMBRE`\
+    \ en stderr, continúa con los demás y termina con el código 4.\n\n**Comandos a\
+    \ practicar:** `wc -l <`\n\n**Estructuras de Bash:** `shift`, `for f in \"$@\"\
+    `, `continue`, comillas dobles\n\n**Detalle importante:** Sin comillas en `\"\
+    $@\"` y en `\"$dir/$f\"`, un nombre con espacios se parte en dos. `break` terminaría\
+    \ con una lista incompleta y sin explicación: aquí se usa `continue`."
+  script:
+    path: /home/learner/aso/p22/lineas.sh
+    usage: lineas.sh [DIRECTORIO] FICHERO...
+  input_requirements:
+  - description: Recibe al menos un fichero.
+    error: uso
+  - description: Cada nombre es un fichero regular; si no, se avisa y se continúa.
+    error: parcial
+  output_requirements:
+  - id: correcto
+    description: Una línea por fichero.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: lineas.sh [DIRECTORIO] FICHERO...'
+  - id: parcial
+    description: stdout con los ficheros válidos y stderr con los demás.
+    exit_code: 4
+    stream: stderr
+    message: 'no es un fichero: nada'
+  examples:
+  - command: /home/learner/aso/p22/lineas.sh /etc passwd group
+    stdout: 'passwd: 25
+
+      group: 47
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/lineas.sh
+    stdout: ''
+    stderr: 'uso: lineas.sh [DIRECTORIO] FICHERO...
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: directorio
+    description: Busca en el directorio indicado.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /etc
+      - passwd
+      - group
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "passwd: $(wc -l < /etc/passwd)"; echo "group: $(wc -l
+          < /etc/group)"'
+      stderr:
+        match: empty
+  - id: actual
+    description: Busca en el directorio actual.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - passwd
+      cwd: /etc
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "passwd: $(wc -l < /etc/passwd)"'
+      stderr:
+        match: empty
+  - id: espacios
+    description: Admite nombres con espacios.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/con espacio
+      - mis shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "mis shells: $(wc -l < /etc/shells)"'
+      stderr:
+        match: empty
+      prepare: 'mkdir -p ''/home/learner/aso/p22/con espacio''; cp /etc/shells ''/home/learner/aso/p22/con
+        espacio/mis shells''; chown -R learner: ''/home/learner/aso/p22/con espacio'''
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos un fichero.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: lineas.sh [DIRECTORIO] FICHERO...'
+    - type: run
+      args:
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: lineas.sh [DIRECTORIO] FICHERO...'
+  - id: error-parcial
+    description: 'Rechaza la entrada: Cada nombre es un fichero regular; si no, se
+      avisa y se continúa.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc
+      - nada
+      - shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: parcial
+      stdout:
+        match: lines
+        from_command: 'echo "shells: $(wc -l < /etc/shells)"'
+      stderr:
+        match: exact
+        value: 'no es un fichero: nada'
+    - type: run
+      args:
+      - /etc
+      - default
+      - shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: parcial
+      stdout:
+        match: lines
+        from_command: 'echo "shells: $(wc -l < /etc/shells)"'
+      stderr:
+        match: exact
+        value: 'no es un fichero: default'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: homes-bajo
+  title: 'Autónomo 1: homes bajo un directorio'
+  description: 'Recibe la ruta absoluta de un directorio y muestra los usuarios cuyo
+    directorio personal está bajo él, y al final `Usuarios: N` o `Ningún usuario cumple
+    la condición`.
+
+
+    **Comandos a practicar:** `/etc/passwd`
+
+
+    **Estructuras de Bash:** `[[ $1 != /* ]]`, `[[ $home == "$dir"/* ]]`, `${1%/}`
+
+
+    **Detalle importante:** La parte entrecomillada del patrón es literal y la `*`
+    no. `/home2/x` no está bajo `/home`: compara con `"$dir"/*`. `${1%/}` quita la
+    barra final, para aceptar también `/home/`.'
+  script:
+    path: /home/learner/aso/p22/homes-bajo.sh
+    usage: homes-bajo.sh DIRECTORIO
+  input_requirements:
+  - description: Recibe exactamente un directorio.
+    error: uso
+  - description: La ruta es absoluta.
+    error: absoluta
+  - description: El directorio existe.
+    error: directorio
+  output_requirements:
+  - id: correcto
+    description: Los usuarios y la línea final.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: homes-bajo.sh DIRECTORIO'
+  - id: absoluta
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: la ruta debe ser absoluta
+  - id: directorio
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el directorio no existe
+  examples:
+  - command: /home/learner/aso/p22/homes-bajo.sh /var
+    stdout: 'adm
+
+      lp
+
+      mail
+
+      ftp
+
+      unbound
+
+      geoclue
+
+      Usuarios: 6
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/homes-bajo.sh /mnt
+    stdout: 'Ningún usuario cumple la condición
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/homes-bajo.sh
+    stdout: ''
+    stderr: 'uso: homes-bajo.sh DIRECTORIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/homes-bajo.sh home
+    stdout: ''
+    stderr: 'la ruta debe ser absoluta
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/homes-bajo.sh /nada
+    stdout: ''
+    stderr: 'el directorio no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Encuentra los usuarios.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v d=/home/ ''index($6,d)==1{print $1; n++} END{print
+          (n ? "Usuarios: " n : "Ningún usuario cumple la condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+      prepare: id p22x >/dev/null 2>&1 || useradd -M -d /home2/p22x p22x
+    - type: run
+      args:
+      - /var
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v d=/var/ ''index($6,d)==1{print $1; n++} END{print
+          (n ? "Usuarios: " n : "Ningún usuario cumple la condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /home/
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v d=/home/ ''index($6,d)==1{print $1; n++} END{print
+          (n ? "Usuarios: " n : "Ningún usuario cumple la condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: ninguno
+    description: Mensaje específico si no hay ninguno.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /mnt
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: Ningún usuario cumple la condición
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un directorio.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: homes-bajo.sh DIRECTORIO'
+    - type: run
+      args:
+      - /a
+      - /b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: homes-bajo.sh DIRECTORIO'
+  - id: error-absoluta
+    description: 'Rechaza la entrada: La ruta es absoluta.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - home
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: absoluta
+      stderr:
+        match: exact
+        value: la ruta debe ser absoluta
+  - id: error-directorio
+    description: 'Rechaza la entrada: El directorio existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: directorio
+      stderr:
+        match: exact
+        value: el directorio no existe
+    - type: run
+      args:
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: directorio
+      stderr:
+        match: exact
+        value: el directorio no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: rango-uid
+  title: 'Autónomo 2: usuarios por rango de UID'
+  description: 'Muestra `NOMBRE UID` de los usuarios cuyo UID está en el rango, ambos
+    incluidos, y al final `Usuarios: N` o `Ningún usuario cumple la condición`. Recibe
+    cero o dos argumentos: sin argumentos, el rango sale de `UID_MIN` y `UID_MAX`
+    de `/etc/login.defs`.
+
+
+    **Comandos a practicar:** `grep ^UID_MIN`, `tr -s`, `cut`
+
+
+    **Estructuras de Bash:** `(( ))`, `if/else`, sustitución de comandos
+
+
+    **Detalle importante:** Ancla con `^UID_MIN`: `/etc/login.defs` tiene también
+    `SUB_UID_MIN` y `SYS_UID_MIN`, y comentarios. `UID_MIN` y su valor están separados
+    por varios espacios.'
+  script:
+    path: /home/learner/aso/p22/rango-uid.sh
+    usage: rango-uid.sh [MIN MAX]
+  input_requirements:
+  - description: Recibe cero o dos argumentos.
+    error: uso
+  - description: Los límites son números.
+    error: formato
+  - description: El mínimo no supera al máximo.
+    error: rango
+  output_requirements:
+  - id: correcto
+    description: Los usuarios y la línea final.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: rango-uid.sh [MIN MAX]'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: los límites deben ser números
+  - id: rango
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: el mínimo supera al máximo
+  examples:
+  - command: /home/learner/aso/p22/rango-uid.sh
+    stdout: 'learner 1000
+
+      usuario1 1001
+
+      usuario2 1002
+
+      p22x 1003
+
+      p22sh 1004
+
+      Usuarios: 5
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/rango-uid.sh 3 3
+    stdout: 'adm 3
+
+      Usuarios: 1
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/rango-uid.sh 1
+    stdout: ''
+    stderr: 'uso: rango-uid.sh [MIN MAX]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/rango-uid.sh a 5
+    stdout: ''
+    stderr: 'los límites deben ser números
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/rango-uid.sh 9 1
+    stdout: ''
+    stderr: 'el mínimo supera al máximo
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: defecto
+    description: Lee el rango de /etc/login.defs.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v a=$(awk ''$1=="UID_MIN"{print $2}'' /etc/login.defs)
+          -v b=$(awk ''$1=="UID_MAX"{print $2}'' /etc/login.defs) ''$3>=a && $3<=b{print
+          $1 " " $3; n++} END{print (n ? "Usuarios: " n : "Ningún usuario cumple la
+          condición")}'' /etc/passwd'
+      stderr:
+        match: empty
+  - id: explicito
+    description: Usa el rango indicado, incluidos los límites.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '0'
+      - '12'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v a=0 -v b=12 ''$3>=a && $3<=b{print $1 " " $3; n++}
+          END{print (n ? "Usuarios: " n : "Ningún usuario cumple la condición")}''
+          /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '3'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'adm 3
+
+          Usuarios: 1'
+      stderr:
+        match: empty
+  - id: ninguno
+    description: Mensaje específico si no hay ninguno.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '70000'
+      - '80000'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: Ningún usuario cumple la condición
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe cero o dos argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: rango-uid.sh [MIN MAX]'
+    - type: run
+      args:
+      - '1'
+      - '2'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: rango-uid.sh [MIN MAX]'
+  - id: error-formato
+    description: 'Rechaza la entrada: Los límites son números.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '5'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los límites deben ser números
+    - type: run
+      args:
+      - '5'
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: los límites deben ser números
+  - id: error-rango
+    description: 'Rechaza la entrada: El mínimo no supera al máximo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '9'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: rango
+      stderr:
+        match: exact
+        value: el mínimo supera al máximo
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 9
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: cuenta-shell
+  title: 'Autónomo 3: usuarios por intérprete'
+  description: 'Para cada intérprete recibido (`bash`, `sh`, `nologin`...), muestra
+    `NOMBRE: N`, con los usuarios cuyo shell tiene ese nombre sea cual sea su ruta.
+    Cada argumento debe tener solo letras minúsculas. Si no, escribe `no válido: ARG`
+    en stderr, continúa y termina con el código 2.
+
+
+    **Comandos a practicar:** `/etc/passwd`, `basename`
+
+
+    **Estructuras de Bash:** `${shell##*/}`, doble bucle o `grep -c`, `continue`
+
+
+    **Detalle importante:** `/bin/bash` y `/usr/bin/bash` tienen ambos el nombre `bash`,
+    y `sh` no es `bash`: compara el último componente de la ruta, no busques una subcadena.'
+  script:
+    path: /home/learner/aso/p22/cuenta-shell.sh
+    usage: cuenta-shell.sh INTERPRETE...
+  input_requirements:
+  - description: Recibe al menos un intérprete.
+    error: uso
+  - description: Cada argumento tiene solo letras minúsculas; si no, se avisa y se
+      continúa.
+    error: parcial
+  output_requirements:
+  - id: correcto
+    description: Una línea por intérprete.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: cuenta-shell.sh INTERPRETE...'
+  - id: parcial
+    description: stdout con los válidos y stderr con los demás.
+    exit_code: 2
+    stream: stderr
+    message: 'no válido: Bash1'
+  examples:
+  - command: /home/learner/aso/p22/cuenta-shell.sh bash nologin
+    stdout: 'bash: 5
+
+      nologin: 16
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/cuenta-shell.sh
+    stdout: ''
+    stderr: 'uso: cuenta-shell.sh INTERPRETE...
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: cuentas
+    description: Cuenta por nombre de intérprete.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - bash
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "bash: $(awk -F: -v s=bash ''{n=split($7,a,"/"); if(a[n]==s)c++}
+          END{print c+0}'' /etc/passwd)"'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - nologin
+      - sync
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "nologin: $(awk -F: -v s=nologin ''{n=split($7,a,"/");
+          if(a[n]==s)c++} END{print c+0}'' /etc/passwd)"; echo "sync: $(awk -F: -v
+          s=sync ''{n=split($7,a,"/"); if(a[n]==s)c++} END{print c+0}'' /etc/passwd)"'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - zsh
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'zsh: 0'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - sh
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'echo "sh: $(awk -F: -v s=sh ''{n=split($7,a,"/"); if(a[n]==s)c++}
+          END{print c+0}'' /etc/passwd)"'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos un intérprete.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: cuenta-shell.sh INTERPRETE...'
+  - id: error-parcial
+    description: 'Rechaza la entrada: Cada argumento tiene solo letras minúsculas;
+      si no, se avisa y se continúa.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - Bash1
+      - sync
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: parcial
+      stdout:
+        match: lines
+        from_command: 'echo "sync: $(awk -F: -v s=sync ''{n=split($7,a,"/"); if(a[n]==s)c++}
+          END{print c+0}'' /etc/passwd)"'
+      stderr:
+        match: exact
+        value: 'no válido: Bash1'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: pares
+  title: 'Autónomo 4: líneas pares o impares'
+  description: 'Muestra las líneas pares (`-p`) o impares (`-i`) de un fichero, sin
+    alterarlas: conserva espacios iniciales y barras invertidas, e incluye una última
+    línea aunque no acabe en salto de línea.
+
+
+    **Comandos a practicar:** `/etc/passwd`, `printf ''%s\n''`
+
+
+    **Estructuras de Bash:** `while IFS= read -r linea || [[ -n $linea ]]`, `((n%2))`,
+    `case`
+
+
+    **Detalle importante:** `IFS=` conserva los espacios iniciales, `-r` conserva
+    las barras y `|| [[ -n $linea ]]` procesa la última línea sin `\n`: `read` devuelve
+    error, pero la variable sí tiene el texto.'
+  script:
+    path: /home/learner/aso/p22/pares.sh
+    usage: pares.sh -p|-i FICHERO
+  input_requirements:
+  - description: Recibe opción y fichero.
+    error: uso
+  - description: La opción es -p o -i.
+    error: opcion
+  - description: El fichero existe.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: Las líneas seleccionadas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: pares.sh -p|-i FICHERO'
+  - id: opcion
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p22/pares.sh -i /etc/shells
+    stdout: '/bin/sh
+
+      /usr/bin/sh
+
+      /usr/bin/tmux
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/pares.sh -p
+    stdout: ''
+    stderr: 'uso: pares.sh -p|-i FICHERO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/pares.sh -x /etc/passwd
+    stdout: ''
+    stderr: 'opción no válida
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p22/pares.sh -p /etc/nada
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Selecciona en ficheros reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -p
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'NR%2==0' /etc/passwd
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -i
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'NR%2==1' /etc/passwd
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -i
+      - /etc/shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'NR%2==1' /etc/shells
+      stderr:
+        match: empty
+  - id: literal
+    description: No altera las líneas.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -i
+      - /home/learner/aso/p22/raro.txt
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '  uno con espacios
+
+          tres'
+      stderr:
+        match: empty
+      prepare: 'printf ''  uno con espacios\ndos\\tbarra\ntres\ncuatro sin salto''
+        > /home/learner/aso/p22/raro.txt; chown learner: /home/learner/aso/p22/raro.txt'
+    - type: run
+      args:
+      - -p
+      - /home/learner/aso/p22/raro.txt
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'dos\tbarra
+
+          cuatro sin salto'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe opción y fichero.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -p
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: pares.sh -p|-i FICHERO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: pares.sh -p|-i FICHERO'
+  - id: error-opcion
+    description: 'Rechaza la entrada: La opción es -p o -i.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: opcion
+      stderr:
+        match: exact
+        value: opción no válida
+  - id: error-fichero
+    description: 'Rechaza la entrada: El fichero existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -p
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: entrelaza
+  title: 'Autónomo 5: entrelazar dos ficheros'
+  description: 'Muestra alternando una línea de cada fichero. Cuando uno se termina,
+    continúa con las líneas restantes del más largo.
+
+
+    **Comandos a practicar:** `exec 3<`, `exec 4<`
+
+
+    **Estructuras de Bash:** `read -u3`, `read -u4`, banderas de fin, `while`
+
+
+    **Detalle importante:** Este ejercicio es el motivo de tener canales propios:
+    con una sola redirección al `while` no puedes leer de dos ficheros a la vez, porque
+    cada `read` necesita su descriptor y su posición.'
+  script:
+    path: /home/learner/aso/p22/entrelaza.sh
+    usage: entrelaza.sh FICHERO1 FICHERO2
+  input_requirements:
+  - description: Recibe dos ficheros.
+    error: uso
+  - description: Ambos ficheros existen.
+    error: fichero
+  output_requirements:
+  - id: correcto
+    description: Las líneas intercaladas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: entrelaza.sh FICHERO1 FICHERO2'
+  - id: fichero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el fichero no existe
+  examples:
+  - command: /home/learner/aso/p22/entrelaza.sh /etc/shells /etc/default/useradd |
+      head -n 4
+    stdout: '/bin/sh
+
+      # useradd defaults file
+
+      /bin/bash
+
+      GROUP=100
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/entrelaza.sh a
+    stdout: ''
+    stderr: 'uso: entrelaza.sh FICHERO1 FICHERO2
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/entrelaza.sh /etc/passwd /etc/nada
+    stdout: ''
+    stderr: 'el fichero no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Intercala, en ambos órdenes de longitud.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /etc/shells
+      - /etc/default/useradd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'FNR==1{f++} {v[f,FNR]=$0; n[f]=FNR} END{m=n[1]>n[2]?n[1]:n[2];
+          for(i=1;i<=m;i++){if(i<=n[1])print v[1,i]; if(i<=n[2])print v[2,i]}}' /etc/shells
+          /etc/default/useradd
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /etc/default/useradd
+      - /etc/shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'FNR==1{f++} {v[f,FNR]=$0; n[f]=FNR} END{m=n[1]>n[2]?n[1]:n[2];
+          for(i=1;i<=m;i++){if(i<=n[1])print v[1,i]; if(i<=n[2])print v[2,i]}}' /etc/default/useradd
+          /etc/shells
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /etc/passwd
+      - /etc/shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'FNR==1{f++} {v[f,FNR]=$0; n[f]=FNR} END{m=n[1]>n[2]?n[1]:n[2];
+          for(i=1;i<=m;i++){if(i<=n[1])print v[1,i]; if(i<=n[2])print v[2,i]}}' /etc/passwd
+          /etc/shells
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /etc/shells
+      - /etc/shells
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: awk 'FNR==1{f++} {v[f,FNR]=$0; n[f]=FNR} END{m=n[1]>n[2]?n[1]:n[2];
+          for(i=1;i<=m;i++){if(i<=n[1])print v[1,i]; if(i<=n[2])print v[2,i]}}' /etc/shells
+          /etc/shells
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe dos ficheros.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: entrelaza.sh FICHERO1 FICHERO2'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: entrelaza.sh FICHERO1 FICHERO2'
+  - id: error-fichero
+    description: 'Rechaza la entrada: Ambos ficheros existen.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc/passwd
+      - /etc/nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+    - type: run
+      args:
+      - /etc/nada
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fichero
+      stderr:
+        match: exact
+        value: el fichero no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: solo-uno
+  title: 'Autónomo 6: ficheros solo en un directorio'
+  description: 'Muestra la ruta completa de los ficheros regulares que están en uno
+    solo de los dos directorios, sin bajar a subdirectorios y sin contar ocultos.
+    Primero los del primer directorio y luego los del segundo, cada grupo ordenado.
+    Un directorio con el mismo nombre que un fichero no cuenta como fichero.
+
+
+    **Comandos a practicar:** `*`, `-f`
+
+
+    **Estructuras de Bash:** `for f in "$1"/*`, `${f##*/}`, función con parámetros
+
+
+    **Detalle importante:** Los comodines dan los nombres ordenados y no incluyen
+    ocultos. Escribe una función que recorra un directorio contra el otro y llámala
+    dos veces.'
+  script:
+    path: /home/learner/aso/p22/solo-uno.sh
+    usage: solo-uno.sh DIRECTORIO1 DIRECTORIO2
+  input_requirements:
+  - description: Recibe dos directorios.
+    error: uso
+  - description: Ambos son directorios.
+    error: directorio
+  output_requirements:
+  - id: correcto
+    description: Una ruta por línea.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: solo-uno.sh DIRECTORIO1 DIRECTORIO2'
+  - id: directorio
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no es un directorio
+  examples:
+  - command: /home/learner/aso/p22/solo-uno.sh /home/learner/aso/p22/d1 /home/learner/aso/p22/d2
+    stdout: '/home/learner/aso/p22/d1/passwd
+
+      /home/learner/aso/p22/d1/shells
+
+      /home/learner/aso/p22/d2/hostname
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/solo-uno.sh /etc
+    stdout: ''
+    stderr: 'uso: solo-uno.sh DIRECTORIO1 DIRECTORIO2
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/solo-uno.sh /etc /nada
+    stdout: ''
+    stderr: 'no es un directorio
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Compara dos directorios.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /home/learner/aso/p22/d1
+      - /home/learner/aso/p22/d2
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '/home/learner/aso/p22/d1/passwd
+
+          /home/learner/aso/p22/d1/shells
+
+          /home/learner/aso/p22/d2/hostname'
+      stderr:
+        match: empty
+      prepare: 'rm -rf /home/learner/aso/p22/d1 /home/learner/aso/p22/d2; mkdir -p
+        /home/learner/aso/p22/d1/sub /home/learner/aso/p22/d2
+
+        cp /etc/passwd /etc/group /etc/shells /home/learner/aso/p22/d1
+
+        cp /etc/group /etc/hostname /home/learner/aso/p22/d2
+
+        mkdir /home/learner/aso/p22/d2/shells; touch /home/learner/aso/p22/d1/.oculto
+
+        chown -R learner: /home/learner/aso/p22/d1 /home/learner/aso/p22/d2'
+    - type: run
+      args:
+      - /home/learner/aso/p22/d2
+      - /home/learner/aso/p22/d1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '/home/learner/aso/p22/d2/hostname
+
+          /home/learner/aso/p22/d1/passwd
+
+          /home/learner/aso/p22/d1/shells'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe dos directorios.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: solo-uno.sh DIRECTORIO1 DIRECTORIO2'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: solo-uno.sh DIRECTORIO1 DIRECTORIO2'
+  - id: error-directorio
+    description: 'Rechaza la entrada: Ambos son directorios.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /etc
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: directorio
+      stderr:
+        match: exact
+        value: no es un directorio
+    - type: run
+      args:
+      - /nada
+      - /etc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: directorio
+      stderr:
+        match: exact
+        value: no es un directorio
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: shells-invalidos
+  title: 'Autónomo 7: intérpretes fuera de /etc/shells'
+  description: 'Muestra los intérpretes asignados a usuarios que no aparecen en `/etc/shells`.
+    Por defecto los muestra todos en orden de `/etc/passwd`, aunque se repitan. Con
+    `-u` muestra cada uno una vez, ordenados.
+
+
+    **Comandos a practicar:** `grep -Fx`, `sort -u`
+
+
+    **Estructuras de Bash:** `while IFS=: read`, tuberías sobre un bucle, función
+
+
+    **Detalle importante:** `grep -Fxq` compara la línea **entera** y de forma literal:
+    `/bin/sh` no debe aceptarse por estar contenido en otra línea. Se puede encadenar
+    `done < /etc/passwd | sort -u`.'
+  script:
+    path: /home/learner/aso/p22/shells-invalidos.sh
+    usage: shells-invalidos.sh [-u]
+  input_requirements:
+  - description: Recibe como mucho la opción -u.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Un intérprete por línea.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: shells-invalidos.sh [-u]'
+  examples:
+  - command: /home/learner/aso/p22/shells-invalidos.sh -u
+    stdout: '/bin/sync
+
+      /sbin/halt
+
+      /sbin/nologin
+
+      /sbin/shutdown
+
+      /usr/local/bin/p22sh
+
+      /usr/sbin/nologin
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/shells-invalidos.sh -x
+    stdout: ''
+    stderr: 'uso: shells-invalidos.sh [-u]
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: todos
+    description: Muestra todos con repetidos.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''NR==FNR{ok[$0]=1;next} !($7 in ok){print $7}'' /etc/shells
+          /etc/passwd'
+      stderr:
+        match: empty
+      prepare: id p22sh >/dev/null 2>&1 || useradd -M -s /usr/local/bin/p22sh p22sh
+  - id: unicos
+    description: Únicos y ordenados.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -u
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: ''NR==FNR{ok[$0]=1;next} !($7 in ok){print $7}'' /etc/shells
+          /etc/passwd | sort -u'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -u
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: /usr/local/bin/p22sh
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho la opción -u.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: shells-invalidos.sh [-u]'
+    - type: run
+      args:
+      - -u
+      - -u
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: shells-invalidos.sh [-u]'
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 10
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: parte-linea
+  title: Partir una línea con read
+  description: 'Apartado 1. Lee **una línea de la entrada estándar** y la parte en
+    tres variables. Muestra `a=...`, `b=...` y `resto=...`. El separador opcional
+    sustituye a `IFS` solo para esa lectura.
+
+
+    **Comandos a practicar:** `read`
+
+
+    **Estructuras de Bash:** `IFS=/ read a b resto`, `${1:-...}`, `if ! read ...;
+    then`
+
+
+    **Detalle importante:** Si sobran campos, la última variable se queda con el resto
+    de la línea. Si faltan, las últimas quedan vacías. `read` devuelve error cuando
+    ya no hay nada que leer.'
+  script:
+    path: /home/learner/aso/p22/parte-linea.sh
+    usage: parte-linea.sh [SEPARADOR]
+  input_requirements:
+  - description: Recibe como mucho un separador.
+    error: uso
+  - description: Hay al menos una línea en la entrada.
+    error: entrada
+  output_requirements:
+  - id: correcto
+    description: Las tres líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: parte-linea.sh [SEPARADOR]'
+  - id: entrada
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no hay nada que leer
+  examples:
+  - command: /home/learner/aso/p22/parte-linea.sh < /etc/passwd
+    stdout: 'a=root:x:0:0:Super
+
+      b=User:/root:/bin/bash
+
+      resto=
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: '/home/learner/aso/p22/parte-linea.sh : < /etc/passwd'
+    stdout: 'a=root
+
+      b=x
+
+      resto=0:0:Super User:/root:/bin/bash
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p22/parte-linea.sh a b
+    stdout: ''
+    stderr: 'uso: parte-linea.sh [SEPARADOR]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p22/parte-linea.sh
+    stdout: ''
+    stderr: 'no hay nada que leer
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: espacios
+    description: Separa por espacios.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      stdin: 'Esto es una línea más larga
+
+        segunda
+
+        '
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'a=Esto
+
+          b=es
+
+          resto=una línea más larga'
+      stderr:
+        match: empty
+    - type: run
+      args: []
+      stdin: 'solo
+
+        '
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'a=solo
+
+          b=
+
+          resto='
+      stderr:
+        match: empty
+  - id: separador
+    description: Admite otro separador.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /
+      stdin: 'Ahora el/separador es/una barra
+
+        '
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'a=Ahora el
+
+          b=separador es
+
+          resto=una barra'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - ':'
+      stdin: 'root:x:0:0:Super User:/root:/bin/bash
+
+        '
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'a=root
+
+          b=x
+
+          resto=0:0:Super User:/root:/bin/bash'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho un separador.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: parte-linea.sh [SEPARADOR]'
+  - id: error-entrada
+    description: 'Rechaza la entrada: Hay al menos una línea en la entrada.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: entrada
+      stderr:
+        match: exact
+        value: no hay nada que leer
+  tips: []
+  setup: []
+  sources:
+  - document_hash: afea333146e988d86123c549c02cd1db9401df46157267bbdda835a2946e3f86
+    title: Práctica-2.2
+    pages:
+    - 1
+    - 2
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.

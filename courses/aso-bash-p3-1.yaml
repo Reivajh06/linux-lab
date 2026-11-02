@@ -1,0 +1,2173 @@
+schema_version: 1
+id: aso-bash-p3-1
+version: '1.0'
+title: ASO Bash 3.1 · Procesos
+description: "Consulta y controla **procesos reales** del contenedor: `ps` con `-e`,\
+  \ `-o`, `-u`, `--sort` y `--no-headers`, `pgrep`, `top -b`, `kill`, señales, `&`,\
+  \ `wait` y `$!`.\n    El evaluador lanza procesos `sleep` reales con las cuentas\
+  \ `p31a`, `p31b`, `p31g1` y `p31g2` antes de cada caso, porque el resto de la lista\
+  \ de procesos cambia de una ejecución a otra.\n    En la terminal puedes lanzar\
+  \ los tuyos: `sudo runuser -u p31a -- sleep 900 &`.\n\nCada ejercicio es un **script\
+  \ de Bash** en `/home/learner/aso/p31/`: empieza por `#!/bin/bash`, hazlo ejecutable\
+  \ con `chmod u+x`, envía los resultados a stdout y los errores a stderr, y usa un\
+  \ código de salida distinto para cada error. Los ejercicios trabajan con ficheros\
+  \ y procesos reales del sistema (`/etc/passwd`, `/etc/group`, `/proc`, `/usr/share/dict/words`...):\
+  \ la salida esperada se calcula al evaluar, así que no vale escribir el resultado\
+  \ a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p31
+
+    getent group p31g >/dev/null || groupadd -g 23102 p31g
+
+    for u in p31a p31b p31c usuario1; do id $u >/dev/null 2>&1 || useradd -m -s /bin/bash
+    $u; done
+
+    for u in p31g1 p31g2; do id $u >/dev/null 2>&1 || useradd -m -s /bin/bash -g p31g
+    $u; done
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: procs-usuario
+  title: 'Actividad 1: procesos por usuario'
+  description: 'Actividad de laboratorio 1. Muestra `USUARIO: N` con el número de
+    procesos de cada usuario indicado. Si un nombre no corresponde a un usuario, escribe
+    `no existe: NOMBRE` en stderr, continúa y termina con el código 4.
+
+
+    **Comandos a practicar:** `ps -u`, `--no-headers`, `wc -l`, `id`
+
+
+    **Estructuras de Bash:** `for u in "$@"`, `continue`, sustitución de comandos
+
+
+    **Detalle importante:** La cabecera de `ps` contaría como una línea más: usa `--no-headers`.
+    Un usuario sin procesos existe y da 0, aunque `ps -u` devuelva 1 en ese caso.'
+  script:
+    path: /home/learner/aso/p31/procs-usuario.sh
+    usage: procs-usuario.sh USUARIO...
+  input_requirements:
+  - description: Recibe al menos un usuario.
+    error: uso
+  - description: Cada usuario existe; si no, se avisa y se continúa.
+    error: parcial
+  output_requirements:
+  - id: correcto
+    description: Una línea por usuario.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: procs-usuario.sh USUARIO...'
+  - id: parcial
+    description: stdout con los válidos y stderr con los demás.
+    exit_code: 4
+    stream: stderr
+    message: 'no existe: nadie'
+  examples:
+  - command: /home/learner/aso/p31/procs-usuario.sh p31a p31b
+    stdout: 'p31a: 3
+
+      p31b: 1
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/procs-usuario.sh
+    stdout: ''
+    stderr: 'uso: procs-usuario.sh USUARIO...
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: cuentas
+    description: Cuenta procesos reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p31a
+      - p31b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p31a: 3
+
+          p31b: 1'
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args:
+      - p31c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p31c: 0'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe al menos un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: procs-usuario.sh USUARIO...'
+  - id: error-parcial
+    description: 'Rechaza la entrada: Cada usuario existe; si no, se avisa y se continúa.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      - p31a
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: parcial
+      stdout:
+        match: lines
+        from_command: 'echo ''p31a: 3'''
+      stderr:
+        match: exact
+        value: 'no existe: nadie'
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: gid-umbral
+  title: 'Actividad 2: grupo primario y umbral'
+  description: "Actividad de laboratorio 2. Recibe un GID `G` y un mínimo `P`. Muestra\
+    \ `USUARIO: N` para los usuarios cuyo grupo primario es `G` y que tienen `P` o\
+    \ más procesos.\n    Si ningún usuario tiene ese GID como primario, o ninguno\
+    \ llega a `P`, muestra el error correspondiente y termina.\n\n**Comandos a practicar:**\
+    \ `ps -u --no-headers`, `wc -l`, `/etc/passwd`\n\n**Estructuras de Bash:** `while\
+    \ IFS=: read`, `(( ))`, banderas `hay_grupo` y `hay_umbral`\n\n**Detalle importante:**\
+    \ Son dos situaciones distintas y llevan códigos distintos. El grupo `p31g` tiene\
+    \ GID 23102 y es primario de `p31g1` y `p31g2`."
+  script:
+    path: /home/learner/aso/p31/gid-umbral.sh
+    usage: gid-umbral.sh G P
+  input_requirements:
+  - description: Recibe G y P.
+    error: uso
+  - description: G y P son enteros.
+    error: formato
+  - description: Algún usuario tiene G como grupo primario.
+    error: sin-grupo
+  - description: Algún usuario llega a P procesos.
+    error: sin-umbral
+  output_requirements:
+  - id: correcto
+    description: Una línea por usuario que cumple.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: gid-umbral.sh G P'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: G y P deben ser enteros
+  - id: sin-grupo
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: ningún usuario tiene ese grupo primario
+  - id: sin-umbral
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: ningún usuario llega a ese número de procesos
+  examples:
+  - command: /home/learner/aso/p31/gid-umbral.sh 23102 2
+    stdout: 'p31g1: 3
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/gid-umbral.sh 1
+    stdout: ''
+    stderr: 'uso: gid-umbral.sh G P
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/gid-umbral.sh a 1
+    stdout: ''
+    stderr: 'G y P deben ser enteros
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p31/gid-umbral.sh 99999 1
+    stdout: ''
+    stderr: 'ningún usuario tiene ese grupo primario
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: umbral
+    description: Filtra por GID y número de procesos.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '23102'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p31g1: 3'
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -u p31g1 ; for i in 0 1 2; do setsid setpriv --reuid=p31g1
+        --regid=$(id -g p31g1) --init-groups sleep 900 >/dev/null 2>&1 </dev/null
+        & done
+
+        pkill -KILL -u p31g2 ; for i in 0; do setsid setpriv --reuid=p31g2 --regid=$(id
+        -g p31g2) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args:
+      - '23102'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p31g1: 3
+
+          p31g2: 1'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '23102'
+      - '3'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'p31g1: 3'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe G y P.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: gid-umbral.sh G P'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: gid-umbral.sh G P'
+  - id: error-formato
+    description: 'Rechaza la entrada: G y P son enteros.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - a
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: G y P deben ser enteros
+    - type: run
+      args:
+      - '1'
+      - b
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: G y P deben ser enteros
+  - id: error-sin-grupo
+    description: 'Rechaza la entrada: Algún usuario tiene G como grupo primario.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '99999'
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: sin-grupo
+      stderr:
+        match: exact
+        value: ningún usuario tiene ese grupo primario
+  - id: error-sin-umbral
+    description: 'Rechaza la entrada: Algún usuario llega a P procesos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '23102'
+      - '9'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: sin-umbral
+      stderr:
+        match: exact
+        value: ningún usuario llega a ese número de procesos
+      prepare: 'pkill -KILL -u p31g1 ; for i in 0 1 2; do setsid setpriv --reuid=p31g1
+        --regid=$(id -g p31g1) --init-groups sleep 900 >/dev/null 2>&1 </dev/null
+        & done
+
+        pkill -KILL -u p31g2 ; for i in 0; do setsid setpriv --reuid=p31g2 --regid=$(id
+        -g p31g2) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: por-usuario
+  title: 'Autónomo 1: listado ordenado por usuario'
+  description: 'Ejercicio autónomo 1. Lista todos los procesos con PID, usuario y
+    línea de comandos completa, ordenados por usuario y sin cabecera.
+
+
+    **Comandos a practicar:** `ps -e`, `-o pid,user,cmd`, `--sort user`, `--no-headers`
+
+
+    **Estructuras de Bash:** `(($#!=0))`
+
+
+    **Detalle importante:** `comm` es solo el nombre del comando; `cmd` es la línea
+    completa con opciones. No mezcles estilos: `ps -ef` y `ps ef` hacen cosas muy
+    distintas.'
+  script:
+    path: /home/learner/aso/p31/por-usuario.sh
+    usage: por-usuario.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea por proceso.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: por-usuario.sh'
+  examples:
+  - command: /home/learner/aso/p31/por-usuario.sh | tail -n 3
+    stdout: "   8714 p31g2    sleep 900\n      1 root     /sbin/docker-init -- supervisord\
+      \ -n -c /etc/supervisord.conf\n      7 root     /usr/bin/python3 -sP /usr/sbin/supervisord\
+      \ -n -c /etc/supervisord.conf\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/por-usuario.sh x
+    stdout: ''
+    stderr: 'uso: por-usuario.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: contenido
+    description: Incluye la línea de comandos completa.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: regex
+        value: ^\s*[0-9]+\s+p31a\s+sleep 900\s*$
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+  - id: orden
+    description: Agrupa y ordena por usuario.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/por-usuario.sh
+
+        D=/home/learner/aso/p31
+
+        $S | awk ''{print $2}'' | uniq | LC_ALL=C sort -c && [ -z "$($S | awk ''{print
+        $2}'' | uniq | sort | uniq -d)" ] && [ -n "$($S)" ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: por-usuario.sh'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: mas-cpu
+  title: 'Autónomo 6: los que más CPU han consumido'
+  description: 'Ejercicio autónomo 6, ampliado. Muestra PID, comando y tiempo de CPU
+    de los N procesos que más tiempo de CPU han consumido, de mayor a menor y sin
+    cabecera. Por defecto, N es 5.
+
+
+    **Comandos a practicar:** `ps -eo pid,comm,time`, `--sort -time`, `head -n`
+
+
+    **Estructuras de Bash:** `${1:-5}`, `[[ =~ ]]`
+
+
+    **Detalle importante:** El signo de `--sort` indica el sentido: `-time` es decreciente.
+    `time` es el acumulado de CPU; `pcpu` es un porcentaje.'
+  script:
+    path: /home/learner/aso/p31/mas-cpu.sh
+    usage: mas-cpu.sh [N]
+  input_requirements:
+  - description: Recibe como mucho un número.
+    error: uso
+  - description: N es un entero positivo.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: N líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: mas-cpu.sh [N]'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: N debe ser un entero positivo
+  examples:
+  - command: /home/learner/aso/p31/mas-cpu.sh 2
+    stdout: "     27 websockify      00:00:00\n     80 xfce4-terminal  00:00:00\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/mas-cpu.sh 1 2
+    stdout: ''
+    stderr: 'uso: mas-cpu.sh [N]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/mas-cpu.sh x
+    stdout: ''
+    stderr: 'N debe ser un entero positivo
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: cantidad
+    description: Devuelve N líneas ordenadas.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/mas-cpu.sh
+
+        D=/home/learner/aso/p31
+
+        [ "$($S | wc -l)" = 5 ] && [ "$($S 2 | wc -l)" = 2 ] && [ "$($S 7 | wc -l)"
+        = 7 ] && $S 7 | awk ''{print $3}'' | LC_ALL=C sort -rc'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: regex
+        value: ^\s*[0-9]+\s+\S+\s+[0-9:-]+\s*$
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho un número.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: mas-cpu.sh [N]'
+  - id: error-formato
+    description: 'Rechaza la entrada: N es un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: N debe ser un entero positivo
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: N debe ser un entero positivo
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: antiguos
+  title: 'Autónomo 7: los procesos más antiguos'
+  description: 'Ejercicio autónomo 7. Muestra PID, comando, tiempo de CPU y tiempo
+    transcurrido desde su inicio de los N procesos que llevan más tiempo ejecutándose,
+    del más antiguo al más reciente y sin cabecera. Por defecto, N es 10.
+
+
+    **Comandos a practicar:** `ps -eo pid,comm,time,etime`, `--sort start_time`
+
+
+    **Estructuras de Bash:** `${1:-10}`
+
+
+    **Detalle importante:** `etime` es el tiempo transcurrido, `time` el de CPU: un
+    proceso que duerme acumula mucho del primero y casi nada del segundo. El más antiguo
+    es el PID 1.'
+  script:
+    path: /home/learner/aso/p31/antiguos.sh
+    usage: antiguos.sh [N]
+  input_requirements:
+  - description: Recibe como mucho un número.
+    error: uso
+  - description: N es un entero positivo.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: N líneas, empezando por el PID 1.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: antiguos.sh [N]'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: N debe ser un entero positivo
+  examples:
+  - command: /home/learner/aso/p31/antiguos.sh 2
+    stdout: "      1 docker-init     00:00:00       00:23\n      7 supervisord   \
+      \  00:00:00       00:23\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/antiguos.sh 1 2
+    stdout: ''
+    stderr: 'uso: antiguos.sh [N]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/antiguos.sh x
+    stdout: ''
+    stderr: 'N debe ser un entero positivo
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: orden
+    description: Empieza por el PID 1 y devuelve N líneas.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/antiguos.sh
+
+        D=/home/learner/aso/p31
+
+        [ "$($S | wc -l)" = "$(ps -e --no-headers | wc -l | awk ''{print ($1<10?$1:10)}'')"
+        ] && [ "$($S 3 | wc -l)" = 3 ] && [ "$($S 1 | awk ''{print $1}'')" = 1 ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: regex
+        value: ^\s*1\s+\S+\s+[0-9:-]+\s+[0-9:-]+\s*$
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe como mucho un número.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: antiguos.sh [N]'
+  - id: error-formato
+    description: 'Rechaza la entrada: N es un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: N debe ser un entero positivo
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: buscar-cmd
+  title: 'Autónomos 8 y 10: buscar en la línea de comandos'
+  description: 'Muestra los PID, uno por línea, de los procesos cuya línea de comandos
+    contiene una cadena, **excluyendo al propio script**. Con `-c` muestra solo cuántos
+    son.
+
+
+    **Comandos a practicar:** `pgrep -f`, `grep -vx`, `wc -l`
+
+
+    **Estructuras de Bash:** `$$`, `shift`
+
+
+    **Detalle importante:** `pgrep bash` compara el nombre; `pgrep -f bash` compara
+    la línea completa. El script contiene la cadena en sus propios argumentos, así
+    que se encontraría a sí mismo: descártalo con `$$`. Guarda antes el resultado
+    de `pgrep` en una variable, sin tubería: `$(pgrep ... | grep ...)` crea un sub-shell
+    con tu misma línea de comandos y `pgrep` también lo vería.'
+  script:
+    path: /home/learner/aso/p31/buscar-cmd.sh
+    usage: buscar-cmd.sh [-c] CADENA
+  input_requirements:
+  - description: Recibe la cadena, con -c opcional delante.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Los PID, o el recuento.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: buscar-cmd.sh [-c] CADENA'
+  examples:
+  - command: /home/learner/aso/p31/buscar-cmd.sh -c 'sleep 901'
+    stdout: '4
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/buscar-cmd.sh
+    stdout: ''
+    stderr: 'uso: buscar-cmd.sh [-c] CADENA
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: encuentra
+    description: Encuentra el proceso real.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/buscar-cmd.sh
+
+        D=/home/learner/aso/p31
+
+        pid=$(pgrep -u p31b -f ''^sleep 901$''); [ -n "$pid" ] && $S ''sleep 90[1]''
+        | grep -qx "$pid" '
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^sleep 901$'' ; setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 901 >/dev/null 2>&1 </dev/null &
+
+        sleep 0.4'
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/buscar-cmd.sh
+
+        D=/home/learner/aso/p31
+
+        n=$($S -c ''sleep 901''); [ "$n" -ge 1 ] && [ "$n" -lt 8 ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: no-se-cuenta
+    description: No se incluye a sí mismo.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/buscar-cmd.sh
+
+        D=/home/learner/aso/p31
+
+        c=zzp31; c="${c}zz"; o=$($S "$c"); n=$($S -c "$c"); [ -z "$o" ] && [ "$n"
+        = 0 ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe la cadena, con -c opcional delante.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: buscar-cmd.sh [-c] CADENA'
+    - type: run
+      args:
+      - -c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: buscar-cmd.sh [-c] CADENA'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: no-root
+  title: 'Autónomo 13: procesos que no son de root'
+  description: 'Ejercicio autónomo 13. Muestra PID, usuario, comando y memoria virtual
+    (`vsz`) de los procesos que no pertenecen a `root`, sin cabecera.
+
+
+    **Comandos a practicar:** `ps -eo pid,user,comm,vsz`, `ps -N -u root` o `grep
+    -v`
+
+
+    **Estructuras de Bash:** tuberías
+
+
+    **Detalle importante:** `ps -u root -N` invierte la selección. Si filtras con
+    `grep -v root`, descartarías también un proceso cuyo comando contenga esa palabra.'
+  script:
+    path: /home/learner/aso/p31/no-root.sh
+    usage: no-root.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea por proceso.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: no-root.sh'
+  examples:
+  - command: /home/learner/aso/p31/no-root.sh | grep p31a
+    stdout: "   9446 p31a     sleep             5548\n   9447 p31a     sleep     \
+      \        5548\n   9449 p31a     sleep             5548\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/no-root.sh x
+    stdout: ''
+    stderr: 'uso: no-root.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: contenido
+    description: Incluye los procesos ajenos.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: regex
+        value: ^\s*[0-9]+\s+p31a\s+sleep\s+[0-9]+\s*$
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+  - id: exclusion
+    description: No incluye a root.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/no-root.sh
+
+        D=/home/learner/aso/p31
+
+        o=$($S); [ -n "$o" ] && ! echo "$o" | awk ''{print $2}'' | grep -qx root'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: no-root.sh'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: estado
+  title: 'Ejemplo 3: procesos en un estado exacto'
+  description: 'Apartado 4.3. Muestra PID, usuario y estado de los procesos cuyo estado
+    es **exactamente** el indicado, sin cabecera. `S` no debe incluir `Ss` ni `S+`,
+    y `T` no debe incluir `Ts`, el estado de un proceso detenido que además es líder
+    de sesión. Si no hay ninguno, muestra `ninguno`.
+
+
+    **Comandos a practicar:** `ps -eo pid,user,stat`, `grep -E` o `awk`
+
+
+    **Estructuras de Bash:** `[[ =~ ]]`, variable intermedia, `${var:-ninguno}`
+
+
+    **Detalle importante:** La hoja busca `'' S +[0-9]''` porque tras el estado hay
+    un número. En una expresión regular el `+` de `S+` es un metacarácter y hay que
+    escaparlo. Los códigos están en la sección *PROCESS STATE CODES* de `man ps`.'
+  script:
+    path: /home/learner/aso/p31/estado.sh
+    usage: estado.sh ESTADO
+  input_requirements:
+  - description: Recibe exactamente un estado.
+    error: uso
+  - description: El estado empieza por una letra mayúscula.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: Una línea por proceso, o `ninguno`.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: estado.sh ESTADO'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: estado no válido
+  examples:
+  - command: /home/learner/aso/p31/estado.sh Ts
+    stdout: "   9582 p31b     Ts\n   9583 p31b     Ts\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/estado.sh
+    stdout: ''
+    stderr: 'uso: estado.sh ESTADO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/estado.sh 1
+    stdout: ''
+    stderr: 'estado no válido
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: detenidos
+    description: Encuentra procesos detenidos reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - Ts
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: ps -eo pid,user,stat --no-headers | awk '$3=="Ts"'
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -f ''^sleep 904$'' ;
+
+        pkill -KILL -u p31b ; for i in 0 1; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4
+
+        pkill -STOP -u p31b -x sleep
+
+        sleep 0.2'
+    - type: run
+      args:
+      - Ts
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: p31b
+      stderr:
+        match: empty
+  - id: exacto
+    description: Coincide de forma exacta.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/estado.sh
+
+        D=/home/learner/aso/p31
+
+        ! $S T | grep -q p31b'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/estado.sh
+
+        D=/home/learner/aso/p31
+
+        o=$($S S); [ -z "$o" ] || ! echo "$o" | awk ''{print $3}'' | grep -qvx S'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+    - type: run
+      args:
+      - Zl
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: ninguno
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un estado.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: estado.sh ESTADO'
+    - type: run
+      args:
+      - S
+      - T
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: estado.sh ESTADO'
+  - id: error-formato
+    description: 'Rechaza la entrada: El estado empieza por una letra mayúscula.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: estado no válido
+    - type: run
+      args:
+      - s
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: estado no válido
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: por-tamano
+  title: 'Ejemplo 2: ordenar por tamaño'
+  description: 'Apartado 4.2. Muestra PID, comando y tamaño (`size`) de todos los
+    procesos, de menor a mayor tamaño, sin cabecera y con un solo espacio entre campos,
+    sin espacio inicial.
+
+
+    **Comandos a practicar:** `ps --no-headers -eo pid,comm,size`, `tr -s '' ''`,
+    `sort -n`
+
+
+    **Estructuras de Bash:** tuberías
+
+
+    **Detalle importante:** `--sort size` no ordena de forma numérica, por eso la
+    hoja recurre a `sort`. `ps` deja un espacio inicial que desplaza la numeración
+    de los campos para `sort -t '' '' -k`.'
+  script:
+    path: /home/learner/aso/p31/por-tamano.sh
+    usage: por-tamano.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea por proceso.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: por-tamano.sh'
+  examples:
+  - command: /home/learner/aso/p31/por-tamano.sh | head -n 2
+    stdout: '1 docker-init 304
+
+      5449 sleep 336
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/por-tamano.sh x
+    stdout: ''
+    stderr: 'uso: por-tamano.sh
+
+      '
+    exit_code: 1
+  evaluations:
+  - id: orden
+    description: Ordena de forma numérica.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/por-tamano.sh
+
+        D=/home/learner/aso/p31
+
+        o=$($S); [ -n "$o" ] && echo "$o" | awk ''{print $NF}'' | sort -nc && ! echo
+        "$o" | grep -q ''^ '' && ! echo "$o" | grep -q ''  '''
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: ' sleep '
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: por-tamano.sh'
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: matar
+  title: Terminar un proceso de forma ordenada
+  description: 'Apartado 6. Envía `SIGTERM` al PID indicado, espera un segundo y,
+    si sigue vivo, envía `SIGKILL`. Muestra `terminado con SIGTERM` o `terminado con
+    SIGKILL`.
+
+
+    **Comandos a practicar:** `kill`, `kill -9`, `kill -0`, `sleep`
+
+
+    **Estructuras de Bash:** `if kill -0 ...; then`, `2>/dev/null`
+
+
+    **Detalle importante:** `SIGTERM` pide terminar y se puede ignorar; un proceso
+    **detenido** no lo atiende hasta reanudarse; `SIGKILL` lo elimina el núcleo. `kill
+    -0` no envía nada: solo comprueba si el proceso existe.'
+  script:
+    path: /home/learner/aso/p31/matar.sh
+    usage: matar.sh PID
+  input_requirements:
+  - description: Recibe exactamente un PID.
+    error: uso
+  - description: El PID es un número.
+    error: formato
+  - description: El proceso existe y se le pueden enviar señales.
+    error: no-existe
+  output_requirements:
+  - id: correcto
+    description: Una línea con la señal que lo terminó.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: matar.sh PID'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el PID debe ser un número
+  - id: no-existe
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no se puede enviar señales a ese proceso
+  examples:
+  - command: /home/learner/aso/p31/matar.sh 999999
+    stdout: ''
+    stderr: 'no se puede enviar señales a ese proceso
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p31/matar.sh
+    stdout: ''
+    stderr: 'uso: matar.sh PID
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/matar.sh x
+    stdout: ''
+    stderr: 'el PID debe ser un número
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p31/matar.sh 999999
+    stdout: ''
+    stderr: 'no se puede enviar señales a ese proceso
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: sigterm
+    description: Un proceso normal acaba con SIGTERM.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/matar.sh
+
+        D=/home/learner/aso/p31
+
+        p=$(pgrep -u learner -f ''^sleep 903$''); [ -n "$p" ] && [ "$($S "$p")" =
+        "terminado con SIGTERM" ] && sleep 0.2 && ! kill -0 "$p" 2>/dev/null'
+      cwd: /home/learner
+      user: learner
+      timeout: 15
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^sleep 90[34]$'' ; pkill -KILL -f ''^p31terco -c''
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        903 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        904 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups bash
+        -c ''exec -a p31terco bash -c "trap \"\" TERM; while :; do sleep 1; done"''
+        >/dev/null 2>&1 </dev/null &
+
+        sleep 0.4
+
+        pkill -STOP -f ''^sleep 904$''
+
+        sleep 0.2'
+  - id: detenido
+    description: Un proceso detenido necesita SIGKILL.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/matar.sh
+
+        D=/home/learner/aso/p31
+
+        p=$(pgrep -u learner -f ''^sleep 904$''); [ -n "$p" ] && [ "$($S "$p")" =
+        "terminado con SIGKILL" ] && sleep 0.2 && ! kill -0 "$p" 2>/dev/null'
+      cwd: /home/learner
+      user: learner
+      timeout: 15
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^sleep 90[34]$'' ; pkill -KILL -f ''^p31terco -c''
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        903 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        904 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups bash
+        -c ''exec -a p31terco bash -c "trap \"\" TERM; while :; do sleep 1; done"''
+        >/dev/null 2>&1 </dev/null &
+
+        sleep 0.4
+
+        pkill -STOP -f ''^sleep 904$''
+
+        sleep 0.2'
+  - id: ignora
+    description: Un proceso que ignora SIGTERM necesita SIGKILL.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/matar.sh
+
+        D=/home/learner/aso/p31
+
+        p=$(pgrep -u learner -f ''^p31terco -c''); [ -n "$p" ] && [ "$($S "$p")" =
+        "terminado con SIGKILL" ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 15
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^sleep 90[34]$'' ; pkill -KILL -f ''^p31terco -c''
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        903 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups sleep
+        904 >/dev/null 2>&1 </dev/null &
+
+        setsid setpriv --reuid=learner --regid=$(id -g learner) --init-groups bash
+        -c ''exec -a p31terco bash -c "trap \"\" TERM; while :; do sleep 1; done"''
+        >/dev/null 2>&1 </dev/null &
+
+        sleep 0.4
+
+        pkill -STOP -f ''^sleep 904$''
+
+        sleep 0.2'
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un PID.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: matar.sh PID'
+  - id: error-formato
+    description: 'Rechaza la entrada: El PID es un número.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el PID debe ser un número
+  - id: error-no-existe
+    description: 'Rechaza la entrada: El proceso existe y se le pueden enviar señales.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '999999'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: no-existe
+      stderr:
+        match: exact
+        value: no se puede enviar señales a ese proceso
+    - type: run
+      args:
+      - '1'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: no-existe
+      stderr:
+        match: exact
+        value: no se puede enviar señales a ese proceso
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: senal
+  title: Números y nombres de señales
+  description: 'Convierte entre número y nombre de señal con la orden `kill -l`: `9`
+    da `KILL` y `TERM` da `15`. Acepta también el prefijo: `SIGHUP` da `1`.
+
+
+    **Comandos a practicar:** `kill -l`, `man 7 signal`
+
+
+    **Estructuras de Bash:** `if ! r=$(kill -l "$1" 2>/dev/null); then`
+
+
+    **Detalle importante:** `kill` es a la vez una orden interna de Bash y un programa;
+    `kill -l` sin argumentos muestra la lista completa.'
+  script:
+    path: /home/learner/aso/p31/senal.sh
+    usage: senal.sh NUMERO|NOMBRE
+  input_requirements:
+  - description: Recibe exactamente un valor.
+    error: uso
+  - description: La señal existe.
+    error: senal
+  output_requirements:
+  - id: correcto
+    description: La conversión.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: senal.sh NUMERO|NOMBRE'
+  - id: senal
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: señal desconocida
+  examples:
+  - command: /home/learner/aso/p31/senal.sh 9
+    stdout: 'KILL
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/senal.sh TERM
+    stdout: '15
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/senal.sh
+    stdout: ''
+    stderr: 'uso: senal.sh NUMERO|NOMBRE
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/senal.sh NOEXISTE
+    stdout: ''
+    stderr: 'señal desconocida
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: conversiones
+    description: Convierte en ambos sentidos.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '9'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: KILL
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '15'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: TERM
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - TERM
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '15'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - KILL
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '9'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - SIGHUP
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: INT
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un valor.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: senal.sh NUMERO|NOMBRE'
+  - id: error-senal
+    description: 'Rechaza la entrada: La señal existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - NOEXISTE
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: senal
+      stderr:
+        match: exact
+        value: señal desconocida
+    - type: run
+      args:
+      - '999'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: senal
+      stderr:
+        match: exact
+        value: señal desconocida
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: lanza
+  title: Procesos en segundo plano y wait
+  description: 'Apartado 7. Lanza N procesos `sleep 0.7` **en segundo plano**, espera
+    a que terminen todos y muestra `lanzados: N` y `terminados: N`, contando los `wait`
+    correctos.
+
+
+    **Comandos a practicar:** `&`, `wait`, `$!`, `jobs`
+
+
+    **Estructuras de Bash:** `for ((i=0;i<n;i++))`, vector de PID `pids+=($!)`
+
+
+    **Detalle importante:** Con `&` todos corren a la vez: 5 procesos tardan unos
+    0,7 s en total, no 3,5 s. Sin `wait`, el script terminaría dejándolos huérfanos.
+    `$!` es el PID del último proceso lanzado en segundo plano.'
+  script:
+    path: /home/learner/aso/p31/lanza.sh
+    usage: lanza.sh N
+  input_requirements:
+  - description: Recibe exactamente un número.
+    error: uso
+  - description: N es un entero positivo.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: lanza.sh N'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: N debe ser un entero positivo
+  examples:
+  - command: /home/learner/aso/p31/lanza.sh 3
+    stdout: 'lanzados: 3
+
+      terminados: 3
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/lanza.sh
+    stdout: ''
+    stderr: 'uso: lanza.sh N
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/lanza.sh x
+    stdout: ''
+    stderr: 'N debe ser un entero positivo
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: concurrente
+    description: Lanza en paralelo y espera.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/lanza.sh
+
+        D=/home/learner/aso/p31
+
+        i=$(date +%s%N); o=$($S 5); f=$(date +%s%N); ms=$(( (f-i)/1000000 )); [ "$o"
+        = "lanzados: 5
+
+        terminados: 5" ] && [ "$ms" -ge 650 ] && [ "$ms" -lt 2500 ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 20
+      requirement: correcto
+  - id: sin-huerfanos
+    description: No deja procesos al terminar.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/lanza.sh
+
+        D=/home/learner/aso/p31
+
+        [ "$($S 2 | head -n 1)" = "lanzados: 2" ] && ! pgrep -u learner -f ''^sleep
+        0.7$'' >/dev/null'
+      cwd: /home/learner
+      user: learner
+      timeout: 20
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un número.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: lanza.sh N'
+  - id: error-formato
+    description: 'Rechaza la entrada: N es un entero positivo.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: N debe ser un entero positivo
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: N debe ser un entero positivo
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: hijos
+  title: Procesos hijos de un PID
+  description: 'Apartado 5. Muestra `PID COMANDO` de los hijos directos de un proceso,
+    ordenados por PID. Si no tiene hijos, muestra `sin hijos`. Es la relación padre-hijo
+    que dibuja `pstree`.
+
+
+    **Comandos a practicar:** `ps --ppid`, `-o pid,comm`, `pstree`, `/proc`
+
+
+    **Estructuras de Bash:** `[[ -d /proc/$1 ]]`, variable intermedia
+
+
+    **Detalle importante:** `ps --ppid N` devuelve 1 si no hay coincidencias. Comprueba
+    la existencia del proceso aparte: cada proceso tiene su directorio en `/proc`.'
+  script:
+    path: /home/learner/aso/p31/hijos.sh
+    usage: hijos.sh PID
+  input_requirements:
+  - description: Recibe exactamente un PID.
+    error: uso
+  - description: El PID es un número.
+    error: formato
+  - description: El proceso existe.
+    error: no-existe
+  output_requirements:
+  - id: correcto
+    description: Una línea por hijo, o `sin hijos`.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: hijos.sh PID'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: el PID debe ser un número
+  - id: no-existe
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el proceso no existe
+  examples:
+  - command: /home/learner/aso/p31/hijos.sh 1
+    stdout: "      7 supervisord\n     59 dconf-service\n     87 at-spi-bus-laun\n\
+      \     98 xfconfd\n    116 at-spi2-registr\n   5449 sleep\n   5452 bash\n   7186\
+      \ bash\n   8707 sleep\n   8708 sleep\n   8710 sleep\n   8714 sleep\n   9446\
+      \ sleep\n   9447 sleep\n   9449 sleep\n   9582 sleep\n   9583 sleep\n"
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/hijos.sh
+    stdout: ''
+    stderr: 'uso: hijos.sh PID
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/hijos.sh x
+    stdout: ''
+    stderr: 'el PID debe ser un número
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p31/hijos.sh 999999
+    stdout: ''
+    stderr: 'el proceso no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: hijos
+    description: Lista los hijos reales.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/hijos.sh
+
+        D=/home/learner/aso/p31
+
+        p=$(pgrep -u learner -f ''^bash -c sleep 905 & sleep 905''); [ -n "$p" ] &&
+        [ "$($S "$p" | tr -s '' '' | sed ''s/^ //'')" = "$(pgrep -P "$p" | sort -n
+        | sed ''s/$/ sleep/'')" ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^bash -c sleep 905 & sleep 905'' ; pkill -KILL -f
+        ''^sleep 905$'' ; setsid setpriv --reuid=learner --regid=$(id -g learner)
+        --init-groups bash -c ''sleep 905 & sleep 905 & wait'' >/dev/null 2>&1 </dev/null
+        &
+
+        sleep 0.4'
+  - id: sin-hijos
+    description: Indica si no tiene hijos.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p31/hijos.sh
+
+        D=/home/learner/aso/p31
+
+        p=$(pgrep -u learner -f ''^sleep 905$'' | head -n 1); [ -n "$p" ] && [ "$($S
+        "$p")" = "sin hijos" ]'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      prepare: 'pkill -KILL -f ''^bash -c sleep 905 & sleep 905'' ; pkill -KILL -f
+        ''^sleep 905$'' ; setsid setpriv --reuid=learner --regid=$(id -g learner)
+        --init-groups bash -c ''sleep 905 & sleep 905 & wait'' >/dev/null 2>&1 </dev/null
+        &
+
+        sleep 0.4'
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un PID.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: hijos.sh PID'
+  - id: error-formato
+    description: 'Rechaza la entrada: El PID es un número.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: el PID debe ser un número
+  - id: error-no-existe
+    description: 'Rechaza la entrada: El proceso existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '999999'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: no-existe
+      stderr:
+        match: exact
+        value: el proceso no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: top-lote
+  title: top en modo no interactivo
+  description: 'Apartado 2. Usa `top` en modo por lotes para contar los procesos de
+    un usuario: ejecuta una sola actualización, salta la cabecera y muestra el número
+    de líneas de procesos.
+
+
+    **Comandos a practicar:** `top -b -n 1 -u`, `tail -n +8`, `wc -l`, `id`
+
+
+    **Estructuras de Bash:** `if ! id "$1" ...; then`
+
+
+    **Detalle importante:** Sin `-b`, `top` espera una terminal interactiva y no termina:
+    en un script necesita `-b` y `-n`. Su cabecera ocupa 7 líneas; compruébalo antes.'
+  script:
+    path: /home/learner/aso/p31/top-lote.sh
+    usage: top-lote.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Un número.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: top-lote.sh USUARIO'
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p31/top-lote.sh p31a
+    stdout: '3
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p31/top-lote.sh
+    stdout: ''
+    stderr: 'uso: top-lote.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p31/top-lote.sh nadie
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: cuentas
+    description: Coincide con los procesos reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p31a
+      cwd: /home/learner
+      user: learner
+      timeout: 20
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '3'
+      stderr:
+        match: empty
+      prepare: 'pkill -KILL -u p31a ; for i in 0 1 2; do setsid setpriv --reuid=p31a
+        --regid=$(id -g p31a) --init-groups sleep 900 >/dev/null 2>&1 </dev/null &
+        done
+
+        pkill -KILL -u p31b ; for i in 0; do setsid setpriv --reuid=p31b --regid=$(id
+        -g p31b) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        pkill -KILL -u p31c ; for i in ; do setsid setpriv --reuid=p31c --regid=$(id
+        -g p31c) --init-groups sleep 900 >/dev/null 2>&1 </dev/null & done
+
+        sleep 0.4'
+    - type: run
+      args:
+      - p31b
+      cwd: /home/learner
+      user: learner
+      timeout: 20
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - p31c
+      cwd: /home/learner
+      user: learner
+      timeout: 20
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '0'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: top-lote.sh USUARIO'
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources: []
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.

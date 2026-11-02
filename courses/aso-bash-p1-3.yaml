@@ -1,0 +1,2422 @@
+schema_version: 1
+id: aso-bash-p1-3
+version: '1.0'
+title: ASO Bash 1.3 · Permisos, usuarios y grupos
+description: "Scripts que leen y administran el sistema de cuentas real: `/etc/passwd`,\
+  \ `/etc/shadow`, `/etc/group`, `/etc/gshadow`, `stat`, `chmod`, `useradd`, `chage`,\
+  \ `gpasswd`.\n    Los ejercicios de administración se evalúan **como root** y comprueban\
+  \ el estado que dejan en el sistema; en la terminal, ejecútalos con `sudo`. Terminan\
+  \ con la actividad completa de laboratorio.\n\nCada ejercicio es un **script de\
+  \ Bash** en `/home/learner/aso/p13/`: empieza por `#!/bin/bash`, hazlo ejecutable\
+  \ con `chmod u+x`, envía los resultados a stdout y los errores a stderr, y usa un\
+  \ código de salida distinto para cada error. Los ejercicios trabajan con ficheros\
+  \ y procesos reales del sistema (`/etc/passwd`, `/etc/group`, `/proc`, `/usr/share/dict/words`...):\
+  \ la salida esperada se calcula al evaluar, así que no vale escribir el resultado\
+  \ a mano."
+setup:
+- script: 'set -e
+
+    install -d -o learner -g learner /home/learner/aso/p13
+
+    id usuario1 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 1'' usuario1
+
+    id usuario2 >/dev/null 2>&1 || useradd -m -s /bin/bash -c ''Usuario 2'' usuario2
+
+    '
+  user: root
+  timeout: 60
+exercises:
+- id: permisos-octal
+  title: De rwx a octal
+  description: "Convierte una cadena de nueve caracteres de permisos, como la de `ls\
+    \ -l`, a octal de cuatro dígitos: `rwxrw-r--` da `0764`.\n    Reconoce los especiales:\
+    \ `s`/`S` en usuario y grupo, y `t`/`T` en otros. `rwsr-xr-x` da `4755` y `rwxr-xr-T`\
+    \ da `1754`.\n\n**Comandos a practicar:** `stat -c %A`, `stat -c %a` para comprobar\n\
+    \n**Estructuras de Bash:** `for ((i=0;i<9;i+=3))`, `${cadena:pos:largo}`, `case`,\
+    \ `$(( ))`, `printf %d`\n\n**Detalle importante:** La minúscula (`s`, `t`) indica\
+    \ que además hay permiso de ejecución; la mayúscula (`S`, `T`), que no. Lectura=4,\
+    \ escritura=2, ejecución=1."
+  script:
+    path: /home/learner/aso/p13/permisos-octal.sh
+    usage: permisos-octal.sh PERMISOS
+  input_requirements:
+  - description: Recibe exactamente una cadena.
+    error: uso
+  - description: La cadena tiene el formato de permisos.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: El valor de cuatro dígitos.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: permisos-octal.sh PERMISOS'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: cadena de permisos no válida
+  examples:
+  - command: /home/learner/aso/p13/permisos-octal.sh rwxrw-r--
+    stdout: '0764
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/permisos-octal.sh rwsr-xr-x
+    stdout: '4755
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/permisos-octal.sh
+    stdout: ''
+    stderr: 'uso: permisos-octal.sh PERMISOS
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/permisos-octal.sh rwxrw-r-
+    stdout: ''
+    stderr: 'cadena de permisos no válida
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: cadenas
+    description: Convierte permisos básicos y especiales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - rwxrw-r--
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '0764'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rw-r--r--
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '0644'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '---------'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '0000'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rwsr-xr-x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '4755'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rwxrwxrwt
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1777'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rwSr--r--
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '4644'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rwxr-sr-x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '2755'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - rwxr-xr-T
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1754'
+      stderr:
+        match: empty
+  - id: reales
+    description: Coincide con stat en ficheros reales.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/permisos-octal.sh\nD=/home/learner/aso/p13\nfor f\
+        \ in /tmp /usr/bin/passwd /etc/passwd /usr/bin/sudo /etc/shadow; do\n  s=$(stat\
+        \ -c %A \"$f\"); want=$(printf '%04d' \"$(stat -c %a \"$f\")\")\n  [ \"$($S\
+        \ \"${s:1}\")\" = \"$want\" ] || exit 1\ndone"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una cadena.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: permisos-octal.sh PERMISOS'
+  - id: error-formato
+    description: 'Rechaza la entrada: La cadena tiene el formato de permisos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - rwxrw-r-
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: cadena de permisos no válida
+    - type: run
+      args:
+      - rwxrw-r--x
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: cadena de permisos no válida
+    - type: run
+      args:
+      - abcdefghi
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: cadena de permisos no válida
+    - type: run
+      args:
+      - rwtrwxrwx
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: cadena de permisos no válida
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 3
+    - 4
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: umask-permisos
+  title: Qué permisos deja una máscara
+  description: 'Dada una máscara de tres dígitos octales, muestra los permisos de
+    los ficheros y directorios nuevos:
+
+
+    ```text
+
+    fichero: 644
+
+    directorio: 755
+
+    ```
+
+
+    **Comandos a practicar:** `umask`, `printf %03o`
+
+
+    **Estructuras de Bash:** aritmética octal `8#$m`, operadores `&` y `~`
+
+
+    **Detalle importante:** La práctica lo escribe como «666 – umask», pero en realidad
+    se **eliminan bits**: con `033` un fichero queda en `644`, no en `633`.'
+  script:
+    path: /home/learner/aso/p13/umask-permisos.sh
+    usage: umask-permisos.sh MASCARA
+  input_requirements:
+  - description: Recibe exactamente una máscara.
+    error: uso
+  - description: La máscara tiene tres dígitos octales.
+    error: formato
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas de permisos.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: umask-permisos.sh MASCARA'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: máscara no válida
+  examples:
+  - command: /home/learner/aso/p13/umask-permisos.sh 022
+    stdout: 'fichero: 644
+
+      directorio: 755
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/umask-permisos.sh 033
+    stdout: 'fichero: 644
+
+      directorio: 744
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/umask-permisos.sh
+    stdout: ''
+    stderr: 'uso: umask-permisos.sh MASCARA
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/umask-permisos.sh 22
+    stdout: ''
+    stderr: 'máscara no válida
+
+      '
+    exit_code: 2
+  evaluations:
+  - id: mascaras
+    description: Calcula bien, también sin restar.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '022'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'fichero: 644
+
+          directorio: 755'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '077'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'fichero: 600
+
+          directorio: 700'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '033'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'fichero: 644
+
+          directorio: 744'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '000'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'fichero: 666
+
+          directorio: 777'
+      stderr:
+        match: empty
+  - id: real
+    description: Coincide con el comportamiento real de umask.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/umask-permisos.sh\nD=/home/learner/aso/p13\nfor m\
+        \ in 027 002 137; do\n  t=$(mktemp -d); (umask \"$m\"; touch \"$t/f\"; mkdir\
+        \ \"$t/d\")\n  want=\"fichero: $(stat -c %a \"$t/f\")\ndirectorio: $(stat\
+        \ -c %a \"$t/d\")\"\n  [ \"$($S \"$m\")\" = \"$want\" ] || exit 1\n  rm -rf\
+        \ \"$t\"\ndone"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una máscara.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: umask-permisos.sh MASCARA'
+  - id: error-formato
+    description: 'Rechaza la entrada: La máscara tiene tres dígitos octales.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '22'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: máscara no válida
+    - type: run
+      args:
+      - 088
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: máscara no válida
+    - type: run
+      args:
+      - abc
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: máscara no válida
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 5
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: info-fichero
+  title: Ficha de un fichero
+  description: 'Muestra la propiedad y los permisos de una ruta, siguiendo enlaces:
+
+
+    ```text
+
+    tipo: directorio        (fichero, directorio u otro)
+
+    propietario: root
+
+    grupo: root
+
+    permisos: 1777          (lo que da stat -c %a)
+
+    especial: sticky        (suid, sgid, sticky o ninguno; si hay varios, separados
+    por comas en ese orden)
+
+    ```
+
+
+    **Comandos a practicar:** `stat -L -c`
+
+
+    **Estructuras de Bash:** `if/elif`, operadores de ficheros `-f -d`, `-u -g -k`
+
+
+    **Detalle importante:** `/usr/bin/passwd` lleva SUID porque debe escribir en `/etc/shadow`,
+    y `/tmp` lleva sticky bit para que cada cual solo borre lo suyo. `test` tiene
+    operadores para ambos: `-u`, `-g`, `-k`.'
+  script:
+    path: /home/learner/aso/p13/info-fichero.sh
+    usage: info-fichero.sh RUTA
+  input_requirements:
+  - description: Recibe exactamente una ruta.
+    error: uso
+  - description: La ruta existe.
+    error: ruta
+  output_requirements:
+  - id: correcto
+    description: Las cinco líneas de la ficha.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: info-fichero.sh RUTA'
+  - id: ruta
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: la ruta no existe
+  examples:
+  - command: /home/learner/aso/p13/info-fichero.sh /tmp
+    stdout: 'tipo: directorio
+
+      propietario: root
+
+      grupo: root
+
+      permisos: 1777
+
+      especial: sticky
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/info-fichero.sh /usr/bin/passwd
+    stdout: 'tipo: fichero
+
+      propietario: root
+
+      grupo: root
+
+      permisos: 4755
+
+      especial: suid
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/info-fichero.sh
+    stdout: ''
+    stderr: 'uso: info-fichero.sh RUTA
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/info-fichero.sh /nada
+    stdout: ''
+    stderr: 'la ruta no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: reales
+    description: Describe rutas reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - /tmp
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tipo: directorio
+
+          propietario: root
+
+          grupo: root
+
+          permisos: 1777
+
+          especial: sticky'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /usr/bin/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tipo: fichero
+
+          propietario: root
+
+          grupo: root
+
+          permisos: 4755
+
+          especial: suid'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /etc/passwd
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tipo: fichero
+
+          propietario: root
+
+          grupo: root
+
+          permisos: 644
+
+          especial: ninguno'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /dev/null
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tipo: otro
+
+          propietario: root
+
+          grupo: root
+
+          permisos: 666
+
+          especial: ninguno'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - /srv/p13sgid
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'tipo: directorio
+
+          propietario: root
+
+          grupo: root
+
+          permisos: 2775
+
+          especial: sgid'
+      stderr:
+        match: empty
+      prepare: mkdir -p /srv/p13sgid; chmod 2775 /srv/p13sgid
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente una ruta.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: info-fichero.sh RUTA'
+  - id: error-ruta
+    description: 'Rechaza la entrada: La ruta existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: ruta
+      stderr:
+        match: exact
+        value: la ruta no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 2
+    - 6
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: especiales
+  title: Auditoría de SUID y SGID
+  description: 'Lista, ordenados, los ficheros regulares de un directorio (sin subdirectorios)
+    que tienen activado SUID (`-u`) o SGID (`-g`). Si no hay ninguno, muestra `ninguno`.
+
+
+    **Comandos a practicar:** `find -maxdepth 1 -type f -perm -4000`, `sort`
+
+
+    **Estructuras de Bash:** `case`, variable intermedia, `[[ -z ]]`
+
+
+    **Detalle importante:** `-perm -4000` exige que **ese bit** esté activo, sin importar
+    los demás; `-perm 4000` pediría exactamente ese modo. SUID es peligroso: conviene
+    auditarlo.'
+  script:
+    path: /home/learner/aso/p13/especiales.sh
+    usage: especiales.sh -u|-g DIRECTORIO
+  input_requirements:
+  - description: Recibe opción y directorio.
+    error: uso
+  - description: La opción es -u o -g.
+    error: opcion
+  - description: El segundo argumento es un directorio.
+    error: directorio
+  output_requirements:
+  - id: correcto
+    description: Una ruta por línea, o `ninguno`.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: especiales.sh -u|-g DIRECTORIO'
+  - id: opcion
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: opción no válida
+  - id: directorio
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: no es un directorio
+  examples:
+  - command: /home/learner/aso/p13/especiales.sh -u /usr/bin
+    stdout: '/usr/bin/at
+
+      /usr/bin/chage
+
+      /usr/bin/chfn
+
+      /usr/bin/chsh
+
+      /usr/bin/crontab
+
+      /usr/bin/fusermount3
+
+      /usr/bin/gpasswd
+
+      /usr/bin/mount
+
+      /usr/bin/newgrp
+
+      /usr/bin/pam_timestamp_check
+
+      /usr/bin/passwd
+
+      /usr/bin/su
+
+      /usr/bin/sudo
+
+      /usr/bin/umount
+
+      /usr/bin/unix_chkpwd
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/especiales.sh -u
+    stdout: ''
+    stderr: 'uso: especiales.sh -u|-g DIRECTORIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/especiales.sh -x /usr/bin
+    stdout: ''
+    stderr: 'opción no válida
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p13/especiales.sh -u /nada
+    stdout: ''
+    stderr: 'no es un directorio
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: usr-bin
+    description: Audita /usr/bin.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -u
+      - /usr/bin
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: find /usr/bin -maxdepth 1 -type f -perm -4000 | sort
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - -g
+      - /usr/bin
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: find /usr/bin -maxdepth 1 -type f -perm -2000 | sort | grep
+          . || echo ninguno
+      stderr:
+        match: empty
+  - id: vacio
+    description: Indica si no hay ninguno.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - -u
+      - /etc/skel
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: ninguno
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe opción y directorio.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: especiales.sh -u|-g DIRECTORIO'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: especiales.sh -u|-g DIRECTORIO'
+  - id: error-opcion
+    description: 'Rechaza la entrada: La opción es -u o -g.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -x
+      - /usr/bin
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: opcion
+      stderr:
+        match: exact
+        value: opción no válida
+  - id: error-directorio
+    description: 'Rechaza la entrada: El segundo argumento es un directorio.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - -u
+      - /nada
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: directorio
+      stderr:
+        match: exact
+        value: no es un directorio
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 6
+    - 7
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: ficha-usuario
+  title: Los siete campos de /etc/passwd
+  description: 'Muestra los campos de un usuario leyendo `/etc/passwd` con `read`:
+
+
+    ```text
+
+    uid: 1000
+
+    gid: 1000
+
+    comentario: Usuario 1
+
+    home: /home/usuario1
+
+    shell: /bin/bash
+
+    ```
+
+
+    **Comandos a practicar:** `grep ^nombre:`, `man 5 passwd`
+
+
+    **Estructuras de Bash:** `IFS=: read`, here-string `<<<`
+
+
+    **Detalle importante:** Busca `^usuario:` con el ancla y los dos puntos: `ad`
+    no es `adm`. El separador se cambia solo para ese `read` escribiendo `IFS=:` en
+    la misma línea.'
+  script:
+    path: /home/learner/aso/p13/ficha-usuario.sh
+    usage: ficha-usuario.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Las cinco líneas de la ficha.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: ficha-usuario.sh USUARIO'
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p13/ficha-usuario.sh root
+    stdout: 'uid: 0
+
+      gid: 0
+
+      comentario: Super User
+
+      home: /root
+
+      shell: /bin/bash
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/ficha-usuario.sh usuario1
+    stdout: 'uid: 1001
+
+      gid: 1001
+
+      comentario: Usuario 1
+
+      home: /home/usuario1
+
+      shell: /bin/bash
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/ficha-usuario.sh
+    stdout: ''
+    stderr: 'uso: ficha-usuario.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/ficha-usuario.sh ad
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: usuarios
+    description: Lee usuarios reales.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v u=root ''$1==u{print "uid: " $3; print "gid: " $4;
+          print "comentario: " $5; print "home: " $6; print "shell: " $7}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - usuario1
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v u=usuario1 ''$1==u{print "uid: " $3; print "gid:
+          " $4; print "comentario: " $5; print "home: " $6; print "shell: " $7}''
+          /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - adm
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v u=adm ''$1==u{print "uid: " $3; print "gid: " $4;
+          print "comentario: " $5; print "home: " $6; print "shell: " $7}'' /etc/passwd'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - geoclue
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'awk -F: -v u=geoclue ''$1==u{print "uid: " $3; print "gid:
+          " $4; print "comentario: " $5; print "home: " $6; print "shell: " $7}''
+          /etc/passwd'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: ficha-usuario.sh USUARIO'
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ad
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 8
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: fecha-shadow
+  title: Días desde 1970
+  description: '`/etc/shadow` guarda las fechas como días desde el 1 de enero de 1970.
+    Convierte en los dos sentidos: un número de días da `AAAA-MM-DD` y una fecha `AAAA-MM-DD`
+    da el número de días.
+
+
+    **Comandos a practicar:** `date -u -d`, `date +%F`, `date +%s`
+
+
+    **Estructuras de Bash:** `[[ =~ ]]`, `if ! f=$(date ...)`, `$(( ))`
+
+
+    **Detalle importante:** La práctica caduca las cuentas el 2026-12-15, que en `/etc/shadow`
+    aparece como `20802`. Usa `-u`: con hora local un cambio de horario puede desplazar
+    un día.'
+  script:
+    path: /home/learner/aso/p13/fecha-shadow.sh
+    usage: fecha-shadow.sh DIAS|FECHA
+  input_requirements:
+  - description: Recibe exactamente un valor.
+    error: uso
+  - description: Es un número de días o tiene formato AAAA-MM-DD.
+    error: formato
+  - description: La fecha existe en el calendario.
+    error: fecha
+  output_requirements:
+  - id: correcto
+    description: La conversión.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: fecha-shadow.sh DIAS|FECHA'
+  - id: formato
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: formato no válido
+  - id: fecha
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: la fecha no existe
+  examples:
+  - command: /home/learner/aso/p13/fecha-shadow.sh 20802
+    stdout: '2026-12-15
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/fecha-shadow.sh 2026-12-15
+    stdout: '20802
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/fecha-shadow.sh
+    stdout: ''
+    stderr: 'uso: fecha-shadow.sh DIAS|FECHA
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/fecha-shadow.sh ayer
+    stdout: ''
+    stderr: 'formato no válido
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p13/fecha-shadow.sh 2026-13-45
+    stdout: ''
+    stderr: 'la fecha no existe
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: conversiones
+    description: Convierte en ambos sentidos.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - '20802'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '2026-12-15'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '2026-12-15'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '20802'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '0'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1970-01-01'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '1970-01-02'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '1'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - '2026-12-31'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: '20818'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un valor.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: fecha-shadow.sh DIAS|FECHA'
+  - id: error-formato
+    description: 'Rechaza la entrada: Es un número de días o tiene formato AAAA-MM-DD.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - ayer
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: formato no válido
+    - type: run
+      args:
+      - 2026-12
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: formato
+      stderr:
+        match: exact
+        value: formato no válido
+  - id: error-fecha
+    description: 'Rechaza la entrada: La fecha existe en el calendario.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - '2026-13-45'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: fecha
+      stderr:
+        match: exact
+        value: la fecha no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 11
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: estado-clave
+  title: Estado de la contraseña en /etc/shadow
+  description: 'Lee `/etc/shadow` y resume la política de una cuenta. Solo root puede
+    leer ese fichero: comprueba primero que el script se ejecuta como root.
+
+
+    ```text
+
+    clave: establecida      (bloqueada si empieza por ! o *; sin clave si el campo
+    está vacío)
+
+    maximo: 30
+
+    aviso: 5
+
+    inactividad: 3          (- si está vacío)
+
+    caduca: 2026-12-31      (nunca si está vacío)
+
+    ```
+
+
+    **Comandos a practicar:** `/etc/shadow`, `chage -l`, `date`, `usermod -L`, `chpasswd`
+
+
+    **Estructuras de Bash:** `$EUID`, `IFS=: read`, `case` con patrones (`''!''*|''*''*`),
+    `${var:--}`
+
+
+    **Detalle importante:** `useradd` deja la cuenta **sin contraseña utilizable**
+    (`!`), y `usermod -L` bloquea anteponiendo `!` a la clave cifrada: en ambos casos
+    no se puede entrar con contraseña.'
+  script:
+    path: /home/learner/aso/p13/estado-clave.sh
+    usage: estado-clave.sh USUARIO
+  input_requirements:
+  - description: Recibe exactamente un usuario.
+    error: uso
+  - description: Se ejecuta como root.
+    error: permiso
+  - description: El usuario existe.
+    error: usuario
+  output_requirements:
+  - id: correcto
+    description: Las cinco líneas de estado.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: estado-clave.sh USUARIO'
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  examples:
+  - command: /home/learner/aso/p13/estado-clave.sh p13e
+    stdout: 'clave: establecida
+
+      maximo: 30
+
+      aviso: 5
+
+      inactividad: 3
+
+      caduca: 2026-12-31
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/estado-clave.sh
+    stdout: ''
+    stderr: 'uso: estado-clave.sh USUARIO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/estado-clave.sh root
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p13/estado-clave.sh nadie
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: establecida
+    description: Cuenta con política completa.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13e
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'clave: establecida
+
+          maximo: 30
+
+          aviso: 5
+
+          inactividad: 3
+
+          caduca: 2026-12-31'
+      stderr:
+        match: empty
+      prepare: 'id p13e >/dev/null 2>&1 || useradd -m p13e
+
+        echo ''p13e:ASO2026'' | chpasswd
+
+        usermod -U p13e 2>/dev/null
+
+        chage -M 30 -W 5 -I 3 -E 2026-12-31 p13e'
+  - id: bloqueada
+    description: Cuenta bloqueada con usermod -L.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13e
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: 'clave: bloqueada'
+      stderr:
+        match: empty
+      prepare: 'id p13e >/dev/null 2>&1 || useradd -m p13e
+
+        echo ''p13e:ASO2026'' | chpasswd
+
+        usermod -U p13e 2>/dev/null
+
+        chage -M 30 -W 5 -I 3 -E 2026-12-31 p13e
+
+        usermod -L p13e'
+  - id: nueva
+    description: Cuenta recién creada.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13n
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: 'clave: bloqueada'
+      stderr:
+        match: empty
+      prepare: id p13n >/dev/null 2>&1 || useradd -m p13n
+    - type: run
+      args:
+      - p13n
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: 'inactividad: -'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - p13n
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: contains
+        value: 'caduca: nunca'
+      stderr:
+        match: empty
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un usuario.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: estado-clave.sh USUARIO'
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 10
+    - 11
+    - 12
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: alta-usuarios
+  title: Alta de usuarios en lote
+  description: "Crea cuentas con directorio personal y shell `/bin/bash` y les asigna\
+    \ la misma contraseña sin interacción. Valida **todos** los nombres (`^[a-z_][a-z0-9_-]*$`)\
+    \ antes de crear ninguna cuenta.\n    Por cada cuenta creada muestra `creado:\
+    \ NOMBRE`. Si ya existe, escribe `ya existe: NOMBRE` en stderr, continúa y termina\
+    \ con el código 4.\n\n**Comandos a practicar:** `useradd -m -s`, `chpasswd`, `id`\n\
+    \n**Estructuras de Bash:** `shift`, `for n in \"$@\"`, doble bucle\n\n**Detalle\
+    \ importante:** `passwd` es interactivo; en un script usa `echo \"usuario:clave\"\
+    \ | chpasswd`. Con `sudo`, el `sudo` debe ir delante de `chpasswd`, no de `echo`."
+  script:
+    path: /home/learner/aso/p13/alta-usuarios.sh
+    usage: alta-usuarios.sh CLAVE NOMBRE...
+  input_requirements:
+  - description: Recibe la clave y al menos un nombre.
+    error: uso
+  - description: Todos los nombres son válidos.
+    error: nombre
+  - description: Se ejecuta como root.
+    error: permiso
+  - description: Las cuentas no existen ya; si existe una, se avisa y se continúa.
+    error: existente
+  output_requirements:
+  - id: correcto
+    description: 'Una línea `creado: NOMBRE` por cuenta.'
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: alta-usuarios.sh CLAVE NOMBRE...'
+  - id: nombre
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: nombre de usuario no válido
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  - id: existente
+    description: stdout con las cuentas creadas y stderr con las existentes.
+    exit_code: 4
+    stream: stderr
+    message: 'ya existe: root'
+  examples:
+  - command: /home/learner/aso/p13/alta-usuarios.sh ASO2026 p13a
+    stdout: 'creado: p13a
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/alta-usuarios.sh clave
+    stdout: ''
+    stderr: 'uso: alta-usuarios.sh CLAVE NOMBRE...
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/alta-usuarios.sh c p13c
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: crea
+    description: Crea las cuentas con contraseña utilizable.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - ASO2026
+      - p13a
+      - p13b
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'creado: p13a
+
+          creado: p13b'
+      stderr:
+        match: empty
+      prepare: for u in p13a p13b p13c; do userdel -r $u 2>/dev/null; done; true
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/alta-usuarios.sh\nD=/home/learner/aso/p13\nfor u\
+        \ in p13a p13b; do\n  [ \"$(getent passwd $u | cut -d: -f7)\" = /bin/bash\
+        \ ] && [ -d /home/$u ] || exit 1\n  case \"$(getent shadow $u | cut -d: -f2)\"\
+        \ in ''|'!'*|'*'*) exit 1;; esac\ndone"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe la clave y al menos un nombre.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - clave
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: alta-usuarios.sh CLAVE NOMBRE...'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: alta-usuarios.sh CLAVE NOMBRE...'
+  - id: error-nombre
+    description: 'Rechaza la entrada: Todos los nombres son válidos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - c
+      - p13c
+      - Mal
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: nombre
+      stderr:
+        match: exact
+        value: nombre de usuario no válido
+      prepare: for u in p13a p13b p13c; do userdel -r $u 2>/dev/null; done; true
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - c
+      - p13c
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  - id: error-existente
+    description: 'Rechaza la entrada: Las cuentas no existen ya; si existe una, se
+      avisa y se continúa.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - c
+      - root
+      - p13c
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: existente
+      stdout:
+        match: lines
+        from_command: 'echo creado: p13c'
+      stderr:
+        match: exact
+        value: 'ya existe: root'
+      prepare: for u in p13a p13b p13c; do userdel -r $u 2>/dev/null; done; true
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 8
+    - 9
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: politica
+  title: Política de contraseñas con chage
+  description: 'Aplica a un usuario la vigencia máxima, los días de aviso, el periodo
+    de gracia y, si se indica, la fecha de caducidad de la cuenta (`AAAA-MM-DD`).
+    Sin fecha, la cuenta no caduca nunca. Termina con `política aplicada a USUARIO`.
+
+
+    **Comandos a practicar:** `chage -M -W -I -E`, `chage -l`
+
+
+    **Estructuras de Bash:** `${5:--1}`, validación en bucle, `[[ =~ ]]`
+
+
+    **Detalle importante:** No confundas caducidad de la **contraseña** (`-M`) con
+    caducidad de la **cuenta** (`-E`). El periodo de «inactividad» (`-I`) es en realidad
+    una gracia tras caducar la contraseña; `-E -1` quita la caducidad.'
+  script:
+    path: /home/learner/aso/p13/politica.sh
+    usage: politica.sh USUARIO MAX AVISO GRACIA [FECHA]
+  input_requirements:
+  - description: Recibe cuatro o cinco argumentos.
+    error: uso
+  - description: MAX, AVISO y GRACIA son números.
+    error: numero
+  - description: La fecha tiene formato AAAA-MM-DD.
+    error: fecha
+  - description: El usuario existe.
+    error: usuario
+  - description: Se ejecuta como root.
+    error: permiso
+  output_requirements:
+  - id: correcto
+    description: El mensaje de confirmación.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: politica.sh USUARIO MAX AVISO GRACIA [FECHA]'
+  - id: numero
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 2
+    stream: stderr
+    message: los días deben ser números
+  - id: fecha
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: la fecha no tiene el formato AAAA-MM-DD
+  - id: usuario
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el usuario no existe
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 5
+    stream: stderr
+    message: hay que ser root
+  examples:
+  - command: /home/learner/aso/p13/politica.sh p13p 60 4 2 2026-12-15
+    stdout: 'política aplicada a p13p
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/politica.sh p13p 1 2
+    stdout: ''
+    stderr: 'uso: politica.sh USUARIO MAX AVISO GRACIA [FECHA]
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/politica.sh p13p x 4 2
+    stdout: ''
+    stderr: 'los días deben ser números
+
+      '
+    exit_code: 2
+  - command: /home/learner/aso/p13/politica.sh p13p 60 4 2 15/12/2026
+    stdout: ''
+    stderr: 'la fecha no tiene el formato AAAA-MM-DD
+
+      '
+    exit_code: 3
+  - command: /home/learner/aso/p13/politica.sh nadie 60 4 2
+    stdout: ''
+    stderr: 'el usuario no existe
+
+      '
+    exit_code: 4
+  - command: /home/learner/aso/p13/politica.sh p13p 60 4 2
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 5
+  evaluations:
+  - id: con-fecha
+    description: Aplica la política con fecha.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13p
+      - '60'
+      - '4'
+      - '2'
+      - '2026-12-15'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: política aplicada a p13p
+      stderr:
+        match: empty
+      prepare: id p13p >/dev/null 2>&1 || useradd -m p13p; chage -M 99999 -W 7 -I
+        -1 -E -1 p13p
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p13/politica.sh
+
+        D=/home/learner/aso/p13
+
+        IFS=: read -r u c l mi ma av in ca r <<< "$(getent shadow p13p)"; [ "$ma:$av:$in:$ca"
+        = 60:4:2:20802 ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: sin-fecha
+    description: Quita la caducidad si no hay fecha.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13p
+      - '30'
+      - '5'
+      - '3'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: política aplicada a p13p
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p13/politica.sh
+
+        D=/home/learner/aso/p13
+
+        IFS=: read -r u c l mi ma av in ca r <<< "$(getent shadow p13p)"; [ "$ma:$av:$in:$ca"
+        = 30:5:3: ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe cuatro o cinco argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p13p
+      - '1'
+      - '2'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: politica.sh USUARIO MAX AVISO GRACIA [FECHA]'
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: politica.sh USUARIO MAX AVISO GRACIA [FECHA]'
+  - id: error-numero
+    description: 'Rechaza la entrada: MAX, AVISO y GRACIA son números.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p13p
+      - x
+      - '4'
+      - '2'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: numero
+      stderr:
+        match: exact
+        value: los días deben ser números
+  - id: error-fecha
+    description: 'Rechaza la entrada: La fecha tiene formato AAAA-MM-DD.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p13p
+      - '60'
+      - '4'
+      - '2'
+      - 15/12/2026
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: fecha
+      stderr:
+        match: exact
+        value: la fecha no tiene el formato AAAA-MM-DD
+  - id: error-usuario
+    description: 'Rechaza la entrada: El usuario existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      - '60'
+      - '4'
+      - '2'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: usuario
+      stderr:
+        match: exact
+        value: el usuario no existe
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - p13p
+      - '60'
+      - '4'
+      - '2'
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 10
+    - 11
+    - 12
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: miembros-grupo
+  title: Primarios y secundarios de un grupo
+  description: 'Muestra los miembros de un grupo en dos líneas, cada lista ordenada
+    y separada por espacios (`-` si está vacía):
+
+
+    ```text
+
+    primarios: p13g1 p13g2      (su grupo primario es este, según /etc/passwd)
+
+    secundarios: p13g0 p13g3    (lista de /etc/group)
+
+    ```
+
+
+    **Comandos a practicar:** `grep`, `cut`, `tr`, `sort`, `xargs`
+
+
+    **Estructuras de Bash:** `IFS=: read`, `while read` con redirección, `+=`
+
+
+    **Detalle importante:** La lista de `/etc/group` **no incluye** a quienes tienen
+    ese grupo como primario. Hay que cruzarla con el GID de `/etc/passwd`.'
+  script:
+    path: /home/learner/aso/p13/miembros-grupo.sh
+    usage: miembros-grupo.sh GRUPO
+  input_requirements:
+  - description: Recibe exactamente un grupo.
+    error: uso
+  - description: El grupo existe.
+    error: grupo
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: miembros-grupo.sh GRUPO'
+  - id: grupo
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 4
+    stream: stderr
+    message: el grupo no existe
+  examples:
+  - command: /home/learner/aso/p13/miembros-grupo.sh p13g
+    stdout: 'primarios: p13g1 p13g2
+
+      secundarios: p13g0 p13g3
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/miembros-grupo.sh
+    stdout: ''
+    stderr: 'uso: miembros-grupo.sh GRUPO
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/miembros-grupo.sh nadie
+    stdout: ''
+    stderr: 'el grupo no existe
+
+      '
+    exit_code: 4
+  evaluations:
+  - id: grupos
+    description: Cruza /etc/group y /etc/passwd.
+    points: 6
+    checks:
+    - type: run
+      args:
+      - p13g
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'primarios: p13g1 p13g2
+
+          secundarios: p13g0 p13g3'
+      stderr:
+        match: empty
+      prepare: 'getent group p13g >/dev/null || groupadd p13g
+
+        id p13g1 >/dev/null 2>&1 || useradd -M -g p13g p13g1
+
+        id p13g2 >/dev/null 2>&1 || useradd -M -g p13g p13g2
+
+        id p13g3 >/dev/null 2>&1 || useradd -M p13g3
+
+        id p13g0 >/dev/null 2>&1 || useradd -M p13g0
+
+        gpasswd -M p13g3,p13g0 p13g >/dev/null'
+    - type: run
+      args:
+      - root
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: lines
+        from_command: 'printf ''primarios: %s\nsecundarios: -\n'' "$(awk -F: ''$4==0{print
+          $1}'' /etc/passwd | sort | xargs)"'
+      stderr:
+        match: empty
+    - type: run
+      args:
+      - wheel
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: correcto
+      stdout:
+        match: exact
+        value: 'primarios: -
+
+          secundarios: -'
+      stderr:
+        match: empty
+      prepare: gpasswd -M '' wheel >/dev/null
+  - id: error-uso
+    description: 'Rechaza la entrada: Recibe exactamente un grupo.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: miembros-grupo.sh GRUPO'
+  - id: error-grupo
+    description: 'Rechaza la entrada: El grupo existe.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - nadie
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: grupo
+      stderr:
+        match: exact
+        value: el grupo no existe
+    - type: run
+      args:
+      - whee
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: grupo
+      stderr:
+        match: exact
+        value: el grupo no existe
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 12
+    - 14
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
+- id: empresa
+  title: Actividad de laboratorio completa
+  description: 'El apartado 8 completo en un script **idempotente**, que se puede
+    ejecutar varias veces sin error:
+
+
+    1. Crea `jefe`, `trabajador1`, `trabajador2` y `trabajador3` si no existen, con
+    contraseña `ASO2026`.
+
+    2. Vigencia máxima de 60 días, aviso a 4 días y gracia de 2 días para todos. Los
+    trabajadores solo podrán acceder hasta el 15 de diciembre de 2026.
+
+    3. Crea el grupo `empresa` con los cuatro como miembros secundarios y `jefe` como
+    administrador.
+
+    4. Crea `/home/trabajo`, de `jefe:empresa`, con todos los permisos para usuario
+    y grupo, ninguno para otros y sticky bit.
+
+
+    Termina mostrando `actividad completada`.
+
+
+    **Comandos a practicar:** `useradd`, `chpasswd`, `chage`, `groupadd`, `gpasswd
+    -a -A`, `install -d` o `mkdir`, `chown`, `chmod 1770`
+
+
+    **Estructuras de Bash:** `for u in ...`, comprobación previa con `id` y `getent`
+
+
+    **Detalle importante:** `gpasswd -A` y `usermod -G` sin `-a` **sustituyen** la
+    lista completa. El modo `1770` lo revisa `ls -ld`: la `T` mayúscula indica sticky
+    sin ejecución para otros.'
+  script:
+    path: /home/learner/aso/p13/empresa.sh
+    usage: empresa.sh
+  input_requirements:
+  - description: No recibe argumentos.
+    error: uso
+  - description: Se ejecuta como root.
+    error: permiso
+  output_requirements:
+  - id: correcto
+    description: El mensaje final, con el sistema en el estado pedido.
+    exit_code: 0
+    stream: stdout
+  - id: uso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: empresa.sh'
+  - id: permiso
+    description: Mensaje en stderr; stdout vacío.
+    exit_code: 3
+    stream: stderr
+    message: hay que ser root
+  examples:
+  - command: /home/learner/aso/p13/empresa.sh
+    stdout: 'actividad completada
+
+      '
+    stderr: ''
+    exit_code: 0
+  - command: /home/learner/aso/p13/empresa.sh x
+    stdout: ''
+    stderr: 'uso: empresa.sh
+
+      '
+    exit_code: 1
+  - command: /home/learner/aso/p13/empresa.sh
+    stdout: ''
+    stderr: 'hay que ser root
+
+      '
+    exit_code: 3
+  evaluations:
+  - id: cuentas
+    description: Crea cuentas con contraseña.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: exact
+        value: actividad completada
+      stderr:
+        match: empty
+      prepare: for u in jefe trabajador1 trabajador2 trabajador3; do userdel -r $u
+        2>/dev/null; done; groupdel empresa 2>/dev/null; rm -rf /home/trabajo; true
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/empresa.sh\nD=/home/learner/aso/p13\nfor u in jefe\
+        \ trabajador1 trabajador2 trabajador3; do\n  case \"$(getent shadow $u | cut\
+        \ -d: -f2)\" in ''|'!'*|'*'*) exit 1;; esac\ndone"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: politica
+    description: Aplica la política.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/empresa.sh\nD=/home/learner/aso/p13\nfor u in jefe\
+        \ trabajador1 trabajador2 trabajador3; do\n  IFS=: read -r n c l mi ma av\
+        \ in ca r <<< \"$(getent shadow $u)\"\n  [ \"$ma:$av:$in\" = 60:4:2 ] || exit\
+        \ 1\n  if [ $u = jefe ]; then [ -z \"$ca\" ] || exit 1; else [ \"$ca\" = 20802\
+        \ ] || exit 1; fi\ndone"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: grupo
+    description: Grupo y administrador.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - "S=/home/learner/aso/p13/empresa.sh\nD=/home/learner/aso/p13\nfor u in jefe\
+        \ trabajador1 trabajador2 trabajador3; do\n  id -nG $u | grep -qw empresa\
+        \ || exit 1\n  [ \"$(id -gn $u)\" = \"$u\" ] || exit 1\ndone\n[ \"$(getent\
+        \ gshadow empresa | cut -d: -f3)\" = jefe ]"
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: directorio
+    description: Directorio compartido.
+    points: 6
+    checks:
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p13/empresa.sh
+
+        D=/home/learner/aso/p13
+
+        [ "$(stat -c ''%a %U %G'' /home/trabajo)" = ''1770 jefe empresa'' ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: idempotente
+    description: Se puede volver a ejecutar.
+    points: 6
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: root
+      timeout: 30
+      requirement: correcto
+      stdout:
+        match: exact
+        value: actividad completada
+      stderr:
+        match: empty
+    - type: run
+      path: /usr/bin/bash
+      args:
+      - -c
+      - 'S=/home/learner/aso/p13/empresa.sh
+
+        D=/home/learner/aso/p13
+
+        [ "$(stat -c ''%a %U %G'' /home/trabajo)" = ''1770 jefe empresa'' ] && [ "$(getent
+        gshadow empresa | cut -d: -f3)" = jefe ]'
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: correcto
+  - id: error-uso
+    description: 'Rechaza la entrada: No recibe argumentos.'
+    points: 2
+    checks:
+    - type: run
+      args:
+      - x
+      cwd: /home/learner
+      user: root
+      timeout: 10
+      requirement: uso
+      stderr:
+        match: exact
+        value: 'uso: empresa.sh'
+  - id: error-permiso
+    description: 'Rechaza la entrada: Se ejecuta como root.'
+    points: 2
+    checks:
+    - type: run
+      args: []
+      cwd: /home/learner
+      user: learner
+      timeout: 10
+      requirement: permiso
+      stderr:
+        match: exact
+        value: hay que ser root
+  tips: []
+  setup: []
+  sources:
+  - document_hash: 4fff130b55f626b24695f78465d28f7e99e4bdf394ba2cc4b4dad720f750eea4
+    title: Práctica-1.3
+    pages:
+    - 14
+    - 15
+  supplemental: Se ejecuta contra los ficheros reales del sistema Fedora del laboratorio;
+    la salida esperada se calcula en vivo al evaluar.
