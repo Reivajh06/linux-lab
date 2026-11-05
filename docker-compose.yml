@@ -24,7 +24,7 @@ services:
       LAB_NETWORK: linux-lab-net
       LAB_MEMORY: ${LAB_MEMORY:-2g}
       LAB_CPUS: ${LAB_CPUS:-2}
-      LAB_PIDS: ${LAB_PIDS:-256}
+      LAB_PIDS: ${LAB_PIDS:-1024}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-300}
       OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}

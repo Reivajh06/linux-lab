@@ -5,7 +5,7 @@ import { api, post } from './api';
 import type { CourseSummary, Environment } from './api';
 
 type Definition = { name: string; course_key: string; cpus: number; memory_mb: number; pids: number };
-const fresh: Definition = { name: '', course_key: '', cpus: 2, memory_mb: 2048, pids: 256 };
+const fresh: Definition = { name: '', course_key: '', cpus: 2, memory_mb: 2048, pids: 1024 };
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 
 export default function Environments({ courses, onOpen, onError, onChanged }: { courses: CourseSummary[]; onOpen: (environment: Environment) => void; onError: (error: unknown) => void; onChanged: () => Promise<void> }) {

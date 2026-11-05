@@ -31,7 +31,7 @@ class Database:
                     state TEXT NOT NULL DEFAULT 'new', setup_done INTEGER DEFAULT 0,
                     error TEXT, created_at TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
                     cpus REAL NOT NULL DEFAULT 2, memory_mb INTEGER NOT NULL DEFAULT 2048,
-                    pids INTEGER NOT NULL DEFAULT 256, is_default INTEGER NOT NULL DEFAULT 0);
+                    pids INTEGER NOT NULL DEFAULT 1024, is_default INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS results (
                     environment_id TEXT NOT NULL, exercise_id TEXT NOT NULL,
                     result TEXT NOT NULL, checked_at TEXT NOT NULL,
@@ -70,7 +70,7 @@ class Database:
                         state TEXT NOT NULL DEFAULT 'new', setup_done INTEGER DEFAULT 0,
                         error TEXT, created_at TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
                         cpus REAL NOT NULL DEFAULT 2, memory_mb INTEGER NOT NULL DEFAULT 2048,
-                        pids INTEGER NOT NULL DEFAULT 256, is_default INTEGER NOT NULL DEFAULT 0);
+                        pids INTEGER NOT NULL DEFAULT 1024, is_default INTEGER NOT NULL DEFAULT 0);
                     INSERT INTO environments(id,course_key,container_id,state,setup_done,error,created_at,is_default)
                         SELECT id,course_key,container_id,state,setup_done,error,created_at,1 FROM environments_old;
                     DROP TABLE environments_old;

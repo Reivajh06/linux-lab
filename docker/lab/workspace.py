@@ -35,10 +35,10 @@ TERMINAL = '''[Configuration]
 FontName=Adwaita Mono 12
 FontUseSystem=FALSE
 FontAllowBold=TRUE
-ColorForeground=#ffffff
-ColorBackground=#1e1e1e
-ColorCursor=#ffffff
-ColorPalette=#241f31;#c01c28;#2ec27e;#f5c211;#1e78e4;#9841bb;#0ab9dc;#c0bfbc;#5e5c64;#ed333b;#57e389;#f8e45c;#51a1ff;#c061cb;#4fd2fd;#f6f5f4
+ColorForeground={foreground}
+ColorBackground={background}
+ColorCursor={cursor}
+ColorPalette={palette}
 ColorUseTheme=FALSE
 ColorBoldUseDefault=TRUE
 BackgroundMode=TERMINAL_BACKGROUND_SOLID
@@ -53,6 +53,18 @@ MiscBellUrgent=FALSE
 MiscCopyOnSelect=FALSE
 MiscConfirmClose=TRUE
 '''
+# Every colour except black (a background colour) reads at 4.4:1 or better on the
+# background; the GNOME defaults made black invisible and red errors 2.7:1.
+COLORS = {
+    "foreground": "#d8dadf", "background": "#1e1e1e", "cursor": "#d8dadf",
+    "palette": ";".join(("#4b5263", "#f07178", "#8bd49c", "#e6c07b", "#6cb6ff", "#c792ea", "#5ccfe6", "#c8ccd4",
+                         "#8b919c", "#ff8b92", "#a5e3b1", "#f2d58f", "#8ccaff", "#d7a8f4", "#89ddff", "#ffffff")),
+}
+TERMINAL = TERMINAL.format(**COLORS)
+# xfce4-terminal migrates terminalrc into Xfconf on first run and ignores it afterwards,
+# so existing environments receive the colours through xfconf-query as well.
+XFCONF = {"/color-foreground": COLORS["foreground"], "/color-background": COLORS["background"],
+          "/color-cursor": COLORS["cursor"], "/color-palette": COLORS["palette"]}
 
 
 def run(args, check=True):
@@ -75,10 +87,18 @@ def configure():
     (config / "gtk-3.0/settings.ini").write_text("[Settings]\ngtk-theme-name=Adwaita-dark\ngtk-application-prefer-dark-theme=true\ngtk-font-name=Adwaita Sans 11\ngtk-decoration-layout=\n"
         # Grayscale antialiasing stays crisp through VNC; subpixel colour fringes do not.
         "gtk-xft-antialias=1\ngtk-xft-hinting=1\ngtk-xft-hintstyle=hintslight\ngtk-xft-rgba=none\n")
-    for key, value in (("scheme", "oblivion"), ("use-default-font", "false"),
-                       ("editor-font", "Adwaita Mono 12"), ("display-line-numbers", "true")):
+    # gedit 46+ replaced `scheme` with per-variant keys; without a dark interface preference
+    # libadwaita draws the line-number gutter and margins light around a dark text area.
+    for key, value in (("scheme", "oblivion"), ("style-scheme-for-dark-theme-variant", "oblivion"),
+                       ("use-default-font", "false"), ("editor-font", "Adwaita Mono 12"), ("display-line-numbers", "true")):
         run(["gsettings", "set", "org.gnome.gedit.preferences.editor", key, value], check=False)
+    run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], check=False)
     run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ""], check=False)
+    for prop, value in XFCONF.items():
+        try:
+            run(["xfconf-query", "-c", "xfce4-terminal", "-p", prop, "-n", "-t", "string", "-s", value], check=False)
+        except OSError:
+            break  # Older images without Xfconf still read terminalrc.
     profile = home / ".bashrc"
     marker = "# Linux Lab tabbed terminal"
     if profile.exists() and marker not in profile.read_text():

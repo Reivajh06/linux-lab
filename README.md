@@ -214,7 +214,8 @@ smoke testing on a machine with those prerequisites.
 
 ## Resources, backup, and limits
 
-Defaults per learner environment: 2 CPUs, 2 GB memory, 256 processes, and 256 MB
+Defaults per learner environment: 2 CPUs, 2 GB memory, 1024 processes (Docker counts
+threads, and Firefox alone needs several hundred), and 256 MB
 shared memory. Set `LAB_CPUS`, `LAB_MEMORY`, or `LAB_PIDS` before launching the
 Windows app, or use `.env` for Compose. Images and filesystem writes use Docker
 Desktop's disk allocation; clean up unused course environments through Recreate

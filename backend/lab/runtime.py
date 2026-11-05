@@ -70,7 +70,7 @@ class Runtime:
         default_memory = max(512, int(docker.utils.parse_bytes(os.getenv("LAB_MEMORY", "2g")) / 1024 / 1024))
         self.db.execute("INSERT INTO environments(id,course_key,name,cpus,memory_mb,pids,is_default,created_at) VALUES(?,?,?,?,?,?,?,?)",
                         (environment_id, course_key, name.strip(), cpus or float(os.getenv("LAB_CPUS", "2")), memory_mb or default_memory,
-                         pids or int(os.getenv("LAB_PIDS", "256")), int(is_default), now()))
+                         pids or int(os.getenv("LAB_PIDS", "1024")), int(is_default), now()))
         return self.get(environment_id)
 
     async def update(self, environment_id, name, cpus, memory_mb, pids):

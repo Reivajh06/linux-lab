@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Markdown from 'react-markdown';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import Desktop from './Desktop';
+import { plainText } from './text';
 import Environments from './Environments';
 import ExerciseBody from './ExerciseBody';
 import Modal from './Modal';
@@ -115,10 +116,10 @@ function App() {
           <div className="course-grid">
             {!coursesLoaded && <div className="loading-state" role="status"><Loader2 className="spin" size={18}/>Loading collections…</div>}
             {coursesLoaded && search.trim() && !visibleCourses.length && <div className="empty-state"><Search size={28}/><h3>No collections match “{search.trim()}”</h3><p>Try a different word, or clear the search to see your whole library.</p><button className="button secondary" onClick={() => setSearch('')}>Clear search</button></div>}
-            {visibleCourses.map(c => <button className="course-card" key={c.key} onClick={() => setCourseKey(c.key)}>
+            {visibleCourses.map(c => <button className="course-card" key={c.key} aria-label={`${c.title}: ${c.environment ? 'open course' : 'start learning'}`} onClick={() => setCourseKey(c.key)}>
               <div className="course-card-top"><span className="collection-icon"><Terminal size={22}/></span><span className="tag">{c.id === 'linux-foundations' ? 'FOUNDATIONS' : 'YOUR COLLECTION'}</span></div>
               <h3>{c.title}</h3>
-              <p className="course-description">{c.description}</p>
+              <p className="course-description">{plainText(c.description)}</p>
               <div className="course-meta"><span><Layers3 size={14}/>{c.exercise_count} exercises</span><span><GraduationCap size={15}/>{c.points} points</span></div>
               <div className="course-progress"><div className="progress-track" role="progressbar" aria-label={`${c.title} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent(c.earned, c.points)}><span style={{ width: `${progressPercent(c.earned, c.points)}%` }}/></div><span>{c.completed}/{c.exercise_count} complete</span></div>
               <div className="course-card-bottom"><span>{c.environment?.state === 'running' ? <><span className="dot"/>Environment running</> : <>v{c.version} · Saved locally</>}</span><span className="course-link">{c.environment ? 'Open course' : 'Start learning'}<ArrowRight size={15}/></span></div>
@@ -164,7 +165,26 @@ function Stat({ icon: Icon, value, label, foot }: { icon: typeof Layers3; value:
   return <div className="stat"><span className="stat-icon"><Icon size={20}/></span><div><span className="stat-value">{value}</span><strong>{label}</strong><p>{foot}</p></div></div>;
 }
 
+// The exercise panel's share of the workspace width, in percent; the desktop takes the rest.
+const PANEL_KEY = 'linuxlab.exercisePanel';
+const PANEL_DEFAULT = 42;
+const clampPanel = (width: number) => Math.min(65, Math.max(28, width));
+function readPanel(): { width: number; open: boolean } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANEL_KEY) || 'null');
+    if (saved && typeof saved.width === 'number') return { width: clampPanel(saved.width), open: saved.open !== false };
+  } catch { /* Storage unavailable or corrupt: use the default split. */ }
+  return { width: PANEL_DEFAULT, open: true };
+}
+
 function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSetup }: { courseKey: string | null; environmentId: string | null; onBack: () => void; onError: (e: unknown) => void; onChanged: () => Promise<void>; onSetup: () => void }) {
+  const grid = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState(readPanel);
+  useEffect(() => { try { localStorage.setItem(PANEL_KEY, JSON.stringify(layout)); } catch { /* Not persisted. */ } }, [layout]);
+  const resizeTo = (clientX: number) => {
+    const box = grid.current?.getBoundingClientRect();
+    if (box?.width) setLayout(l => ({ ...l, width: clampPanel((box.right - clientX) / box.width * 100) }));
+  };
   const [detail, setDetail] = useState<CourseDetail | null>(null);
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [selected, setSelected] = useState(0);
@@ -205,13 +225,24 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
       </div>
     </div>
     {environment?.error && <div className="notice error-note"><CircleAlert size={17}/><span>{environment.error}</span><button className="text-button" onClick={onSetup}>Environment setup</button></div>}
-    <div className="workspace-grid">
-      <aside className="exercise-panel" aria-label="Environment guidance">
-        <div className="workspace-panel-tabs" role="tablist" aria-label="Environment guidance">
-          {detail && <button id="exercise-tab" role="tab" aria-selected={panel === 'exercise'} aria-controls="exercise-content" onClick={() => setPanel('exercise')}>Exercise</button>}
-          <button id="assistant-tab" role="tab" aria-selected={!detail || panel === 'assistant'} aria-controls="assistant-content" onClick={() => setPanel('assistant')}><Sparkles size={15}/>Assistant</button>
+    <div ref={grid} className={'workspace-grid ' + (layout.open ? '' : 'panel-collapsed')} style={{ '--panel-width': layout.width + '%' } as React.CSSProperties}>
+      {layout.open && <div className="workspace-divider" role="separator" aria-orientation="vertical" aria-label="Resize exercise panel" aria-valuemin={28} aria-valuemax={65} aria-valuenow={Math.round(layout.width)} tabIndex={0} title="Drag to resize · double-click to reset"
+        onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); grid.current?.classList.add('resizing'); }}
+        onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) resizeTo(e.clientX); }}
+        onPointerUp={e => { e.currentTarget.releasePointerCapture(e.pointerId); grid.current?.classList.remove('resizing'); }}
+        onLostPointerCapture={() => grid.current?.classList.remove('resizing')}
+        onDoubleClick={() => setLayout(l => ({ ...l, width: PANEL_DEFAULT }))}
+        onKeyDown={e => { const step = e.key === 'ArrowLeft' ? 3 : e.key === 'ArrowRight' ? -3 : 0; if (step) { e.preventDefault(); setLayout(l => ({ ...l, width: clampPanel(l.width + step) })); } }}/>}
+      {!layout.open && <button className="panel-rail" aria-label={detail ? 'Show exercise panel' : 'Show assistant panel'} title={detail ? 'Show exercise' : 'Show assistant'} onClick={() => setLayout(l => ({ ...l, open: true }))}><PanelRightOpen size={20}/><span>{detail ? 'Exercise' : 'Assistant'}</span></button>}
+      <aside className="exercise-panel" aria-label="Environment guidance" hidden={!layout.open}>
+        <div className="workspace-panel-tabs">
+          <div role="tablist" aria-label="Environment guidance">
+            {detail && <button id="exercise-tab" role="tab" aria-selected={panel === 'exercise'} aria-controls="exercise-content" onClick={() => setPanel('exercise')}>Exercise</button>}
+            <button id="assistant-tab" role="tab" aria-selected={!detail || panel === 'assistant'} aria-controls="assistant-content" onClick={() => setPanel('assistant')}><Sparkles size={15}/>Assistant</button>
+          </div>
+          <button className="icon-button panel-collapse" aria-label="Hide panel to widen the terminal" title="Hide panel" onClick={() => setLayout(l => ({ ...l, open: false }))}><PanelRightClose size={18}/></button>
         </div>
-        {detail && <div id="exercise-content" role="tabpanel" aria-labelledby="exercise-tab" hidden={panel !== 'exercise'}>
+        {detail && <div id="exercise-content" className="exercise-content" role="tabpanel" aria-labelledby="exercise-tab" hidden={panel !== 'exercise'}>
         <div className="exercise-selector"><label htmlFor="exercise-picker">Exercise {selected + 1} of {detail.course.exercises.length}</label><div className="select-wrap"><select id="exercise-picker" value={selected} onChange={e => setSelected(Number(e.target.value))}>{detail.course.exercises.map((e, i) => <option key={e.id} value={i}>{detail.results[e.id]?.earned === detail.results[e.id]?.available && detail.results[e.id] ? '✓ ' : ''}{String(i + 1).padStart(2, '0')} · {e.title}</option>)}</select><ChevronDown size={16}/></div></div>
         {exercise && <ExerciseBody exercise={exercise} index={selected} result={result} actions={<>
           <div className="evaluate-actions">
@@ -222,7 +253,7 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
           <div className="exercise-pagination"><button disabled={selected === 0} onClick={() => setSelected(n => n - 1)}><ArrowLeft size={16}/>Previous</button><button disabled={selected === detail.course.exercises.length - 1} onClick={() => setSelected(n => n + 1)}>Next<ArrowRight size={16}/></button></div>
         </>}/>}
         </div>}
-        <div id="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
+        <div id="assistant-content" className="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
       </aside>
       <div className="workspace-desktop"><Desktop key={desktopKey} id={environment?.id || ''} running={running}/></div>
     </div>
