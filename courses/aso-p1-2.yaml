@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p1-2
 version: '1.0'
 title: ASO Práctica 1.2 · Filtros, tuberías y expresiones regulares
+folder: ASO Prácticas
 description: "Practica los filtros, las tuberías y las expresiones regulares con ficheros del sistema, un diccionario y datos de portátiles. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p12/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
 setup:
 - script: 'set -e

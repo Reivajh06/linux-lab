@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p1-1
 version: '1.0'
 title: ASO Bash 1.1 · Instalación y exploración del sistema
+folder: ASO Bash
 description: "Scripts que consultan lo que la Práctica 1.1 explica durante la instalación:\
   \ herramientas y paquetes (`whereis`, `dnf`),\n    niveles de ejecución (`systemctl`,\
   \ enlaces de `runlevelN.target`), identidad del sistema, memoria, red y ficheros\

@@ -260,6 +260,7 @@ class Course(StrictModel):
     version: Annotated[str, StringConstraints(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,39}$")]
     title: Annotated[str, StringConstraints(min_length=1, max_length=200)]
     description: Text
+    folder: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)] | None = None  # library folder grouping related collections
     setup: list[Script] = Field(default_factory=list, max_length=30)
     exercises: list[Exercise] = Field(min_length=1, max_length=200)
 

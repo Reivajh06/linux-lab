@@ -1,0 +1,3075 @@
+schema_version: 1
+id: aso-p21-20-ejercicios-bash-2026
+version: '1.1'
+title: 'ASO - Práctica 2.1: programación básica en Bash'
+folder: ASO Prácticas · 20 ejercicios
+description: |-
+  20 ejercicios independientes basados en Práctica 2.1 (ULPGC, curso 2026/2027). Comandos: echo, printf, grep, cut, wc, mkdir, touch, id, getent. Conceptos Bash: #!/bin/bash, variables, parámetros ($#, $1, $2), if/elif/else, [[...]], ((...)), [[ =~ ]] para regex, while, funciones, argumentos de funciones, return, exit, $? y mensajes stdout/stderr. Se valoran las validaciones, los códigos de salida y una salida limpia.
+
+  Cada ejercicio incluye enunciado, ruta de script, comandos/conceptos y pruebas automáticas. Crea los scripts tú: la preparación solo facilita datos. Para las tareas Bash, escribe el shebang #!/bin/bash y da permisos de ejecución al script. Se usan las claves legacy `tasks` y `command`, compatibles con el formato solicitado por tu importador. Cuando no se diga otra cosa, stdout lleva los resultados, stderr los errores, éxito devuelve 0 y el número incorrecto de argumentos devuelve 1.
+setup:
+- script: |
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/datos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/series
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c
+    printf '%s\n' 'ana:x:1100:1100:Ana Sol:/home/ana:/bin/bash' 'beto:x:1101:2100:Beto Paz:/home/beto:/bin/sh' 'cora:x:1102:1102:Cora Ruiz:/srv/cora:/bin/bash' 'dani:x:1103:2100:Dani Gil:/home/dani:/usr/sbin/nologin' 'elena:x:1104:1104:Elena Mar:/home/elena:/bin/bash' 'fede:x:1110:2110:Fede Sur:/srv/fede:/bin/sh' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+    printf '%s\n' 'lola:x:1201:1201:Lola Luz:/home/lola:/bin/bash' 'paco:x:1202:1400:Paco Sur:/srv/paco:/bin/sh' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+    printf '%s\n' uno dos tres cuatro cinco seis > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    printf '%s\n' 'primera corta' 'segunda corta' > '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt'
+    touch /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+    printf '%s\n' alpha apple arena avion banana barco casa perro nube sol BOSQUE avena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt
+    printf '%s\n' proyecto:x:2500:ana,cora comun:x:2501:beto,dani,elena vacio:x:2502: > /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt
+    printf '%s\n' ana:/home/ana beto:/tmp/beto cora:/home/cora dani:/srv/dani elena:/home/elena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/hogares.txt
+    printf '%s\n' A1 A2 A3 A4 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt
+    printf '%s\n' B1 B2 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt
+    printf '%s\n' C1 C2 C3 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-c.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/comun.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+    printf '%s\n' 'archivo de prueba' > '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas clase.txt'
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/comun.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/uno.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+    printf '%s\n' 'archivo de prueba' > '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/notas clase.txt'
+    printf '%s\n' 'no descender' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub/interior.txt
+    chown -R learner:learner /home/learner/lab/aso-fundamentos/bash-21-22
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/datos
+    printf '%s\n' INFO:inicio ERROR:disco INFO:usuario AVISO:memoria ERROR:red INFO:fin > /home/learner/lab/aso-fundamentos/datos/mensajes.txt
+exercises:
+- id: p21-e01-contar-inicial
+  title: 01. Contar palabras por letra
+  description: |
+    Desarrolla un script que reciba **FICHERO LETRA**. Cuenta las líneas del fichero cuyo primer carácter es la letra indicada, sin distinguir mayúsculas de minúsculas. Imprime solo un número y un salto de línea (incluido si es 0).
+
+    El fichero de prueba `/home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt` sustituye al diccionario `/usr/share/dict/words` de la práctica 2.1. Puedes combinar `grep -i` y `wc -l`. Valida primero la cantidad de argumentos, luego el fichero y por último que LETRA sea una sola letra ASCII.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `grep -ic`, `wc -l`, `|`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `códigos de salida`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh`
+    - **Uso:** `p21-e01-contar-inicial.sh FICHERO LETRA`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos argumentos.
+    - El primer argumento debe ser un fichero regular.
+    - LETRA debe ser una única letra ASCII.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO LETRA`.
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+    - **letra:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Letra invalida`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt a
+    ```
+    Salida estándar esperada:
+    ```text
+    5
+    ```
+    Código de salida: `0`.
+  tips:
+  - La expresión regular `^a` busca la letra a al principio de la línea.
+  - '`grep -i` no distingue mayúsculas y minúsculas.'
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: contar
+    description: 'Cuenta varias letras sin distinguir su caja. '
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt B </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt Z </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida entradas y escribe el error en stderr.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO LETRA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO LETRA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt-no a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt aa </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Letra invalida')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e01-contar-inicial.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt 7 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Letra invalida')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e02-clasificar-numero
+  title: 02. Clasificar un número según sus dígitos
+  description: |
+    El script recibe una única cadena y responde con **una sola línea**, según el contenido: `NO ES NUMERO` si está vacía o tiene algún carácter no numérico; `UN DIGITO` si tiene un dígito; `DOS DIGITOS` si tiene dos; `TRES O MAS DIGITOS` si tiene tres o más.
+
+    Clasifica el texto, no el valor matemático: `007` tiene tres dígitos. El contenido no numérico **no es un error de ejecución**; solo se considera error una cantidad incorrecta de argumentos. Practica `[[ =~ ]]`, condiciones y `${#variable}`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `printf`.
+    - **Bash / conceptos:** `if/elif/else`, `[[ ... =~ ... ]]`, `${#variable}`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh`
+    - **Uso:** `p21-e02-clasificar-numero.sh CADENA`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente una cadena (puede ser vacía).
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: CADENA`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 007
+    ```
+    Salida estándar esperada:
+    ```text
+    TRES O MAS DIGITOS
+    ```
+    Código de salida: `0`.
+  tips:
+  - Usa una expresión regular anclada para aceptar únicamente dígitos.
+  - La longitud de una variable se obtiene con `${#cadena}`.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: categorias
+    description: Clasifica todos los tipos, incluidos ceros a la izquierda.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 5 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'UN DIGITO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 42 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'DOS DIGITOS
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 007 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'TRES O MAS DIGITOS
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 12345 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'TRES O MAS DIGITOS
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 3a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO ES NUMERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh '' </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO ES NUMERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Distingue una cadena vacía de la ausencia de argumentos.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: CADENA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 1 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: CADENA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e03-repetir-mensaje
+  title: 03. Repetir un mensaje con while
+  description: |
+    Recibe un entero `N` entre **1 y 8**, inclusive. Con un bucle `while`, muestra N líneas con el formato `1: hola, mundo`, `2: hola, mundo`, etc. No añadas encabezados ni líneas vacías.
+
+    Valida cantidad de argumentos, formato decimal y rango, por ese orden. Practica `$#`, variables, `(( ))`, `if`, stderr y `exit`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `echo`, `printf`.
+    - **Bash / conceptos:** `while`, `$#`, `(( ... ))`, `if`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh`
+    - **Uso:** `p21-e03-repetir-mensaje.sh N`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - N contiene solamente dígitos.
+    - N debe estar entre 1 y 8.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: N`.
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `N debe ser numerico`.
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `N fuera de rango`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 3
+    ```
+    Salida estándar esperada:
+    ```text
+    1: hola, mundo
+    2: hola, mundo
+    3: hola, mundo
+    ```
+    Código de salida: `0`.
+  tips:
+  - Recuerda que `((i++))` puede producir estado no cero si i era 0; no lo trates como fallo 
+    automáticamente.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: iteraciones
+    description: Produce exactamente el número de líneas pedido.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1: hola, mundo
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1: hola, mundo
+        2: hola, mundo
+        3: hola, mundo
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 8 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1: hola, mundo
+        2: hola, mundo
+        3: hola, mundo
+        4: hola, mundo
+        5: hola, mundo
+        6: hola, mundo
+        7: hola, mundo
+        8: hola, mundo
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza número incorrecto de argumentos, formato y rango.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: N')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 2 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: N')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh hola </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'N debe ser numerico')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'N fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e03-repetir-mensaje.sh 9 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'N fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e04-sumar-funcion
+  title: 04. Sumar con una función y sustitución de comandos
+  description: |
+    Recibe dos números enteros **no negativos de 0 a 9999**. Define una función Bash `sumar` que muestre la suma por stdout, utilízala y escribe `Resultado: SUMA` en una sola línea.
+
+    Este ejercicio reproduce el razonamiento sobre `return` y los resultados de funciones de la práctica 2.1: no uses el código de retorno para guardar la suma, ya que puede superar 255. Usa `$(( ))` y, preferiblemente, `$(sumar ...)`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `printf`, `echo`.
+    - **Bash / conceptos:** `funciones`, `$(( ... ))`, `$(...)`, `return`.
+    - **Ampliación opcional (no evaluada):** Si tienes Python instalado, comprueba **aparte** que `python3 -c "print(7+8)"` devuelve `15`. No lo uses para resolver el script Bash ni es necesario para aprobar.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh`
+    - **Uso:** `p21-e04-sumar-funcion.sh A B`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos valores.
+    - Ambos deben ser cadenas de dígitos.
+    - Los valores deben estar entre 0 y 9999.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: A B`.
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Argumentos no numericos`.
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Valor fuera de rango`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 250 10
+    ```
+    Salida estándar esperada:
+    ```text
+    Resultado: 260
+    ```
+    Código de salida: `0`.
+  tips:
+  - Una función devuelve información mediante stdout y estado mediante `return`.
+  - Comprueba primero la cadena con una expresión regular antes de operar.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: sumas
+    description: Suma valores pequeños y sumas mayores que 255.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 2 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Resultado: 5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 250 10 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Resultado: 260
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 9999 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Resultado: 10000
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 0 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Resultado: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida cantidad, números y rangos.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: A B')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 3 no </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Argumentos no numericos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh -1 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Argumentos no numericos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 10000 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Valor fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e05-dos-campos
+  title: 05. Dos campos de un fichero tipo passwd
+  description: |
+    Recibe `CAMPO1 CAMPO2 [FICHERO]`. Los dos campos son números del **1 al 7**. Si no se indica FICHERO, utiliza `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt`; de lo contrario, procesa el fichero indicado. Muestra exactamente esos dos campos de cada línea separados por `:` y conserva **el orden en que están en el fichero**, aunque se hayan indicado los números en orden inverso.
+
+    Puedes emplear `cut -d: -f`. El fichero opcional y la validación del número de parámetros proceden de la actividad de la práctica 2.1.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `cut -d: -f`, `<`.
+    - **Bash / conceptos:** `$#`, `if`, `"$3"`, `[[ ... =~ ... ]]`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh`
+    - **Uso:** `p21-e05-dos-campos.sh CAMPO1 CAMPO2 [FICHERO]`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Se aceptan dos o tres argumentos.
+    - Los campos han de ser cadenas de dígitos.
+    - Ambos campos deben estar en el intervalo 1..7 y ser distintos.
+    - FICHERO tiene que ser un fichero regular.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: CAMPO1 CAMPO2 [FICHERO]`.
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Campos no numericos`.
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Campo fuera de rango`.
+    - **fichero:** código `4`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 1 7
+    ```
+    Salida estándar esperada:
+    ```text
+    ana:/bin/bash
+    beto:/bin/sh
+    cora:/bin/bash
+    dani:/usr/sbin/nologin
+    elena:/bin/bash
+    fede:/bin/sh
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`cut` muestra los campos en el orden en el que aparecen en la línea, no en el orden escrito tras
+    `-f`.'
+  - La ruta por defecto está preparada con datos de prueba.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: campos
+    description: Respeta el orden de columnas y fichero opcional.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 1 7 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana:/bin/bash
+        beto:/bin/sh
+        cora:/bin/bash
+        dani:/usr/sbin/nologin
+        elena:/bin/bash
+        fede:/bin/sh
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 7 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana:/bin/bash
+        beto:/bin/sh
+        cora:/bin/bash
+        dani:/usr/sbin/nologin
+        elena:/bin/bash
+        fede:/bin/sh
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 3 4 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1100:1100
+        1101:2100
+        1102:1102
+        1103:2100
+        1104:1104
+        1110:2110
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 2 5 /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'x:Lola Luz
+        x:Paco Sur
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida todos los argumentos antes de procesar.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: CAMPO1 CAMPO2 [FICHERO]')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh a 7 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Campos no numericos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 0 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Campo fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 1 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Campo fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e05-dos-campos.sh 1 2 /ruta/ausente </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e06-existe-fichero
+  title: 06. Detectar si existe un fichero regular
+  description: |
+    Recibe una ruta. Si corresponde a un **fichero regular**, muestra `EXISTE`; en caso contrario (ruta inexistente o directorio) muestra `NO EXISTE`. En ambos casos termina con código 0 y deja stderr vacío.
+
+    Únicamente se considera error recibir cero o más de un argumento. Practica `[[ -f ... ]]`, `if` y la diferencia entre resultado booleano y error de ejecución. Puedes probar `/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `echo`.
+    - **Bash / conceptos:** `if/else`, `[[ -f ... ]]`, `exit`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh`
+    - **Uso:** `p21-e06-existe-fichero.sh RUTA`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Se exige una ruta, ni más ni menos.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: RUTA`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    EXISTE
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`-f` se cumple para ficheros regulares, no para directorios.'
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: casos
+    description: Reconoce ficheros, directorios y rutas inexistentes.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/fantasma.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Controla la cantidad de parámetros.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: RUTA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e06-existe-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: RUTA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e07-miembros-grupo
+  title: 07. Listar miembros secundarios de un grupo
+  description: |
+    Recibe un nombre de grupo y busca su entrada en `/home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt`, fichero de muestra con formato `/etc/group`. Si existe, muestra `Miembros: NOMBRES` usando exactamente el campo 4 (nombres separados por comas). Si ese campo está vacío, muestra `Miembros: ninguno`. Si el grupo no aparece, escribe `Grupo inexistente` en stderr y termina con código 3.
+
+    La actividad reproduce la consulta de grupos de la práctica 2.1 sin modificar las cuentas reales. No añadas espacios entre los nombres.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `grep`, `cut -d: -f4`.
+    - **Bash / conceptos:** `if`, `[[ ... == ... ]]`, `exit`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh`
+    - **Uso:** `p21-e07-miembros-grupo.sh GRUPO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - El nombre del grupo contiene solo letras minúsculas.
+    - El grupo debe aparecer en los datos.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: GRUPO`.
+    - **nombre:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Nombre invalido`.
+    - **inexistente:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Grupo inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh proyecto
+    ```
+    Salida estándar esperada:
+    ```text
+    Miembros: ana,cora
+    ```
+    Código de salida: `0`.
+  tips:
+  - Recuerda que los miembros suplementarios de un grupo aparecen en el último campo de 
+    `/etc/group`.
+  - Un campo vacío es diferente de un grupo inexistente.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: grupos
+    description: Gestiona grupos con y sin miembros secundarios.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh proyecto </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Miembros: ana,cora
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh comun </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Miembros: beto,dani,elena
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh vacio </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Miembros: ninguno
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza nombres inválidos o grupos no registrados.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: GRUPO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh Proyecto </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e07-miembros-grupo.sh fantasma </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Grupo inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e08-crear-salida
+  title: 08. Crear directorio y añadir líneas al fichero
+  description: |
+    Recibe `N NOMBRE`. N es un entero entre **1 y 5**; NOMBRE tiene entre **3 y 12** letras minúsculas. Crea si hace falta el directorio `/home/learner/lab/aso-fundamentos/bash-21-22/salidas/NOMBRE`. Escribe N líneas numeradas `1: hola, mundo`, `2: hola, mundo`, ... en `salida.txt` dentro del directorio usando `>>` (añadir, **no sobrescribir**). En la salida estándar imprime `Creado: NOMBRE`.
+
+    Si `mkdir -p` no puede crear el directorio, suprime el mensaje original y emite `No se pudo crear directorio` por stderr (código 5). Valida todos los argumentos antes de crear nada. Reproduce el ejemplo de creación y tratamiento de fallos de la práctica 2.1.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `mkdir -p`, `>>`, `2>/dev/null`.
+    - **Bash / conceptos:** `while`, `(( ... ))`, `if ! comando`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh`
+    - **Uso:** `p21-e08-crear-salida.sh N NOMBRE`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Se reciben exactamente dos argumentos.
+    - N debe contener únicamente dígitos.
+    - N debe valer entre 1 y 5.
+    - El nombre tiene de 3 a 12 letras minúsculas.
+    - La creación del directorio y salida deben tener éxito.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: N NOMBRE`.
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `N no numerico`.
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `N fuera de rango`.
+    - **nombre:** código `4`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Nombre invalido`.
+    - **crear:** código `5`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `No se pudo crear directorio`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 2 boletin
+    ```
+    Salida estándar esperada:
+    ```text
+    Creado: boletin
+    ```
+    Código de salida: `0`.
+  tips:
+  - Si ejecutas dos veces el script con el mismo nombre, las nuevas líneas deben añadirse.
+  - Para comprobar un fallo de un comando se puede usar `if ! mkdir -p ... 2>/dev/null; then ... 
+    fi`.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: crear
+    description: Crea el directorio y rellena salida.txt.
+    points: 10
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        rm -rf /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 2 boletin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Creado: boletin
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: path
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin
+      kind: directory
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin/salida.txt
+      match: exact
+      value: |
+        1: hola, mundo
+        2: hola, mundo
+  - id: anexar
+    description: Con una salida ya existente se añaden líneas, sin borrar las anteriores.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        rm -rf /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin
+        install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin
+        printf '%s\n' '1: hola, mundo' '2: hola, mundo' > /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin/salida.txt
+        chown learner:learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin/salida.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 3 boletin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Creado: boletin
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/boletin/salida.txt
+      match: exact
+      value: |
+        1: hola, mundo
+        2: hola, mundo
+        1: hola, mundo
+        2: hola, mundo
+        3: hola, mundo
+  - id: errores
+    description: Distingue los distintos errores y la imposibilidad de crear.
+    points: 4
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: N NOMBRE')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh x boletin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'N no numerico')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 0 boletin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'N fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 1 Mayus </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        printf '%s\n' 'bloqueado' > /home/learner/lab/aso-fundamentos/bash-21-22/salidas/bloqueado
+        chown learner:learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas/bloqueado
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p21-e08-crear-salida.sh 2 bloqueado </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 5 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No se pudo crear directorio')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e09-rango-bucle
+  title: 09. Generar un rango de enteros
+  description: |
+    Recibe `INICIO FIN` y muestra una línea por cada entero entre INICIO y FIN, ambos inclusive. Los dos extremos deben estar en **0..20**, INICIO no puede ser mayor que FIN y la diferencia `FIN-INICIO` no puede superar 10.
+
+    Usa un bucle `while` y operadores aritméticos de Bash. Valida en este orden: cantidad, formato, límites y orden. No se admiten signos negativos. La salida no lleva prefijos.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `printf`.
+    - **Bash / conceptos:** `while`, `(( ... ))`, `[[ ... =~ ... ]]`, `if`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh`
+    - **Uso:** `p21-e09-rango-bucle.sh INICIO FIN`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Dos argumentos obligatorios.
+    - Ambos argumentos deben ser cadenas de dígitos.
+    - Ambos extremos están en 0..20 y se generan como máximo 11 números.
+    - INICIO debe ser menor o igual que FIN.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: INICIO FIN`.
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Extremos no numericos`.
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Rango fuera de limites`.
+    - **orden:** código `4`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Inicio mayor que fin`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 2 4
+    ```
+    Salida estándar esperada:
+    ```text
+    2
+    3
+    4
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`while (( i <= fin ))` permite iterar sin necesitar `seq`.'
+  - Evita un bucle infinito incrementando el contador.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: rangos
+    description: Comprueba rango de un elemento, con cero y con varios elementos.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 2 4 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '2
+        3
+        4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 0 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 15 20 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '15
+        16
+        17
+        18
+        19
+        20
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza entradas ilegales con el código correcto.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: INICIO FIN')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh a 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Extremos no numericos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 0 21 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Rango fuera de limites')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 0 12 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Rango fuera de limites')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e09-rango-bucle.sh 7 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Inicio mayor que fin')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e10-comprobar-cuenta
+  title: 10. Comprobar home y shell de una cuenta
+  description: |
+    Recibe el nombre de una cuenta de prueba que figura en `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt`. Muestra una línea con el formato `HOME=SI SHELL=NO` (o `SI/NO` según corresponda). `HOME=SI` significa que el directorio personal registrado empieza por `/home/`. `SHELL=SI` significa que el campo 7 es exactamente `/bin/bash`.
+
+    Si no existe la cuenta, emite `Usuario inexistente` en stderr con código 3. Practica `grep`, `cut`, condiciones y `&&` / `||` si lo deseas, siguiendo las actividades de la práctica 2.1.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `grep`, `cut -d: -f`, `|`.
+    - **Bash / conceptos:** `if`, `[[ ... == ... ]]`, `&&`, `||`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh`
+    - **Uso:** `p21-e10-comprobar-cuenta.sh USUARIO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Un argumento obligatorio.
+    - Nombre de usuario en letras minúsculas.
+    - El usuario debe figurar en el fichero de prueba.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: USUARIO`.
+    - **nombre:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Nombre invalido`.
+    - **inexistente:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Usuario inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh ana
+    ```
+    Salida estándar esperada:
+    ```text
+    HOME=SI SHELL=SI
+    ```
+    Código de salida: `0`.
+  tips:
+  - El nombre va en el primer campo de cada línea de tipo passwd.
+  - Comprueba las dos propiedades de manera independiente.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: combinaciones
+    description: Comprueba las cuatro combinaciones de directorio y shell.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh ana </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'HOME=SI SHELL=SI
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh cora </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'HOME=NO SHELL=SI
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh beto </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'HOME=SI SHELL=NO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh fede </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'HOME=NO SHELL=NO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida nombre de cuenta y existencia.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh Ana </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e10-comprobar-cuenta.sh zoe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e11-detectar-el-tipo-de-ruta
+  title: 11. Detectar el tipo de ruta
+  description: |
+    Recibe una ruta e indica si es un fichero regular (`FICHERO`), un directorio (`DIRECTORIO`) o no existe ninguno de esos tipos (`OTRO`). El número de argumentos siempre debe ser uno. Similar al primer ejercicio de la práctica 2.1, ampliado con prueba de directorio.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `test`, `ls`.
+    - **Bash / conceptos:** `$#`, `if/elif/else`, `[[ -f ]]`, `[[ -d ]]`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh`
+    - **Uso:** `p21-e11-detectar-el-tipo-de-ruta.sh RUTA`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: una de las cadenas `FICHERO`, `DIRECTORIO`, `OTRO`.
+    - 1: stderr `Uso: RUTA`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    ```
+    Salida esperada:
+    ```text
+    FICHERO
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh /fichero_que_no_existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OTRO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: RUTA
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e12-comprobar-usuario-o-grupo-por-opcion
+  title: 12. Comprobar usuario o grupo por opción
+  description: |
+    Recibe Opcion NOMBRE. La opción `-u` consulta un usuario; `-g`, un grupo. Devuelve `EXISTE` o `NO EXISTE`. Actividad tomada de la práctica autónoma de la 2.1. Debes rechazar las opciones desconocidas.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `getent passwd`, `getent group`.
+    - **Bash / conceptos:** `if`, `[[ ... ]]`, `exit`, código de retorno.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh`
+    - **Uso:** `p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -u|-g NOMBRE`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `EXISTE` o `NO EXISTE`.
+    - 1: `Uso: OPCION NOMBRE`.
+    - 2: `Opcion no valida`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -u root
+    ```
+    Salida esperada:
+    ```text
+    EXISTE
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -u root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -g root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -u usuario_imposible_2099 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: OPCION NOMBRE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e12-comprobar-usuario-o-grupo-por-opcion.sh -x root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Opcion no valida
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e13-comparar-dos-enteros-positivos
+  title: 13. Comparar dos enteros positivos
+  description: |
+    Recibe dos enteros escritos como secuencias de dígitos decimales (de 0 a 10000). Muestra `Mayor: N` (el mayor), o `Iguales` si ambos valores coinciden. No aceptes negativos ni signos; valida formato y rango antes de comparar.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`.
+    - **Bash / conceptos:** `$#`, regex `^[0-9]+$`, `(( ))`, `if/elif`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh`
+    - **Uso:** `p21-e13-comparar-dos-enteros-positivos.sh A B`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Mayor: N` o `Iguales`.
+    - 1: `Uso: A B`.
+    - 2: `Enteros no validos` si no son dígitos.
+    - 3: `Fuera de rango` si uno excede 10000.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh 5 12
+    ```
+    Salida esperada:
+    ```text
+    Mayor: 12
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh 5 12 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Mayor: 12
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh 8 8 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Iguales
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh 100 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Mayor: 100
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: A B
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh abc 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Enteros no validos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e13-comparar-dos-enteros-positivos.sh 10001 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fuera de rango
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e14-sumar-de-1-hasta-n-con-while
+  title: 14. Sumar de 1 hasta N con while
+  description: |
+    Recibe un entero N de 1 a 20. Utiliza un bucle `while` y aritmética Bash para calcular 1+2+...+N. Imprime `Suma: RESULTADO`. Debes diferenciar un número no válido de un valor fuera de rango.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`.
+    - **Bash / conceptos:** `while`, `(( ))`, variables, regex `^[0-9]+$`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh`
+    - **Uso:** `p21-e14-sumar-de-1-hasta-n-con-while.sh N`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: resultado numérico `Suma: X`.
+    - 1: `Uso: N`.
+    - 2: `No es entero`.
+    - 3: `Fuera de rango` si N no está entre 1 y 20.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh 1
+    ```
+    Salida esperada:
+    ```text
+    Suma: 1
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Suma: 1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh 5 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Suma: 15
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh 20 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Suma: 210
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: N
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh x </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No es entero
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fuera de rango
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e15-determinar-paridad-mediante-funcion
+  title: 15. Determinar paridad mediante función
+  description: |
+    Recibe un entero no negativo de 0 a 999. Define una función Bash `es_par` que devuelva código 0 si su argumento es par y distinto de cero si es impar; usa el resultado de la función para imprimir `PAR` o `IMPAR`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`.
+    - **Bash / conceptos:** funciones, `return`, `$?`, `if funcion`, operador `%`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh`
+    - **Uso:** `p21-e15-determinar-paridad-mediante-funcion.sh NUMERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `PAR` o `IMPAR`.
+    - 1: `Uso: NUMERO`.
+    - 2: `Numero no valido`.
+    - 3: `Fuera de rango`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 0
+    ```
+    Salida esperada:
+    ```text
+    PAR
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'PAR
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 11 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'IMPAR
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 124 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'PAR
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: NUMERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 3a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Numero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e15-determinar-paridad-mediante-funcion.sh 1000 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fuera de rango
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e16-calcular-factorial-con-bucle
+  title: 16. Calcular factorial con bucle
+  description: |
+    Recibe un entero N de 0 a 8 y muestra `Factorial: N!` (el resultado numérico, no la expresión). Usa un bucle y aritmética de Bash; 0! vale 1. Evita herramientas de programación externas.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`.
+    - **Bash / conceptos:** variables, bucle `while`, `(( ))`, validación de argumentos.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh`
+    - **Uso:** `p21-e16-calcular-factorial-con-bucle.sh N`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Factorial: X`.
+    - 1: `Uso: N`.
+    - 2: `No es entero natural`.
+    - 3: `Fuera de rango`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh 0
+    ```
+    Salida esperada:
+    ```text
+    Factorial: 1
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Factorial: 1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh 4 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Factorial: 24
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh 8 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Factorial: 40320
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: N
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh -2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No es entero natural
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e16-calcular-factorial-con-bucle.sh 9 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fuera de rango
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e17-contar-mensajes-de-error-en-un-fichero
+  title: 17. Contar mensajes de error en un fichero
+  description: |
+    Recibe un fichero de líneas con prefijos `INFO:`, `ERROR:` y `AVISO:`. Cuenta únicamente las líneas que empiezan por `ERROR:` y muestra `Errores: N`, incluso si N es cero. Usa una tubería o un filtro con grep para practicar errores de salida.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `grep -c`, `cat`, `wc -l`.
+    - **Bash / conceptos:** `[[ -f ]]`, `if`, `$?`, `echo`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh`
+    - **Uso:** `p21-e17-contar-mensajes-de-error-en-un-fichero.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Errores: N`.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    ```
+    Salida esperada:
+    ```text
+    Errores: 0
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Errores: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh /home/learner/lab/aso-fundamentos/datos/mensajes.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Errores: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e17-contar-mensajes-de-error-en-un-fichero.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e18-validar-un-nombre-de-cuenta
+  title: 18. Validar un nombre de cuenta
+  description: |
+    Recibe una cadena y comprueba si tiene formato válido para este ejercicio: debe empezar por letra minúscula y contener **solo letras minúsculas, dígitos o guion bajo**, con longitud total de 3 a 12 caracteres. Imprime `VALIDO` o `INVALIDO` y devuelve código 0 en ambos casos.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`.
+    - **Bash / conceptos:** regex `^[a-z][a-z0-9_]{2,11}$`, `[[ =~ ]]`, `if`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh`
+    - **Uso:** `p21-e18-validar-un-nombre-de-cuenta.sh NOMBRE`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `VALIDO` o `INVALIDO`.
+    - 1: `Uso: NOMBRE` para número incorrecto de parámetros.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ana_21
+    ```
+    Salida esperada:
+    ```text
+    VALIDO
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ana_21 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'VALIDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'INVALIDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh juan-P </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'INVALIDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ab9 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'VALIDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e18-validar-un-nombre-de-cuenta.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: NOMBRE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e19-controlar-errores-al-crear-un-directorio
+  title: 19. Controlar errores al crear un directorio
+  description: |
+    Recibe una ruta DIRECTORIO. Intenta ejecutar `mkdir` (sin `-p`): si se crea muestra `Creado`; si ya existe un directorio muestra `Ya existe` y termina correctamente; si no puede crearlo (por ejemplo porque el destino es un fichero o no existe el padre), emite `No se pudo crear` a stderr y código 3. Practica comprobar el código devuelto por un comando.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `mkdir`, `ls -ld`.
+    - **Bash / conceptos:** `if ! mkdir`, `[[ -d ]]`, `$?`, `exit`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh`
+    - **Uso:** `p21-e19-controlar-errores-al-crear-un-directorio.sh DIRECTORIO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Creado` si es nuevo o `Ya existe` si ya había un directorio.
+    - 1: `Uso: DIRECTORIO`.
+    - 3: `No se pudo crear` si mkdir falla. Suprime stderr interno de mkdir.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh /temporal
+    ```
+    Salida esperada:
+    ```text
+    Creado
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        d="$td/nuevo"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Creado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ -d "$d" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Ya existe
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e19-controlar-errores-al-crear-un-directorio.sh /no_existe_9_91/sub </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No se pudo crear
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p21-e20-maximo-de-tres-enteros-con-una-funcion
+  title: 20. Máximo de tres enteros con una función
+  description: |
+    Recibe tres enteros no negativos entre 0 y 999. Crea una función `maximo` que compare sus tres argumentos y produzca el mayor como valor de salida. El script principal imprimirá `Maximo: N`. Es un ejercicio de funciones, argumentos locales y sustitución de comandos.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `echo`, `printf`.
+    - **Bash / conceptos:** función `maximo`, `$1` `$2` `$3`, `$()`, `if`, `(( ))`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh`
+    - **Uso:** `p21-e20-maximo-de-tres-enteros-con-una-funcion.sh A B C`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Maximo: N`.
+    - 1: `Uso: A B C`.
+    - 2: `Enteros no validos`.
+    - 3: `Fuera de rango`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh 4 12 8
+    ```
+    Salida esperada:
+    ```text
+    Maximo: 12
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh 4 12 8 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Maximo: 12
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh 7 7 7 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Maximo: 7
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh 999 0 24 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Maximo: 999
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: A B C
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh a 2 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Enteros no validos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p21-e20-maximo-de-tres-enteros-con-una-funcion.sh 1000 2 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fuera de rango
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0

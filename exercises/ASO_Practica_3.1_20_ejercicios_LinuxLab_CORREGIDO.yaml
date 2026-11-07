@@ -1,0 +1,1778 @@
+schema_version: 1
+id: aso-p31-20-ejercicios-bash-2026
+version: '1.1'
+title: 'ASO - Práctica 3.1: procesos en Linux (20 ejercicios)'
+folder: ASO Prácticas · 20 ejercicios
+description: |-
+  Basados en la Práctica 3.1 de ULPGC (2026/2027). Comandos generales: `ps` (opciones `-e`, `-f`, `-o`, `--sort`, `--no-headers`), `top` (uso no interactivo `-b -n 1`), `pgrep`, `pidof`, `pstree`, `kill`, `killall`, `pkill`, `head`, `grep`, `cut`, `sort`, `uniq`, `wc` y tuberías. Conceptos Bash: argumentos, bucles, comprobaciones, expresiones regulares, códigos de salida, procesos padre/hijo, PID/PPID, estados S, R, Z, T, CPU, memoria, señales y trabajos en segundo plano.
+
+  IMPORTANTE: En los ejercicios 1-14 y 20 se utiliza el fichero `/home/learner/lab/aso-procesos/datos/procesos.psv` (volcado simplificado de `ps` **con separador `|` y SIN cabecera**) para que las evaluaciones sean estables. Sus campos son: 1 PID, 2 USUARIO, 3 PPID, 4 ESTADO, 5 %CPU, 6 %MEM, 7 TIEMPO_CPU, 8 TIEMPO_TRANSCURRIDO, 9 COMANDO, 10 TTY, 11 LÍNEA_COMPLETA. En los ejercicios 15-19 consulta procesos reales, pero nunca termines uno que no haya sido lanzado expresamente para la actividad. La tabla de cuentas de práctica está en `/home/learner/lab/aso-procesos/datos/cuentas.passwd`.
+
+  Cada ejercicio especifica qué comandos y qué conceptos Bash practicar. Escribe tú los scripts; el entorno solo prepara datos y herramientas simuladas. Las tareas de evaluación usan `tasks` y comandos de comprobación de sintaxis compatible con el importador. En todos los casos separa stdout y stderr, y usa los códigos de salida indicados.
+setup:
+- script: |
+    install -d -o learner -g learner /home/learner/lab/aso-procesos
+    install -d -o learner -g learner /home/learner/lab/aso-procesos/scripts
+    install -d -o learner -g learner /home/learner/lab/aso-procesos/datos
+    printf '%s\n' '100|root|1|S|0.0|1.2|00:01:10|05:10:00|systemd|?|/usr/lib/systemd/systemd' '210|root|100|S|0.1|0.7|00:00:10|02:00:00|sshd|?|/usr/sbin/sshd -D' '310|ana|210|S+|0.0|0.4|00:00:12|01:30:00|bash|pts/0|-bash' '315|ana|310|R+|7.5|1.1|00:03:30|00:45:00|python3|pts/0|python3 demo.py' '316|ana|310|S|0.0|0.1|00:00:01|00:05:00|sleep|pts/0|sleep 100' '320|bruno|210|S+|0.0|0.4|00:00:05|00:35:00|bash|pts/1|-bash' '325|bruno|320|R|15.1|6.5|00:20:00|00:24:00|gcc|pts/1|gcc main.c' '330|bruno|320|S|0.0|0.2|00:00:00|00:20:00|grep|pts/1|grep bash' '340|ana|310|R|3.0|2.0|00:05:15|00:20:00|java|pts/0|java -jar app.jar' '350|carla|210|S|0.0|0.3|00:00:30|00:40:00|bash|pts/2|-bash' '355|carla|350|S|0.0|0.8|00:00:07|00:30:00|vim|pts/2|vim notas.txt' '400|root|100|S|0.0|0.9|00:00:20|00:50:00|httpd|?|/usr/sbin/httpd -DFOREGROUND' '401|apache|400|S|0.2|1.3|00:00:42|00:49:00|httpd|?|/usr/sbin/httpd -DFOREGROUND' '402|apache|400|S|0.1|1.2|00:00:34|00:48:00|httpd|?|/usr/sbin/httpd -DFOREGROUND' '450|root|100|S|0.0|0.2|00:00:25|00:55:00|cron|?|/usr/sbin/cron -f' '500|ana|310|Z|0.0|0.0|00:00:00|00:01:00|child|pts/0|[child] <defunct>' '510|bruno|320|S|0.1|0.1|00:00:08|00:12:00|tail|pts/1|tail -f debug.log' '520|root|100|Ssl|0.0|0.5|00:00:06|00:20:00|dbus-daemon|?|/usr/bin/dbus-daemon' > /home/learner/lab/aso-procesos/datos/procesos.psv
+    printf '%s\n' root:x:0:0::/home/root:/bin/bash ana:x:1001:1001::/home/ana:/bin/bash bruno:x:1002:1002::/home/bruno:/bin/bash carla:x:1003:1003::/home/carla:/bin/bash apache:x:48:48::/home/apache:/bin/bash sinprocesos:x:1900:1001::/home/sinprocesos:/bin/bash > /home/learner/lab/aso-procesos/datos/cuentas.passwd
+    chown learner:learner /home/learner/lab/aso-procesos/datos/procesos.psv /home/learner/lab/aso-procesos/datos/cuentas.passwd
+exercises:
+- id: p31-e01-procesos-de-un-usuario-en-un-volcado
+  title: 01. Procesos de un usuario en un volcado
+  description: |
+    Recibe USUARIO. Procesa `/home/learner/lab/aso-procesos/datos/procesos.psv` y muestra una línea `PID COMANDO` por cada proceso de ese usuario, en orden ascendente de PID. Si el usuario no aparece, stdout vacío y éxito.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep -F`, `cut -d'|'`, `sort -n`.
+    - **Bash y conceptos:** `$#`, `if`, tuberías y comillas.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh`.
+    - **Uso:** `p31-e01-procesos-de-un-usuario-en-un-volcado.sh USUARIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: USUARIO`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh ana
+    ```
+  tips:
+  - Filtra por el segundo campo de forma exacta, no por subcadenas que puedan aparecer en otros 
+    campos.
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh ana </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '310 bash
+        315 python3
+        316 sleep
+        340 java
+        500 child
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh nadie </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e01-procesos-de-un-usuario-en-un-volcado.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e02-contar-procesos-de-cada-usuario
+  title: 02. Contar procesos de cada usuario
+  description: |
+    Recibe USUARIO y devuelve `USUARIO: N`, siendo N el número de filas de `/home/learner/lab/aso-procesos/datos/procesos.psv` cuyo campo 2 coincide exactamente. Si no aparece, usa N=0.
+
+    ### Comandos a practicar
+    - **Comandos:** `cut`, `grep -Fxc`, `wc -l`.
+    - **Bash y conceptos:** validación de argumentos y sustitución `$(...)`.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh`.
+    - **Uso:** `p31-e02-contar-procesos-de-cada-usuario.sh USUARIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: USUARIO`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh root
+    ```
+  tips:
+  - '`grep -Fxc` facilita un recuento exacto sin imprimir las coincidencias.'
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh root </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'root: 5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh ana </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana: 5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh nadie </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'nadie: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e03-cinco-procesos-con-mas-tiempo-de-cpu
+  title: 03. Cinco procesos con más tiempo de CPU
+  description: |
+    Muestra `PID COMANDO TIEMPO_CPU` para los cinco procesos que más tiempo acumulado de CPU tienen en el volcado. El campo 7 tiene formato fijo HH:MM:SS, por lo que puede ordenarse como texto en orden descendente. Si hay empate, conserva el orden original.
+
+    ### Comandos a practicar
+    - **Comandos:** `sort -s -t'|' -k7,7r`, `head -n 5`, `cut`.
+    - **Bash y conceptos:** tuberías y ordenación por campos.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh`.
+    - **Uso:** `p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '325 gcc 00:20:00
+        340 java 00:05:15
+        315 python3 00:03:30
+        100 systemd 00:01:10
+        401 httpd 00:00:42
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e03-cinco-procesos-con-mas-tiempo-de-cpu.sh extra </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu
+  title: 04. Cinco procesos con mayor porcentaje de CPU
+  description: |
+    Muestra `PID COMANDO PORCENTAJE` para los cinco registros con mayor uso de CPU (campo 5), de mayor a menor, tomando ese campo como número decimal. Si empatan, conserva el orden original del fichero.
+
+    ### Comandos a practicar
+    - **Comandos:** `sort -s -t'|' -k5,5nr`, `head`, `cut`.
+    - **Bash y conceptos:** tuberías y comparación numérica en sort.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh`.
+    - **Uso:** `p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '325 gcc 15.1
+        315 python3 7.5
+        340 java 3.0
+        401 httpd 0.2
+        210 sshd 0.1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e05-tres-procesos-mas-antiguos
+  title: 05. Tres procesos más antiguos
+  description: |
+    Muestra `PID COMANDO TIEMPO_TRANSCURRIDO` de los tres procesos con mayor tiempo transcurrido (campo 8, formato fijo HH:MM:SS) en orden descendente.
+
+    ### Comandos a practicar
+    - **Comandos:** `sort -t'|' -k8,8r`, `head -n 3`, `cut`.
+    - **Bash y conceptos:** ordenación lexicográfica con campos temporales de ancho fijo.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh`.
+    - **Uso:** `p31-e05-tres-procesos-mas-antiguos.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '100 systemd 05:10:00
+        210 sshd 02:00:00
+        310 bash 01:30:00
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e05-tres-procesos-mas-antiguos.sh extra </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e06-procesos-exactamente-dormidos-en-s
+  title: 06. Procesos exactamente dormidos en S
+  description: |
+    Lista solamente los PID de procesos cuyo campo ESTADO sea **exactamente** `S`. No incluyas los estados `S+` ni `Ssl`. Ordena de menor a mayor.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep`, `cut`, `sort -n`.
+    - **Bash y conceptos:** comparación exacta de campos, regex y evitar falsas coincidencias.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh`.
+    - **Uso:** `p31-e06-procesos-exactamente-dormidos-en-s.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '100
+        210
+        316
+        330
+        350
+        355
+        400
+        401
+        402
+        450
+        510
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e06-procesos-exactamente-dormidos-en-s.sh S </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e07-procesos-en-estado-s
+  title: 07. Procesos en estado S+
+  description: |
+    Lista los PID cuyo campo ESTADO sea exactamente `S+` (el signo `+` es literal). Conserva el orden del fichero.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep -E`, `cut`.
+    - **Bash y conceptos:** expresiones regulares y escape del signo `+`.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh`.
+    - **Uso:** `p31-e07-procesos-en-estado-s.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '310
+        320
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e07-procesos-en-estado-s.sh extra </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e08-contar-procesos-zombis
+  title: 08. Contar procesos zombis
+  description: |
+    Muestra solamente el número decimal de procesos cuyo estado sea exactamente `Z`. Este es el estado que indica proceso zombi en el ejemplo.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep -c`, `cut`.
+    - **Bash y conceptos:** `if` o `||` para gestionar el código 1 de grep sin coincidencias.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh`.
+    - **Uso:** `p31-e08-contar-procesos-zombis.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e08-contar-procesos-zombis.sh z </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e09-listar-procesos-que-no-sean-de-root
+  title: 09. Listar procesos que no sean de root
+  description: |
+    Excluye las filas cuyo propietario es `root`. Muestra `USUARIO PID COMANDO` por proceso, ordenando alfabéticamente por usuario y por PID numérico dentro de cada usuario.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep -v`, `sort -t'|' -k2,2 -k1,1n`, `cut`.
+    - **Bash y conceptos:** tuberías y filtrado de columnas.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh`.
+    - **Uso:** `p31-e09-listar-procesos-que-no-sean-de-root.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana 310 bash
+        ana 315 python3
+        ana 316 sleep
+        ana 340 java
+        ana 500 child
+        apache 401 httpd
+        apache 402 httpd
+        bruno 320 bash
+        bruno 325 gcc
+        bruno 330 grep
+        bruno 510 tail
+        carla 350 bash
+        carla 355 vim
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e09-listar-procesos-que-no-sean-de-root.sh -x </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e10-usuarios-diferentes-que-ejecutan-procesos
+  title: 10. Usuarios diferentes que ejecutan procesos
+  description: |
+    Cuenta cuántos nombres de usuario distintos aparecen en el campo 2 del volcado y muestra únicamente ese número.
+
+    ### Comandos a practicar
+    - **Comandos:** `cut -d'|' -f2`, `sort -u`, `uniq`, `wc -l`.
+    - **Bash y conceptos:** eliminación de duplicados y tuberías.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh`.
+    - **Uso:** `p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e10-usuarios-diferentes-que-ejecutan-procesos.sh root </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e11-buscar-bash-en-la-linea-de-comandos-comple
+  title: 11. Buscar bash en la línea de comandos completa
+  description: |
+    Muestra los PID de todas las filas cuyo campo 11 (línea completa) contenga la cadena `bash`, incluso si el programa ejecutado no es bash. Así se observa por qué una búsqueda textual puede incluir una ejecución de `grep bash`.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep -F`, `cut -d'|' -f11`, `cut -d'|' -f1`.
+    - **Bash y conceptos:** búsqueda literal por subcadena y tuberías.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh`.
+    - **Uso:** `p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '310
+        320
+        330
+        350
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e11-buscar-bash-en-la-linea-de-comandos-comple.sh bash </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e12-procesos-del-usuario-asociados-a-terminal
+  title: 12. Procesos del usuario asociados a terminal
+  description: |
+    Recibe USUARIO. Selecciona sus procesos cuyo campo 10 no sea `?`. Muestra `TTY PID COMANDO`, ordenado por TTY y, en caso de empate, por PID. Si no tiene terminales, stdout vacío.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep`, `sort -t'|' -k10,10 -k1,1n`, `cut`.
+    - **Bash y conceptos:** validación de usuario y comparación de campos.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh`.
+    - **Uso:** `p31-e12-procesos-del-usuario-asociados-a-terminal.sh USUARIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: USUARIO`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh ana
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh ana </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'pts/0 310 bash
+        pts/0 315 python3
+        pts/0 316 sleep
+        pts/0 340 java
+        pts/0 500 child
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh apache </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e12-procesos-del-usuario-asociados-a-terminal.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e13-procesos-hijos-de-un-pid
+  title: 13. Procesos hijos de un PID
+  description: |
+    Recibe un PID decimal positivo. Lista, en orden ascendente, los PID de todas las filas cuyo PPID (campo 3) sea igual al PID dado. Si no hay hijos, salida vacía. Rechaza valores no numéricos o 0.
+
+    ### Comandos a practicar
+    - **Comandos:** `grep`, `cut`, `sort -n`.
+    - **Bash y conceptos:** regex `^[0-9]+$`, `(( ))` y parámetros.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh`.
+    - **Uso:** `p31-e13-procesos-hijos-de-un-pid.sh PID`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: PID`.
+      - **Código 2:** `PID no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh 310
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh 310 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '315
+        316
+        340
+        500
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh 400 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '401
+        402
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh 9999 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: PID
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh xx </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh 0 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e14-contar-procesos-por-comando-exacto
+  title: 14. Contar procesos por comando exacto
+  description: |
+    Recibe COMANDO (por ejemplo `httpd` o `bash`). Cuenta las filas con campo 9 exactamente igual al comando recibido y muestra únicamente un entero. No confundas el nombre exacto con una búsqueda en la línea completa.
+
+    ### Comandos a practicar
+    - **Comandos:** `cut -d'|' -f9`, `grep -Fxc`.
+    - **Bash y conceptos:** variables y comillas; diferencias entre comm y cmd.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh`.
+    - **Uso:** `p31-e14-contar-procesos-por-comando-exacto.sh COMANDO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: COMANDO`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh bash </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh inexistente </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e14-contar-procesos-por-comando-exacto.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: COMANDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e15-consultar-pid-ppid-y-comando-con-ps-real
+  title: 15. Consultar PID, PPID y comando con ps real
+  description: |
+    Recibe un PID numérico existente. Obtén de `ps` sus columnas PID, PPID y nombre de comando (comm), sin cabecera, y muéstralas en una sola línea separadas por espacios simples. Si el PID no existe: stderr `Proceso no encontrado` y código 3.
+
+    ### Comandos a practicar
+    - **Comandos:** `ps -p PID -o pid= -o ppid= -o comm=`.
+    - **Bash y conceptos:** captura con `$(...)`, `read`, `if !` y códigos de salida.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh`.
+    - **Uso:** `p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh PID`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: PID`.
+      - **Código 2:** `PID no valido`.
+      - **Código 3:** `Proceso no encontrado`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh 1
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        [ "$(ps -p 1 -o pid= -o ppid= -o comm= | { read -r p q c; printf "%s %s %s\n" "$p" "$q" "$c"; } )" = "$(cat "$td/out")" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: PID
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh abc </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e15-consultar-pid-ppid-y-comando-con-ps-real.sh 99999999 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Proceso no encontrado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e16-localizar-procesos-con-pgrep
+  title: 16. Localizar procesos con pgrep
+  description: |
+    Recibe un nombre de comando y muestra los PID, uno por línea y ordenados numéricamente, que devuelva `pgrep -x` (nombre exacto). Si no hay coincidencias, stdout vacío y código 0. Para practicar, prueba `pgrep -x bash` o `pgrep -x sleep`.
+
+    ### Comandos a practicar
+    - **Comandos:** `pgrep -x`, `sort -n`.
+    - **Bash y conceptos:** `if`, salida de comandos y manejo de coincidencia vacía.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh`.
+    - **Uso:** `p31-e16-localizar-procesos-con-pgrep.sh COMANDO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: COMANDO`.
+
+    Para evitar resultados cambiantes, la evaluación comprueba el caso sin coincidencias y también una búsqueda de un proceso `sleep` creado de forma aislada.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh proceso_que_no_existe_xxx
+    ```
+  tips:
+  - '`pgrep` devuelve código 1 si no encuentra coincidencias: en este ejercicio, la ausencia no es un
+    error del script.'
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh proceso_que_no_existe_xxx </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        sleep 30 &
+        pid=$!
+        trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh sleep </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] && [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "$pid" "$td/out" || exit 1
+        while IFS= read -r value; do
+          printf '%s\n' "$value" | grep -Eq '^[0-9]+$' || exit 1
+        done <"$td/out"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: COMANDO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e17-obtener-una-captura-acotada-de-top
+  title: 17. Obtener una captura acotada de top
+  description: |
+    Recibe un PID existente y ejecuta `top` en modo batch con **una sola actualización** y filtrado por ese PID (`-b -n 1 -p`). Si el comando acaba correctamente y su salida contiene una línea de cabecera que empieza por `top -`, imprime `CAPTURA OK`. No imprimas el listado interactivo completo.
+
+    ### Comandos a practicar
+    - **Comandos:** `top -b -n 1 -p PID`, `head -n 1`, `grep -q`.
+    - **Bash y conceptos:** `if`, tuberías y control de códigos de salida.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh`.
+    - **Uso:** `p31-e17-obtener-una-captura-acotada-de-top.sh PID`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: PID`.
+      - **Código 2:** `PID no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh 1
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 25
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'CAPTURA OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: PID
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e17-obtener-una-captura-acotada-de-top.sh cero </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e18-verificar-si-existe-un-proceso-sin-matarlo
+  title: 18. Verificar si existe un proceso sin matarlo
+  description: |
+    Recibe PID y usa `kill -0` únicamente para comprobar si el proceso existe y es accesible. Muestra `VIVO` o `NO EXISTE`, ambos con exit 0. No envíes SIGTERM ni SIGKILL en este ejercicio.
+
+    ### Comandos a practicar
+    - **Comandos:** `kill -0 PID`.
+    - **Bash y conceptos:** validación decimal, `if` y estado de comandos.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh`.
+    - **Uso:** `p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh PID`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: PID`.
+      - **Código 2:** `PID no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh PID
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        sleep 30 &
+        pid=$!
+        trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh "$pid" </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'VIVO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh 99999999 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: PID
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e18-verificar-si-existe-un-proceso-sin-matarlo.sh cualquier-cosa </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e19-terminar-un-proceso-de-prueba-por-pid
+  title: 19. Terminar un proceso de prueba por PID
+  description: |
+    Recibe PID. Si el proceso existe y puedes enviarle señales, envía **SIGTERM solo a ese PID** con `kill -TERM`, muestra `TERMINADO` y termina con 0. Si no existe o no tienes permiso, emite `No se pudo terminar` con código 3. La evaluación crea un `sleep` propio; nunca actúes sobre PIDs ajenos.
+
+    ### Comandos a practicar
+    - **Comandos:** `kill -TERM`, `kill -0`, `ps -p`.
+    - **Bash y conceptos:** validación y control de errores del comando kill.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh`.
+    - **Uso:** `p31-e19-terminar-un-proceso-de-prueba-por-pid.sh PID`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: PID`.
+      - **Código 2:** `PID no valido`.
+      - **Código 3:** `No se pudo terminar`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh PID
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips:
+  - No utilices `killall` ni `pkill` si la especificación exige terminar solamente el PID indicado.
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        sleep 30 &
+        pid=$!
+        trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh "$pid" </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'TERMINADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        wait "$pid" 2>/dev/null || true
+        ! kill -0 "$pid" 2>/dev/null || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: PID
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh -1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'PID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e19-terminar-un-proceso-de-prueba-por-pid.sh 99999999 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No se pudo terminar
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p31-e20-practica-completa-gid-y-minimo-de-procesos
+  title: 20. Práctica completa GID y mínimo de procesos
+  description: |
+    Adaptación de la actividad de laboratorio: recibe GID y MINIMO (enteros no negativos). Lee `/home/learner/lab/aso-procesos/datos/cuentas.passwd` para obtener las cuentas con ese GID primario y cuenta en `/home/learner/lab/aso-procesos/datos/procesos.psv` cuántos procesos tiene cada una. Muestra `USUARIO CANTIDAD` (orden alfabético) solo si CANTIDAD >= MINIMO **y CANTIDAD > 0**. Si ninguna cuenta cumple, imprime `Sin resultados` por stdout. No consultes los procesos reales del contenedor en este ejercicio.
+
+    ### Comandos a practicar
+    - **Comandos:** `cut`, `grep -Fxc`, `sort`, `wc`.
+    - **Bash y conceptos:** `while IFS=: read`, `if`, `(( ))`, validación de dos enteros.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh`.
+    - **Uso:** `p31-e20-practica-completa-gid-y-minimo-de-procesos.sh GID MINIMO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: GID MINIMO`.
+      - **Código 2:** `Numeros no validos`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh 1001 1
+    ```
+  tips:
+  - Los grupos primarios están en el cuarto campo de `passwd`. Un usuario sin procesos no debe 
+    mostrarse aunque el mínimo pedido sea cero.
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh 1001 1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana 5
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh 1001 6 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Sin resultados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh 65535 1 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Sin resultados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh 1001 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: GID MINIMO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-procesos/scripts/p31-e20-practica-completa-gid-y-minimo-de-procesos.sh x 3 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Numeros no validos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0

@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Markdown from 'react-markdown';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderInput, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, Volume2, VolumeX, PanelRightOpen } from 'lucide-react';
 import Desktop from './Desktop';
+import { plainText } from './text';
 import Environments from './Environments';
 import ExerciseBody from './ExerciseBody';
 import Modal from './Modal';
+import { CourseFolders, groupCourses } from './Library';
 import ChatMessage from './ChatMessage';
 import EnvironmentAssistant from './EnvironmentAssistant';
 import { applyTheme, defaults, palettes } from './theme';
+import { evaluationSound, play, readSoundSettings, saveSoundSettings } from './sounds';
 import type { Preferences } from './theme';
 import { api, configure, download, post, progressPercent, selectLocalModel } from './api';
 import type { Chat, Config, CourseDetail, CourseSummary, Environment, Result, Source } from './api';
@@ -40,6 +43,8 @@ function App() {
   const [build, setBuild] = useState({ state: 'idle', log: '' });
   const [search, setSearch] = useState('');
   const [chatDirty, setChatDirty] = useState(false);
+  const [sound, setSound] = useState(readSoundSettings);
+  const updateSound = (next: typeof sound) => { setSound(next); saveSoundSettings(next); };
   const fileInput = useRef<HTMLInputElement>(null);
   const fail = useCallback((e: unknown) => setError(e instanceof Error ? e.message : String(e)), []);
   const refreshCourses = useCallback(async () => { setCourses(await api<CourseSummary[]>('/courses')); setCoursesLoaded(true); }, []);
@@ -112,21 +117,18 @@ function App() {
             <label className="search-input"><Search size={17}/><input aria-label="Search collections" placeholder="Find your next exercise…" value={search} onChange={e => setSearch(e.target.value)}/>{search && <button className="icon-button" aria-label="Clear search" onClick={() => setSearch('')}><X size={14}/></button>}</label>
             <button className="text-button" onClick={showFormat}><BookOpen size={16}/>Exercise format guide</button>
           </div>
-          <div className="course-grid">
-            {!coursesLoaded && <div className="loading-state" role="status"><Loader2 className="spin" size={18}/>Loading collections…</div>}
-            {coursesLoaded && search.trim() && !visibleCourses.length && <div className="empty-state"><Search size={28}/><h3>No collections match “{search.trim()}”</h3><p>Try a different word, or clear the search to see your whole library.</p><button className="button secondary" onClick={() => setSearch('')}>Clear search</button></div>}
-            {visibleCourses.map(c => <button className="course-card" key={c.key} onClick={() => setCourseKey(c.key)}>
+          {!coursesLoaded && <div className="course-grid"><div className="loading-state" role="status"><Loader2 className="spin" size={18}/>Loading collections…</div></div>}
+          {coursesLoaded && search.trim() && !visibleCourses.length && <div className="course-grid"><div className="empty-state"><Search size={28}/><h3>No collections match “{search.trim()}”</h3><p>Try a different word, or clear the search to see your whole library.</p><button className="button secondary" onClick={() => setSearch('')}>Clear search</button></div></div>}
+          {coursesLoaded && <div className="library-groups"><CourseFolders groups={groupCourses(visibleCourses)} searching={!!search.trim()} trailing={!search.trim() && <button className="create-card" onClick={() => navigate('chat')}><span className="create-icon"><Sparkles size={25}/></span><h3>Generate exercises</h3><p>Create a YAML collection using a local model and selected sources.</p><span>Open Exercise Chat <ArrowRight size={15}/></span><div className="mini-tag"><Cpu size={12}/> LOCAL OLLAMA</div></button>} renderCard={c => <button className="course-card" key={c.key} aria-label={`${c.title}: ${c.environment ? 'open course' : 'start learning'}`} onClick={() => setCourseKey(c.key)}>
               <div className="course-card-top"><span className="collection-icon"><Terminal size={22}/></span><span className="tag">{c.id === 'linux-foundations' ? 'FOUNDATIONS' : 'YOUR COLLECTION'}</span></div>
               <h3>{c.title}</h3>
-              <p className="course-description">{c.description}</p>
+              <p className="course-description">{plainText(c.description)}</p>
               <div className="course-meta"><span><Layers3 size={14}/>{c.exercise_count} exercises</span><span><GraduationCap size={15}/>{c.points} points</span></div>
               <div className="course-progress"><div className="progress-track" role="progressbar" aria-label={`${c.title} progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent(c.earned, c.points)}><span style={{ width: `${progressPercent(c.earned, c.points)}%` }}/></div><span>{c.completed}/{c.exercise_count} complete</span></div>
               <div className="course-card-bottom"><span>{c.environment?.state === 'running' ? <><span className="dot"/>Environment running</> : <>v{c.version} · Saved locally</>}</span><span className="course-link">{c.environment ? 'Open course' : 'Start learning'}<ArrowRight size={15}/></span></div>
-            </button>)}
-            {!search.trim() && <button className="create-card" onClick={() => navigate('chat')}><span className="create-icon"><Sparkles size={25}/></span><h3>Generate exercises</h3><p>Create a YAML collection using a local model and selected sources.</p><span>Open Exercise Chat <ArrowRight size={15}/></span><div className="mini-tag"><Cpu size={12}/> LOCAL OLLAMA</div></button>}
-          </div>
+            </button>}/></div>}
         </div>}
-        {(page === 'practice' || (page === 'library' && courseKey) || (page === 'environments' && environmentId)) && <Workspace environmentId={page === 'environments' ? environmentId : null} courseKey={page === 'practice' ? null : courseKey} onBack={() => { setCourseKey(null); setEnvironmentId(null); }} onError={fail} onChanged={refreshCourses} onSetup={() => setModal('setup')}/>}
+        {(page === 'practice' || (page === 'library' && courseKey) || (page === 'environments' && environmentId)) && <Workspace folder={openCourse?.folder} folders={[...new Set(courses.flatMap(c => c.folder ? [c.folder] : []))].sort()} environmentId={page === 'environments' ? environmentId : null} courseKey={page === 'practice' ? null : courseKey} onBack={() => { setCourseKey(null); setEnvironmentId(null); }} onError={fail} onChanged={refreshCourses} onSetup={() => setModal('setup')}/>}
         {page === 'sources' && <Sources sources={sources} refresh={refreshSources} onError={fail} onChat={() => navigate('chat')}/>}
         {page === 'chat' && <ExerciseChat sources={sources} onError={fail} onImport={importCourse} onDirtyChange={setChatDirty}/>}
       </main>
@@ -142,6 +144,11 @@ function App() {
     {modal === 'appearance' && <Modal title="Appearance" onClose={closeModal} description="Select a dark palette or choose a custom accent color.">
       <div className="palette-grid" role="group" aria-label="Palettes">{palettes.map(palette => <button className={'palette-option ' + (preferences.palette === palette.id ? 'selected' : '')} aria-pressed={preferences.palette === palette.id} key={palette.id} onClick={() => saveAppearance({ palette: palette.id, accent: null })}><span className="palette-preview" aria-hidden="true" style={{ background: palette.background }}><span style={{ background: palette.sidebar }}/><i style={{ background: palette.surface }}/><b style={{ background: palette.accent }}/></span><strong>{palette.name}</strong>{preferences.palette === palette.id && <Check size={15}/>}</button>)}</div>
       <label className="accent-picker">Accent color<input type="color" value={currentAccent} onChange={e => setPreferences(p => ({ ...p, accent: e.target.value }))} onBlur={e => saveAppearance({ accent: e.target.value })}/><code>{currentAccent}</code></label>
+      <div className="sound-settings">
+        <label className="sound-toggle"><input type="checkbox" checked={sound.enabled} onChange={e => updateSound({ ...sound, enabled: e.target.checked })}/>{sound.enabled ? <Volume2 size={18}/> : <VolumeX size={18}/>}Sound effects</label>
+        <input type="range" aria-label="Sound volume" min={0} max={1} step={0.05} value={sound.volume} disabled={!sound.enabled} onChange={e => updateSound({ ...sound, volume: Number(e.target.value) })} onPointerUp={() => play('complete')} onKeyUp={() => play('complete')}/>
+        <button className="text-button" disabled={!sound.enabled} onClick={() => play('complete')}>Test</button>
+      </div>
       <div className="modal-actions"><button className="button secondary" onClick={() => saveAppearance({ palette: 'tux', accent: null })}>Reset appearance</button><button className="button" onClick={() => { if (preferences.accent) saveAppearance({ accent: preferences.accent }); closeModal(); }}>Done</button></div>
     </Modal>}
     {modal === 'format' && <Modal title="Exercise format guide" className="wide" onClose={closeModal}><article className="markdown docs"><Markdown>{format}</Markdown></article></Modal>}
@@ -164,12 +171,37 @@ function Stat({ icon: Icon, value, label, foot }: { icon: typeof Layers3; value:
   return <div className="stat"><span className="stat-icon"><Icon size={20}/></span><div><span className="stat-value">{value}</span><strong>{label}</strong><p>{foot}</p></div></div>;
 }
 
-function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSetup }: { courseKey: string | null; environmentId: string | null; onBack: () => void; onError: (e: unknown) => void; onChanged: () => Promise<void>; onSetup: () => void }) {
+// The exercise panel's share of the workspace width, in percent; the desktop takes the rest.
+const PANEL_KEY = 'linuxlab.exercisePanel';
+const PANEL_DEFAULT = 42;
+const clampPanel = (width: number) => Math.min(65, Math.max(28, width));
+function readPanel(): { width: number; open: boolean } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANEL_KEY) || 'null');
+    if (saved && typeof saved.width === 'number') return { width: clampPanel(saved.width), open: saved.open !== false };
+  } catch { /* Storage unavailable or corrupt: use the default split. */ }
+  return { width: PANEL_DEFAULT, open: true };
+}
+
+function Workspace({ courseKey, environmentId, folder, folders, onBack, onError, onChanged, onSetup }: { courseKey: string | null; environmentId: string | null; folder?: string | null; folders: string[]; onBack: () => void; onError: (e: unknown) => void; onChanged: () => Promise<void>; onSetup: () => void }) {
+  const grid = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState(readPanel);
+  useEffect(() => { try { localStorage.setItem(PANEL_KEY, JSON.stringify(layout)); } catch { /* Not persisted. */ } }, [layout]);
+  const resizeTo = (clientX: number) => {
+    const box = grid.current?.getBoundingClientRect();
+    if (box?.width) setLayout(l => ({ ...l, width: clampPanel((box.right - clientX) / box.width * 100) }));
+  };
   const [detail, setDetail] = useState<CourseDetail | null>(null);
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [selected, setSelected] = useState(0);
   const [busy, setBusy] = useState('');
   const [reset, setReset] = useState(false);
+  const [moving, setMoving] = useState<string | null>(null);
+  const move = async () => {
+    if (moving === null || !courseKey) return; setBusy('move');
+    try { await api(`/courses/${courseKey}`, { method: 'PATCH', body: JSON.stringify({ folder: moving }) }); setMoving(null); await onChanged(); }
+    catch (e) { onError(e); } finally { setBusy(''); }
+  };
   const [desktopKey, setDesktopKey] = useState(0);
   const [panel, setPanel] = useState<'exercise' | 'assistant'>('exercise');
   const exercise = detail?.course.exercises[selected];
@@ -182,13 +214,14 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
   useEffect(() => { setSelected(0); setEnvironment(null); setDetail(null); setPanel('exercise'); load().catch(onError); }, [load, onError]);
   const lifecycle = async (action: string) => {
     if (!environment) return; setBusy(action);
-    try { setEnvironment(await post<Environment>(`/environments/${environment.id}/${action}`)); setDesktopKey(n => n + 1); if (action === 'recreate') await load(); await onChanged(); }
-    catch (e) { onError(e); await load().catch(onError); } finally { setBusy(''); setReset(false); }
+    try { const next = await post<Environment>(`/environments/${environment.id}/${action}`); setEnvironment(next); setDesktopKey(n => n + 1); if (action !== 'stop' && next.state === 'running') play('ready'); if (action === 'recreate') await load(); await onChanged(); }
+    catch (e) { play('error'); onError(e); await load().catch(onError); } finally { setBusy(''); setReset(false); }
   };
   const grade = async (all: boolean) => {
     if (!environment || !detail) return; setBusy(all ? 'evaluate-all' : 'evaluate');
-    try { const response = await post<{ results: Result[] }>(`/environments/${environment.id}/evaluate`, { exercise_id: all ? null : exercise?.id }); setDetail(d => d ? { ...d, results: { ...d.results, ...Object.fromEntries(response.results.map(r => [r.exercise_id, r])) } } : null); await onChanged(); }
-    catch (e) { onError(e); } finally { setBusy(''); }
+    const before = detail.results, ids = detail.course.exercises.map(e => e.id);
+    try { const response = await post<{ results: Result[] }>(`/environments/${environment.id}/evaluate`, { exercise_id: all ? null : exercise?.id }); play(evaluationSound(before, response.results, ids)); setDetail(d => d ? { ...d, results: { ...d.results, ...Object.fromEntries(response.results.map(r => [r.exercise_id, r])) } } : null); await onChanged(); }
+    catch (e) { play('error'); onError(e); } finally { setBusy(''); }
   };
   const earned = detail ? Object.values(detail.results).reduce((n, r) => n + r.earned, 0) : 0;
   const points = detail?.course.exercises.reduce((n, e) => n + e.evaluations.reduce((m, t) => m + t.points, 0), 0) || 0;
@@ -199,19 +232,31 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
     <div className="section-heading workspace-heading">
       <div><h1>{environmentId ? environment?.name || 'Opening environment…' : detail?.course.title || (courseKey ? 'Opening course…' : 'Free Practice')}</h1><p>{courseKey ? `${detail?.course.exercises.length || 0} exercises · ${earned}/${points} points · One shared Linux environment` : 'Independent Linux environment with sudo access.'}</p></div>
       <div className="button-row">
+        {detail && courseKey && <button className="icon-button" title={folder ? `In folder: ${folder}` : 'Move to folder'} aria-label="Move collection to a folder" disabled={!!busy} onClick={() => setMoving(folder || '')}><FolderInput size={18}/></button>}
         {detail && courseKey && <a className="icon-button" title="Export YAML" aria-label="Export collection as YAML" href={`/api/courses/${courseKey}/export`}><ArrowDownToLine size={18}/></a>}
         <button className="button secondary" disabled={!environment || !!busy} onClick={() => setReset(true)}><RefreshCw size={15}/>Recreate</button>
         <button className="button" disabled={!environment || !!busy} onClick={() => lifecycle(running ? 'stop' : 'start')}>{changing ? <Loader2 size={16} className="spin"/> : running ? <Square size={14}/> : <Play size={16}/>}{changing ? 'Please wait…' : running ? 'Stop environment' : 'Start environment'}</button>
       </div>
     </div>
     {environment?.error && <div className="notice error-note"><CircleAlert size={17}/><span>{environment.error}</span><button className="text-button" onClick={onSetup}>Environment setup</button></div>}
-    <div className="workspace-grid">
-      <aside className="exercise-panel" aria-label="Environment guidance">
-        <div className="workspace-panel-tabs" role="tablist" aria-label="Environment guidance">
-          {detail && <button id="exercise-tab" role="tab" aria-selected={panel === 'exercise'} aria-controls="exercise-content" onClick={() => setPanel('exercise')}>Exercise</button>}
-          <button id="assistant-tab" role="tab" aria-selected={!detail || panel === 'assistant'} aria-controls="assistant-content" onClick={() => setPanel('assistant')}><Sparkles size={15}/>Assistant</button>
+    <div ref={grid} className={'workspace-grid ' + (layout.open ? '' : 'panel-collapsed')} style={{ '--panel-width': layout.width + '%' } as React.CSSProperties}>
+      {layout.open && <div className="workspace-divider" role="separator" aria-orientation="vertical" aria-label="Resize exercise panel" aria-valuemin={28} aria-valuemax={65} aria-valuenow={Math.round(layout.width)} tabIndex={0} title="Drag to resize · double-click to reset"
+        onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); grid.current?.classList.add('resizing'); }}
+        onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) resizeTo(e.clientX); }}
+        onPointerUp={e => { e.currentTarget.releasePointerCapture(e.pointerId); grid.current?.classList.remove('resizing'); }}
+        onLostPointerCapture={() => grid.current?.classList.remove('resizing')}
+        onDoubleClick={() => setLayout(l => ({ ...l, width: PANEL_DEFAULT }))}
+        onKeyDown={e => { const step = e.key === 'ArrowLeft' ? 3 : e.key === 'ArrowRight' ? -3 : 0; if (step) { e.preventDefault(); setLayout(l => ({ ...l, width: clampPanel(l.width + step) })); } }}/>}
+      {!layout.open && <button className="panel-rail" aria-label={detail ? 'Show exercise panel' : 'Show assistant panel'} title={detail ? 'Show exercise' : 'Show assistant'} onClick={() => setLayout(l => ({ ...l, open: true }))}><PanelRightOpen size={20}/><span>{detail ? 'Exercise' : 'Assistant'}</span></button>}
+      <aside className="exercise-panel" aria-label="Environment guidance" hidden={!layout.open}>
+        <div className="workspace-panel-tabs">
+          <div role="tablist" aria-label="Environment guidance">
+            {detail && <button id="exercise-tab" role="tab" aria-selected={panel === 'exercise'} aria-controls="exercise-content" onClick={() => setPanel('exercise')}>Exercise</button>}
+            <button id="assistant-tab" role="tab" aria-selected={!detail || panel === 'assistant'} aria-controls="assistant-content" onClick={() => setPanel('assistant')}><Sparkles size={15}/>Assistant</button>
+          </div>
+          <button className="icon-button panel-collapse" aria-label="Hide panel to widen the terminal" title="Hide panel" onClick={() => setLayout(l => ({ ...l, open: false }))}><PanelRightClose size={18}/></button>
         </div>
-        {detail && <div id="exercise-content" role="tabpanel" aria-labelledby="exercise-tab" hidden={panel !== 'exercise'}>
+        {detail && <div id="exercise-content" className="exercise-content" role="tabpanel" aria-labelledby="exercise-tab" hidden={panel !== 'exercise'}>
         <div className="exercise-selector"><label htmlFor="exercise-picker">Exercise {selected + 1} of {detail.course.exercises.length}</label><div className="select-wrap"><select id="exercise-picker" value={selected} onChange={e => setSelected(Number(e.target.value))}>{detail.course.exercises.map((e, i) => <option key={e.id} value={i}>{detail.results[e.id]?.earned === detail.results[e.id]?.available && detail.results[e.id] ? '✓ ' : ''}{String(i + 1).padStart(2, '0')} · {e.title}</option>)}</select><ChevronDown size={16}/></div></div>
         {exercise && <ExerciseBody exercise={exercise} index={selected} result={result} actions={<>
           <div className="evaluate-actions">
@@ -222,10 +267,17 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
           <div className="exercise-pagination"><button disabled={selected === 0} onClick={() => setSelected(n => n - 1)}><ArrowLeft size={16}/>Previous</button><button disabled={selected === detail.course.exercises.length - 1} onClick={() => setSelected(n => n + 1)}>Next<ArrowRight size={16}/></button></div>
         </>}/>}
         </div>}
-        <div id="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
+        <div id="assistant-content" className="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
       </aside>
       <div className="workspace-desktop"><Desktop key={desktopKey} id={environment?.id || ''} running={running}/></div>
     </div>
+    {moving !== null && <Modal title="Move to folder" className="small" closeLabel="Close folder dialog" onClose={busy ? undefined : () => setMoving(null)} description="Folders group related collections in the Exercise Library. Leave the name empty to show this collection on its own.">
+      <form onSubmit={e => { e.preventDefault(); move(); }}>
+        <label className="form-field">Folder<input autoFocus maxLength={80} list="library-folders" placeholder="e.g. ASO Prácticas" value={moving} onChange={e => setMoving(e.target.value)}/></label>
+        <datalist id="library-folders">{folders.map(name => <option key={name} value={name}/>)}</datalist>
+        <div className="modal-actions"><button type="button" className="button secondary" disabled={!!busy} onClick={() => setMoving(null)}>Cancel</button><button className="button" disabled={busy === 'move'}>{busy === 'move' && <Loader2 size={15} className="spin"/>}{moving.trim() ? 'Move' : 'Remove from folder'}</button></div>
+      </form>
+    </Modal>}
     {reset && <Modal title="Start fresh?" className="small" onClose={busy ? undefined : () => setReset(false)} description="Recreating this environment permanently removes its files, users, installed packages, and current scores. The imported course stays in your library.">
       <div className="modal-actions"><button className="button secondary" autoFocus disabled={!!busy} onClick={() => setReset(false)}>Keep my environment</button><button className="button danger" disabled={!!busy} onClick={() => lifecycle('recreate')}>{busy ? <><Loader2 size={15} className="spin"/>Recreating…</> : 'Recreate environment'}</button></div>
     </Modal>}
@@ -309,6 +361,13 @@ function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: 
     if (!running || !chat || deleting || loadingChat) return;
     const timer = setInterval(() => loadChat(chat.id).catch(onError), 1500); return () => clearInterval(timer);
   }, [running, chat?.id, deleting, loadingChat, loadChat, onError]);
+  const wasRunning = useRef<string | null>(null);
+  useEffect(() => {
+    const job = chat?.job;
+    if (running) { wasRunning.current = job?.id || null; return; }
+    if (job && wasRunning.current === job.id) play(job.state === 'done' ? 'generated' : job.state === 'cancelled' ? null : 'error');
+    wasRunning.current = null;
+  }, [running, chat?.job]);
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [chat?.messages.length]);
   useEffect(() => { onDirtyChange(draftDirty); }, [draftDirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);

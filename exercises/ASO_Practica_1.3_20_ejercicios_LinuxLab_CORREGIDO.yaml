@@ -1,0 +1,2553 @@
+schema_version: 1
+id: aso-p13-20-ejercicios-bash-2026
+version: '1.1'
+title: 'ASO - Práctica 1.3: permisos, usuarios y grupos'
+folder: ASO Prácticas · 20 ejercicios
+description: |-
+  20 ejercicios independientes basados en Práctica 1.3 (ULPGC, curso 2026/2027). Comandos generales: whoami, id, groups, ls -l, chmod (octal y simbólico), chown, chgrp, umask, groupadd, useradd, usermod, gpasswd, chage, getent. Conceptos: UID/GID, permisos rwx, propietario/grupo/otros, permisos especiales SGID y sticky bit, umask, cuentas, grupos primarios/secundarios, caducidad, Bash (if, parámetros, códigos de salida). Las acciones de administración se prueban solo dentro del entorno Linux Lab.
+
+  Cada ejercicio incluye enunciado, ruta de script, comandos/conceptos y pruebas automáticas. Crea los scripts tú: la preparación solo facilita datos. Para las tareas Bash, escribe el shebang #!/bin/bash y da permisos de ejecución al script. Se usan las claves legacy `tasks` y `command`, compatibles con el formato solicitado por tu importador. Cuando no se diga otra cosa, stdout lleva los resultados, stderr los errores, éxito devuelve 0 y el número incorrecto de argumentos devuelve 1.
+setup:
+- script: |
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/permisos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/umask
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/sticky-a
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/sticky-b
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/privado
+    printf '%s\n' 'solo un ejemplo' > /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+    printf '%s\n' 'datos de prueba' > /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+    printf '%s\n' 'datos de prueba' > /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+    printf '%s\n' 'contenido grupo' > /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+    printf '%s\n' 'contenido usuario' > /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+    printf '%s\n' 'no soy un directorio' > /home/learner/lab/aso-fundamentos/permisos/un-fichero.txt
+    chown -R learner:learner /home/learner/lab/aso-fundamentos
+    chmod 0640 /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+    chmod 0666 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+    chmod 0644 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+    chmod 0600 /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+    chmod 0777 /home/learner/lab/aso-fundamentos/directorios/sticky-a /home/learner/lab/aso-fundamentos/directorios/sticky-b
+    groupadd aso_taller_equipo
+    groupadd aso_taller_comun
+    useradd -M -U -s /bin/bash aso_taller_a
+    useradd -M -U -s /bin/bash aso_taller_b
+    groupadd aso_p13_equipo
+    useradd -M -U -s /bin/bash aso_p13_miembro
+    useradd -M -U -s /bin/bash aso_p13_externo
+    useradd -M -U -s /bin/bash aso_p13_nuevo
+    usermod -aG aso_p13_equipo aso_p13_miembro
+    groupadd aso_p13_admin
+    useradd -M -U -s /bin/bash aso_p13_admin1
+    useradd -M -U -s /bin/bash aso_p13_admin2
+exercises:
+- id: p13-e01-existe-cuenta
+  title: 01. Comprobar si existe un usuario o grupo
+  description: |
+    Recibe dos argumentos: `-u NOMBRE` para usuarios o `-g NOMBRE` para grupos. Comprueba su existencia en `/etc/passwd` o `/etc/group`, respectivamente. Imprime únicamente `EXISTE` o `NO EXISTE` y termina con código 0 en ambos casos.
+
+    El nombre debe empezar por una letra minúscula y contener solo minúsculas, dígitos o `_`. No cambies ninguna cuenta. Puedes combinar `grep -q` con `if`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `grep -q`, `/etc/passwd`, `/etc/group`.
+    - **Bash / conceptos:** `case`, `if`, `[[ ... =~ ... ]]`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh`
+    - **Uso:** `p13-e01-existe-cuenta.sh -u|-g NOMBRE`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos argumentos.
+    - Primero -u o -g.
+    - NOMBRE tiene formato de cuenta simple.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: -u|-g NOMBRE`.
+    - **opcion:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Opcion invalida`.
+    - **nombre:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Nombre invalido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -u root
+    ```
+    Salida estándar esperada:
+    ```text
+    EXISTE
+    ```
+    Código de salida: `0`.
+  tips:
+  - Busca `^NOMBRE:` para evitar coincidencias parciales de nombres.
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: comprobaciones
+    description: Usuarios y grupos existentes y ausentes.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -u root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -g root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -u aso_inexistente_123 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -g aso_inexistente_123 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO EXISTE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Tipos de error.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -u </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: -u|-g NOMBRE')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -x root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Opcion invalida')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e01-existe-cuenta.sh -u MAYUS </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e02-grupos-usuario
+  title: 02. Mostrar los grupos de un usuario
+  description: |
+    Recibe un nombre de usuario existente. Muestra sus grupos primario y secundarios en una línea, con los mismos nombres y orden que `id -nG USUARIO`. No añadas texto alrededor.
+
+    A diferencia de `grep` sobre `/etc/group`, `id` considera también el grupo primario.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `id -nG`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh`
+    - **Uso:** `p13-e02-grupos-usuario.sh USUARIO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - Nombre simple con minúsculas, números o `_`.
+    - El usuario debe existir.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: USUARIO`.
+    - **nombre:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Nombre invalido`.
+    - **usuario:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Usuario inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh aso_taller_a
+    ```
+    Salida estándar esperada:
+    ```text
+    aso_taller_a
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`id`, `groups` y `whoami` aparecen en la práctica 1.3.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: grupos
+    description: Muestra grupos de usuarios conocidos.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(id -nG root)
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh aso_taller_a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(id -nG aso_taller_a)
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida nombre y existencia.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh NO_VALIDO </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e02-grupos-usuario.sh aso_inexistente_123 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e03-ver-permisos
+  title: 03. Consultar permisos con ls -l
+  description: |
+    Recibe una ruta de fichero o directorio existente y muestra únicamente los **primeros diez caracteres** del listado detallado de `ls -ld`, incluyendo tipo y permisos (`-rw-r-----`, `drwx...`, etc.). No uses `stat`.
+
+    Prueba el fichero `/home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt` y el directorio `/home/learner/lab/aso-fundamentos/directorios/privado`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `ls -ld`, `cut -c1-10`, `|`.
+    - **Bash / conceptos:** `if`, `[[ -e ... ]]`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh`
+    - **Uso:** `p13-e03-ver-permisos.sh RUTA`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - La ruta debe existir.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: RUTA`.
+    - **no-existe:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Ruta inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    -rw-r-----
+    ```
+    Código de salida: `0`.
+  tips:
+  - El primer carácter de `ls -l` indica el tipo de entrada.
+  - '`cut -c1-10` permite seleccionar caracteres, no campos.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: modos
+    description: Distingue ficheros y directorios.
+    points: 12
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0640 /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '-rw-r-----
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0755 /home/learner/lab/aso-fundamentos/directorios/privado
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh /home/learner/lab/aso-fundamentos/directorios/privado </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'drwxr-xr-x
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Falta de argumentos y ruta inexistente.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: RUTA')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e03-ver-permisos.sh /no/existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Ruta inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e04-chmod-octal
+  title: 04. Cambiar permisos con chmod octal
+  description: |
+    Recibe un modo octal de **tres dígitos** (por ejemplo `600`, `640`, `755`) y la ruta de un fichero regular. Asigna exactamente esos permisos usando `chmod`. Imprime `Permisos cambiados` cuando termina bien.
+
+    Trabaja con `/home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt`. Rechaza caracteres fuera de 0-7 y cualquier fichero inexistente.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chmod`.
+    - **Bash / conceptos:** `[[ ... =~ ... ]]`, `if`, `códigos de salida`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh`
+    - **Uso:** `p13-e04-chmod-octal.sh MODO FICHERO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Dos argumentos.
+    - Modo compuesto exactamente por tres dígitos de 0 a 7.
+    - Fichero regular existente.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: MODO FICHERO`.
+    - **modo:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Modo octal invalido`.
+    - **no-fichero:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    Permisos cambiados
+    ```
+    Código de salida: `0`.
+  tips:
+  - 'Recuerda: lectura=4, escritura=2 y ejecución=1.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: modo600
+    description: Establece modo 600.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0644 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Permisos cambiados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+      mode: '600'
+  - id: modo750
+    description: Establece modo 750.
+    points: 7
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 750 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Permisos cambiados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+      mode: '750'
+  - id: errores
+    description: Modos inválidos y fichero.
+    points: 5
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: MODO FICHERO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 999 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Modo octal invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 64 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Modo octal invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 /no/existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e05-chmod-simbolico
+  title: 05. Modificar permisos con notación simbólica
+  description: |
+    Recibe la ruta de un fichero. Conserva los permisos de lectura existentes, **añade** ejecución al propietario y **quita** escritura al grupo y a otros usuarios. No modifiques otros bits. Al terminar imprime `Permisos cambiados`.
+
+    Usa `chmod u+x,go-w` o una notación simbólica equivalente.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chmod u+x,go-w`.
+    - **Bash / conceptos:** `if`, `[[ -f ... ]]`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh`
+    - **Uso:** `p13-e05-chmod-simbolico.sh FICHERO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - El argumento debe ser fichero regular.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: FICHERO`.
+    - **no-fichero:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    Permisos cambiados
+    ```
+    Código de salida: `0`.
+  tips:
+  - 'Los cambios simbólicos son relativos: no sustituyas los permisos con un valor fijo.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: desde-666
+    description: Desde 666 debe quedar 744.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0666 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Permisos cambiados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+      mode: '744'
+  - id: desde-600
+    description: Desde 600 debe quedar 700.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0600 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Permisos cambiados
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+      mode: '700'
+  - id: errores
+    description: Cantidad y ruta.
+    points: 4
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /no/existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e06-umask-privado
+  title: 06. Crear un directorio y fichero privados
+  description: |
+    Recibe un nombre de entre 3 y 10 letras minúsculas. Dentro de `/home/learner/lab/aso-fundamentos/umask`, crea un directorio con ese nombre y un fichero `nota.txt` que contenga exactamente `hola` y un salto de línea.
+
+    Antes de crear nada, establece `umask 077` para que el directorio quede con permisos `700` y el fichero con permisos `600`. Imprime `Creado`. Si el directorio destino existe, no modifiques nada y devuelve código 3.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `umask 077`, `mkdir`, `printf`, `>`.
+    - **Bash / conceptos:** `if`, `[[ -d ... ]]`, `"$1"`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh`
+    - **Uso:** `p13-e06-umask-privado.sh NOMBRE`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - Entre 3 y 10 letras minúsculas.
+    - No puede existir el directorio de destino.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: NOMBRE`.
+    - **nombre:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Nombre invalido`.
+    - **existe:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `El directorio ya existe`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh privado
+    ```
+    Salida estándar esperada:
+    ```text
+    Creado
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`umask` aplica a nuevos objetos; no sustituye a `chmod` para los ya existentes.'
+  - La máscara 077 suele dejar directorios 700 y ficheros 600.
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: privado
+    description: El directorio y el fichero son privados.
+    points: 10
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        rm -rf /home/learner/lab/aso-fundamentos/umask/privado
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh privado </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Creado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: path
+      path: /home/learner/lab/aso-fundamentos/umask/privado
+      kind: directory
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/umask/privado
+      mode: '700'
+    - type: path
+      path: /home/learner/lab/aso-fundamentos/umask/privado/nota.txt
+      kind: file
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/umask/privado/nota.txt
+      mode: '600'
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/umask/privado/nota.txt
+      match: exact
+      value: |
+        hola
+  - id: reserva
+    description: Otro nombre también crea permisos privados.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        rm -rf /home/learner/lab/aso-fundamentos/umask/reserva
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh reserva </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Creado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/umask/reserva
+      mode: '700'
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/umask/reserva/nota.txt
+      mode: '600'
+  - id: errores
+    description: Rechazo de nombres y existentes.
+    points: 4
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: NOMBRE')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh ../fuera </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        mkdir -p /home/learner/lab/aso-fundamentos/umask/privado
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e06-umask-privado.sh privado </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'El directorio ya existe')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e07-chgrp-fichero
+  title: 07. Cambiar el grupo de un fichero
+  description: |
+    Script de administración (la evaluación se ejecuta como **root**). Recibe el nombre de un grupo existente y cambia **solo el grupo propietario** de `/home/learner/lab/aso-fundamentos/permisos/para-grupo.txt`, sin cambiar el propietario usuario ni los permisos. Imprime `Grupo cambiado`.
+
+    Se han creado los grupos `aso_taller_equipo` y `aso_taller_comun`. Utiliza `chgrp` y una comprobación en `/etc/group` con `grep`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chgrp`, `grep -q`, `/etc/group`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `stderr`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh`
+    - **Uso:** `p13-e07-chgrp-fichero.sh GRUPO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - El grupo debe existir.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: GRUPO`.
+    - **grupo:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Grupo inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh aso_taller_equipo
+    ```
+    Salida estándar esperada:
+    ```text
+    Grupo cambiado
+    ```
+    Código de salida: `0`.
+  tips:
+  - Recuerda que `chgrp` cambia el grupo pero no el usuario propietario.
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: equipo
+    description: Cambia al grupo de equipo.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chgrp learner /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Grupo cambiado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: ownership
+      path: /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+      owner: learner
+      group: aso_taller_equipo
+  - id: comun
+    description: Cambia al otro grupo sin tocar propietario.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chgrp learner /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh aso_taller_comun </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Grupo cambiado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: ownership
+      path: /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+      owner: learner
+      group: aso_taller_comun
+  - id: errores
+    description: Grupo inexistente y error de uso.
+    points: 4
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: GRUPO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e07-chgrp-fichero.sh aso_grupo_que_no_existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Grupo inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e08-chown-fichero
+  title: 08. Cambiar propietario y grupo del fichero
+  description: |
+    Script de administración (root). Recibe el nombre de un usuario existente y asigna a `/home/learner/lab/aso-fundamentos/permisos/para-dueno.txt` ese usuario como propietario y **su grupo privado de igual nombre** como grupo propietario.
+
+    Los usuarios de prueba `aso_taller_a` y `aso_taller_b` ya existen y cada uno tiene un grupo con su nombre. Imprime `Propietario cambiado`. Usa `chown usuario:grupo`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chown`, `id`, `grep -q`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `códigos de salida`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh`
+    - **Uso:** `p13-e08-chown-fichero.sh USUARIO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - El usuario debe existir.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: USUARIO`.
+    - **usuario:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Usuario inexistente`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh aso_taller_a
+    ```
+    Salida estándar esperada:
+    ```text
+    Propietario cambiado
+    ```
+    Código de salida: `0`.
+  tips:
+  - Comprueba con `id USUARIO` si la cuenta existe.
+  - 'No apliques `chown -R`: solo se cambia el fichero indicado.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: primero
+    description: Asigna propietario aso_taller_a.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chown learner:learner /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh aso_taller_a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Propietario cambiado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: ownership
+      path: /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+      owner: aso_taller_a
+      group: aso_taller_a
+  - id: segundo
+    description: Asigna propietario aso_taller_b.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chown learner:learner /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh aso_taller_b </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Propietario cambiado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: ownership
+      path: /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+      owner: aso_taller_b
+      group: aso_taller_b
+  - id: errores
+    description: Rechazo de usuario inexistente.
+    points: 4
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e08-chown-fichero.sh aso_usr_no_existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e09-sticky-bit
+  title: 09. Activar el sticky bit de un directorio
+  description: |
+    Recibe la ruta de un directorio existente. Activa su **sticky bit** sin alterar los permisos normales y muestra `Sticky activado`.
+
+    Prueba los directorios `/home/learner/lab/aso-fundamentos/directorios/sticky-a` y `/home/learner/lab/aso-fundamentos/directorios/sticky-b`. La práctica 1.3 explica este permiso especial y su uso en `/tmp`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chmod +t`.
+    - **Bash / conceptos:** `if`, `[[ -d ... ]]`, `stderr`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh`
+    - **Uso:** `p13-e09-sticky-bit.sh DIRECTORIO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un argumento.
+    - Debe ser un directorio.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: DIRECTORIO`.
+    - **no-directorio:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Directorio no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh /home/learner/lab/aso-fundamentos/directorios/sticky-a
+    ```
+    Salida estándar esperada:
+    ```text
+    Sticky activado
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`chmod +t` activa el sticky bit sin cambiar otros permisos.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: sticky777
+    description: Añade sticky al modo 777.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0777 /home/learner/lab/aso-fundamentos/directorios/sticky-a
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh /home/learner/lab/aso-fundamentos/directorios/sticky-a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Sticky activado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/directorios/sticky-a
+      mode: '1777'
+  - id: sticky770
+    description: Conserva los bits normales 770.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        chmod 0770 /home/learner/lab/aso-fundamentos/directorios/sticky-b
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh /home/learner/lab/aso-fundamentos/directorios/sticky-b </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Sticky activado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/directorios/sticky-b
+      mode: '1770'
+  - id: errores
+    description: Fichero regular y argumentos erróneos.
+    points: 4
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e09-sticky-bit.sh /home/learner/lab/aso-fundamentos/permisos/un-fichero.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e10-crear-grupo
+  title: 10. Crear un grupo con groupadd
+  description: |
+    Script de administración (root). Recibe un nombre de grupo formado por una letra minúscula seguida de letras minúsculas, dígitos o `_` (1-20 caracteres en total). Si no existe, créalo con `groupadd` y muestra `Grupo creado: NOMBRE`.
+
+    No alteres ningún grupo que ya exista. Comprueba la existencia en `/etc/group` antes de crearlo.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `groupadd`, `grep -q`, `/etc/group`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `exit`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh`
+    - **Uso:** `p13-e10-crear-grupo.sh GRUPO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente un nombre de grupo.
+    - Formato de nombre permitido, longitud máxima 20.
+    - El grupo aún no existe.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: GRUPO`.
+    - **nombre:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Nombre de grupo invalido`.
+    - **existe:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `El grupo ya existe`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh aso_nuevo_a
+    ```
+    Salida estándar esperada:
+    ```text
+    Grupo creado: aso_nuevo_a
+    ```
+    Código de salida: `0`.
+  tips:
+  - Valida el nombre antes de llamar a `groupadd`.
+  - Puedes usar `grep -q` sobre `/etc/group` para la comprobación.
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: grupo-a
+    description: Crea el primer grupo.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        groupdel aso_nuevo_a 2>/dev/null || true
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh aso_nuevo_a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Grupo creado: aso_nuevo_a
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: group
+      name: aso_nuevo_a
+  - id: grupo-b
+    description: Crea un segundo grupo.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        groupdel aso_nuevo_b 2>/dev/null || true
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh aso_nuevo_b </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Grupo creado: aso_nuevo_b
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: group
+      name: aso_nuevo_b
+  - id: errores
+    description: Rechaza grupo existente y nombre inválido.
+    points: 4
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: GRUPO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh NombreConMayus </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre de grupo invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e10-crear-grupo.sh root </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'El grupo ya existe')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e11-crear-usuario
+  title: 11. Crear usuario y añadirlo a un grupo secundario
+  description: |
+    Script de administración (root). Recibe un nombre de usuario nuevo y el de un grupo existente. Si el usuario no existe, créalo con `useradd -m -U -s /bin/bash` (directorio personal y grupo privado propio), y después añádelo al grupo indicado como **secundario** usando `usermod -aG` o `gpasswd -a`. Muestra `Usuario creado: NOMBRE`.
+
+    NOMBRE admite una letra inicial y después minúsculas, dígitos o `_`, con longitud total entre 1 y 20. No establezcas contraseñas ni modifiques cuentas existentes. Se han preparado los grupos `aso_taller_equipo` y `aso_taller_comun`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `useradd -m -U -s`, `usermod -aG`, `id`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `exit`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh`
+    - **Uso:** `p13-e11-crear-usuario.sh USUARIO GRUPO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos argumentos.
+    - Nombre de usuario válido, máximo 20 caracteres.
+    - El grupo secundario debe existir.
+    - El usuario no debe existir todavía.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: USUARIO GRUPO`.
+    - **nombre:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Nombre de usuario invalido`.
+    - **grupo:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Grupo inexistente`.
+    - **existe:** código `4`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `El usuario ya existe`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr1 aso_taller_equipo
+    ```
+    Salida estándar esperada:
+    ```text
+    Usuario creado: aso_nuevo_usr1
+    ```
+    Código de salida: `0`.
+  tips:
+  - No olvides `-a` al usar `usermod -G`; sin ella se reemplazan los grupos secundarios previos.
+  - Los usuarios de prueba solo existen dentro del contenedor Linux Lab.
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: alta-equipo
+    description: Alta de usuario en grupo de equipo.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        userdel -r aso_nuevo_usr1 2>/dev/null || true
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr1 aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Usuario creado: aso_nuevo_usr1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: user
+      name: aso_nuevo_usr1
+      shell: /bin/bash
+      home: /home/aso_nuevo_usr1
+    - type: membership
+      user: aso_nuevo_usr1
+      group: aso_taller_equipo
+    - type: membership
+      user: aso_nuevo_usr1
+      group: aso_nuevo_usr1
+  - id: alta-comun
+    description: Alta en otro grupo sin cambiar el primario.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        userdel -r aso_nuevo_usr2 2>/dev/null || true
+        set +e
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr2 aso_taller_comun </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Usuario creado: aso_nuevo_usr2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: user
+      name: aso_nuevo_usr2
+      shell: /bin/bash
+      home: /home/aso_nuevo_usr2
+    - type: membership
+      user: aso_nuevo_usr2
+      group: aso_taller_comun
+    - type: command
+      script: |-
+        test "$(id -gn aso_nuevo_usr2)" = "aso_nuevo_usr2"
+  - id: errores
+    description: No crea usuarios con entrada errónea.
+    points: 4
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO GRUPO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh UsuarioMalo aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre de usuario invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_otra_persona grupo_inexistente_2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Grupo inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh root aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'El usuario ya existe')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e12-chage-claves
+  title: 12. Configurar caducidad de contraseñas con chage
+  description: |
+    Script de administración (root). Recibe cuatro argumentos: `USUARIO MAX AVISO INACTIVO`. Configura con `chage` la **edad máxima** de la contraseña (MAX), el **periodo de aviso** (AVISO) y el **periodo de inactividad** (INACTIVO) en días.
+
+    MAX debe estar entre 1 y 365; AVISO entre 0 y MAX; INACTIVO entre 0 y 30. Los tres valores deben ser cadenas de dígitos. Rechaza los errores sin cambiar la configuración. Muestra `Politica actualizada` al terminar. Usa las cuentas de prueba `aso_taller_a` y `aso_taller_b`; no cambies contraseñas reales. Esto practica la sección de contraseñas de la práctica 1.3.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `chage -M -W -I`, `id`.
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `(( ... ))`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh`
+    - **Uso:** `p13-e12-chage-claves.sh USUARIO MAX AVISO INACTIVO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente cuatro argumentos.
+    - La cuenta de usuario debe existir.
+    - Los tres plazos deben ser enteros no negativos.
+    - Rangos MAX 1..365, AVISO 0..MAX, INACTIVO 0..30.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Uso: USUARIO MAX AVISO INACTIVO`.
+    - **usuario:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Usuario inexistente`.
+    - **numeros:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Los plazos deben ser enteros`.
+    - **rango:** código `4`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Plazos fuera de rango`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a 60 4 2
+    ```
+    Salida estándar esperada:
+    ```text
+    Politica actualizada
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`chage -M`, `-W` y `-I` gestionan esos tres valores.'
+  - 'No hace falta usar `passwd` ni `chpasswd`: este ejercicio trata solo de la caducidad.'
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno Linux Lab.
+  tasks:
+  - id: politica-a
+    description: Edad máxima 60, aviso 4, inactividad 2.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a 60 4 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Politica actualizada
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: content
+      path: /etc/shadow
+      match: regex
+      value: '(?m)^aso_taller_a:[^:]*:[^:]*:[^:]*:60:4:2:'
+  - id: politica-b
+    description: Segunda combinación de plazos.
+    points: 8
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_b 90 7 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Politica actualizada
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: content
+      path: /etc/shadow
+      match: regex
+      value: '(?m)^aso_taller_b:[^:]*:[^:]*:[^:]*:90:7:3:'
+  - id: errores
+    description: Validación de plazos y usuario.
+    points: 4
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a 60 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO MAX AVISO INACTIVO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_user_no_existe 60 4 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario inexistente')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a sesenta 4 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Los plazos deben ser enteros')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a 10 20 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Plazos fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e12-chage-claves.sh aso_taller_a 0 0 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Plazos fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e13-comprobar-pertenencia-a-un-grupo
+  title: 13. Comprobar pertenencia a un grupo
+  description: |
+    Recibe USUARIO GRUPO y muestra `SI` si el usuario es miembro (primario o secundario) del grupo, o `NO` si no lo es. El usuario y el grupo deben existir. Práctica de la distinción entre cuentas y grupos de la 1.3.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `id -nG`, `groups`, `getent`, `grep -w`.
+    - **Bash / conceptos:** `$#`, `if`, `[[ ... ]]`, `exit`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh`
+    - **Uso:** `p13-e13-comprobar-pertenencia-a-un-grupo.sh USUARIO GRUPO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `SI` o `NO`.
+    - 1: `Uso: USUARIO GRUPO`.
+    - 2: `Usuario o grupo inexistente`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh aso_p13_miembro aso_p13_equipo
+    ```
+    Salida esperada:
+    ```text
+    SI
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh aso_p13_miembro aso_p13_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'SI
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh aso_p13_externo aso_p13_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO GRUPO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e13-comprobar-pertenencia-a-un-grupo.sh usuario_que_no_existe aso_p13_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario o grupo inexistente
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e14-anadir-ejecucion-al-propietario
+  title: 14. Añadir ejecución al propietario
+  description: |
+    Recibe FICHERO y añade **solo** el permiso de ejecución del propietario. Conserva los demás bits de permisos del fichero. No imprimas la salida de chmod, solo `OK` al terminar. El fichero debe existir y ser regular.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `chmod u+x`, `ls -l`.
+    - **Bash / conceptos:** `if`, `[[ -f ]]`, `if ! comando`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh`
+    - **Uso:** `p13-e14-anadir-ejecucion-al-propietario.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK`; bit u+x activado sin cambiar otros permisos.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh /tmp/no-usar-en-este-caso
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        f="$td/fichero.txt"
+        printf %s hola > "$f"
+        chmod 0640 "$f"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh "$f" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(stat -c %a "$f")" = 740 ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e14-anadir-ejecucion-al-propietario.sh /ruta/inexistente </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e15-quitar-permisos-a-otros
+  title: 15. Quitar permisos a otros
+  description: |
+    Recibe FICHERO y elimina los permisos `rwx` de **otros**, sin cambiar los de propietario ni grupo. Devuelve `OK` por stdout. Debe funcionar con un fichero que tenga inicialmente permisos `0767`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `chmod o-rwx`, `ls -l`.
+    - **Bash / conceptos:** `[[ -f ]]`, `if`, `exit`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh`
+    - **Uso:** `p13-e15-quitar-permisos-a-otros.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK`, y los permisos resultantes conservan usuario/grupo.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh /temporal
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        f="$td/fichero"
+        printf %s hola > "$f"
+        chmod 0767 "$f"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh "$f" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(stat -c %a "$f")" = 760 ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e15-quitar-permisos-a-otros.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e16-directorio-compartido-con-sgid
+  title: 16. Directorio compartido con SGID
+  description: |
+    Recibe DIRECTORIO y prepara un directorio compartido: debe quedar con grupo propietario `aso_p13_equipo` y permisos **2770** (SGID activo). Si el directorio no existe, debe dar un error. Necesita privilegios de administrador al ejecutarse.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `chgrp`, `chmod 2770`, `ls -ld`.
+    - **Bash / conceptos:** `[[ -d ]]`, `if !`, códigos de salida.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh`
+    - **Uso:** `p13-e16-directorio-compartido-con-sgid.sh DIRECTORIO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK` y directorio con grupo `aso_p13_equipo` y modo 2770.
+    - 1: `Uso: DIRECTORIO`.
+    - 2: `Directorio no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh /temporal
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips:
+  - El SGID en directorios favorece la herencia de grupo. Se representa con el primer dígito 2 en 
+    modo octal.
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        d="$td/compartido"
+        mkdir "$d"
+        chmod 0755 "$d"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(stat -c %a "$d")" = 2770 ] || exit 1
+        [ "$(stat -c %G "$d")" = aso_p13_equipo ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e17-crear-archivos-privados-con-umask
+  title: 17. Crear archivos privados con umask
+  description: |
+    Recibe DIRECTORIO (un directorio existente y con escritura). Dentro crea un subdirectorio llamado `privado` y un fichero `privado/secreto.txt` **aplicando `umask 0077` antes de crearlos**. El subdirectorio debe quedar con permisos 700 y el fichero con 600. Si `privado` existe, muestra el error indicado; no lo sobreescribas.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `umask`, `mkdir`, `touch`, `ls -l`.
+    - **Bash / conceptos:** `if`, `[[ -d ]]`, `$?`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh`
+    - **Uso:** `p13-e17-crear-archivos-privados-con-umask.sh DIRECTORIO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK` y ambos elementos creados con permisos apropiados.
+    - 1: `Uso: DIRECTORIO`.
+    - 2: `Directorio no valido`.
+    - 3: `Ya existe privado` si el subdirectorio ya existe.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh /temporal
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        d="$td/datos"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ -d "$d/privado" ] || exit 1
+        [ -f "$d/privado/secreto.txt" ] || exit 1
+        [ "$(stat -c %a "$d/privado")" = 700 ] || exit 1
+        [ "$(stat -c %a "$d/privado/secreto.txt")" = 600 ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        d="$td/datos"
+        mkdir -p "$d/privado"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e17-crear-archivos-privados-con-umask.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Ya existe privado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e18-anadir-usuario-a-un-grupo-secundario
+  title: 18. Añadir usuario a un grupo secundario
+  description: |
+    Recibe USUARIO y GRUPO, comprueba que ambos existen y añade el usuario al grupo como **miembro secundario** sin eliminar otras pertenencias. Usa un comando de administración (necesita root). No cambies el grupo primario.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `usermod -aG`, `id`, `getent`.
+    - **Bash / conceptos:** `if`, `[[ ... ]]`, `exit`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh`
+    - **Uso:** `p13-e18-anadir-usuario-a-un-grupo-secundario.sh USUARIO GRUPO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK` y usuario incorporado al grupo secundario.
+    - 1: `Uso: USUARIO GRUPO`.
+    - 2: `Usuario o grupo inexistente`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh aso_p13_nuevo aso_p13_equipo
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh aso_p13_nuevo aso_p13_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        id -nG aso_p13_nuevo | tr " " "\n" | grep -qx aso_p13_equipo || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO GRUPO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e18-anadir-usuario-a-un-grupo-secundario.sh sin_usuario aso_p13_equipo </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario o grupo inexistente
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e19-nombrar-administrador-de-un-grupo
+  title: 19. Nombrar administrador de un grupo
+  description: |
+    Recibe USUARIO GRUPO. Convierte el usuario existente en administrador del grupo utilizando `gpasswd -A` (no confundir administrador con miembro). Debe conservar la lista de administradores como indique el comando; este ejercicio trabaja el apartado 7.2 y requiere root.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `gpasswd -A`, `getent gshadow`.
+    - **Bash / conceptos:** `if`, `exit`, códigos de error.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh`
+    - **Uso:** `p13-e19-nombrar-administrador-de-un-grupo.sh USUARIO GRUPO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `OK`; usuario registrado como administrador del grupo.
+    - 1: `Uso: USUARIO GRUPO`.
+    - 2: `Usuario o grupo inexistente`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh aso_p13_admin1 aso_p13_admin
+    ```
+    Salida esperada:
+    ```text
+    OK
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh aso_p13_admin1 aso_p13_admin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        getent gshadow aso_p13_admin | cut -d: -f3 | grep -qx aso_p13_admin1 || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: USUARIO GRUPO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e19-nombrar-administrador-de-un-grupo.sh cuenta_inexistente aso_p13_admin </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Usuario o grupo inexistente
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p13-e20-practica-integradora-pequena-empresa
+  title: '20. Práctica integradora: pequeña empresa'
+  description: |
+    Automatiza la actividad final de la Práctica 1.3 en versión reducida. Sin argumentos, crea si no existen el grupo `aso_p13_empresa`, el usuario `aso_p13_jefe`, los usuarios `aso_p13_trab1` y `aso_p13_trab2`. Todos deben pertenecer al grupo como secundario. El jefe será su administrador (`gpasswd -A`). Crea `/home/learner/lab/aso-fundamentos/directorios/empresa-integrada` con propietario `aso_p13_jefe`, grupo `aso_p13_empresa` y modo **1770** (sticky). A los dos trabajadores aplica con chage: máximo 60 días, aviso 4 días, inactividad 2 días. No asignes contraseñas en texto claro. El script debe poder ejecutarse de nuevo sin fallar. Requiere root.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `groupadd`, `useradd`, `usermod -aG`, `gpasswd -A`, `chage -M -W -I`, `mkdir -p`, `chown`, `chmod`.
+    - **Bash / conceptos:** `if`, `getent`, `&&`, `||`, `exit`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh`
+    - **Uso:** `p13-e20-practica-integradora-pequena-empresa.sh (sin argumentos)`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: stdout `Empresa preparada`, estado de usuarios/grupo/directorio correcto, stderr vacío.
+    - 1: stderr `Este script no admite argumentos`.
+    - Si ya están creados, conserva el estado correcto sin emitir errores.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh
+    ```
+    Salida esperada:
+    ```text
+    Empresa preparada
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Empresa preparada
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        getent group aso_p13_empresa >/dev/null || exit 1
+        for u in aso_p13_jefe aso_p13_trab1 aso_p13_trab2; do
+          getent passwd "$u" >/dev/null || exit 1
+          id -nG "$u" | tr ' ' '\n' | grep -qx aso_p13_empresa || exit 1
+        done
+        getent gshadow aso_p13_empresa | cut -d: -f3 | grep -qx aso_p13_jefe || exit 1
+        d=/home/learner/lab/aso-fundamentos/directorios/empresa-integrada
+        [ -d "$d" ] || exit 1
+        [ "$(stat -c %a "$d")" = 1770 ] || exit 1
+        [ "$(stat -c %U "$d")" = aso_p13_jefe ] || exit 1
+        [ "$(stat -c %G "$d")" = aso_p13_empresa ] || exit 1
+        for u in aso_p13_trab1 aso_p13_trab2; do
+          [ "$(getent shadow "$u" | cut -d: -f5)" = 60 ] || exit 1
+          [ "$(getent shadow "$u" | cut -d: -f6)" = 4 ] || exit 1
+          [ "$(getent shadow "$u" | cut -d: -f7)" = 2 ] || exit 1
+        done
+        exit 0
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Empresa preparada
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p13-e20-practica-integradora-pequena-empresa.sh extra </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Este script no admite argumentos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0

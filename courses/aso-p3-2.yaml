@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p3-2
 version: '1.0'
 title: ASO Práctica 3.2 · Edición con vi
+folder: ASO Prácticas
 description: 'Adaptación del apartado 2 de ULPGC ASO. Los contenedores no tienen systemd, systemctl, httpd
   ni firewalld. La administración de servicios, Apache, cortafuegos, drop-ins y cgroups de los apartados
   1 y 3–7 requieren una VM completa y no se incluyen. Aquí se practica vi: inserción, navegación, sustituciones,

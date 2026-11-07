@@ -1,0 +1,6270 @@
+schema_version: 1
+id: aso-fast-track-12-32
+version: '1.0'
+title: ASO Fast Track · Prácticas 1.2 → 3.2
+description: 'Fase de aprendizaje rápido que recorre las prácticas 1.2 a 3.2 de ASO
+  con 4 ejercicios clave de cada una (24 en total), seleccionados de las colecciones
+  de 20 ejercicios.
+
+
+  - **1.2** Filtros y tuberías: `cut`, `sort`, `uniq -c`, `grep` con expresiones regulares.
+
+  - **1.3** Permisos y cuentas: `chmod` octal y simbólico, `useradd`/`groupadd`, directorios
+  compartidos con SGID.
+
+  - **2.1** Scripts en Bash: `if`, funciones, sustitución de comandos, bucles `while`.
+
+  - **2.2** Lectura y argumentos: `read` con `IFS`, vectores, `shift`, descriptores
+  de fichero.
+
+  - **3.1** Procesos: `ps`, ordenaciones por CPU, procesos hijos, `pgrep`.
+
+  - **3.2** Servicios: `systemctl`, ficheros de unidad `.service` y drop-ins.
+
+
+  Cada título indica entre corchetes la práctica de origen. Los datos de práctica
+  se crean en `/home/learner/lab/` al iniciar el entorno. Cuando domines esta fase,
+  continúa con las colecciones completas de cada práctica.'
+folder: ASO Prácticas · 20 ejercicios
+setup:
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/datos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/extensiones
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/extensiones/sub
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/extensiones-vacio
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/copias
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/series
+
+    printf ''%s\n'' ''ana:x:1010:2010:Ana Lopez:/home/ana:/bin/bash'' ''bruno:x:1011:2011:Bruno
+    Diaz:/home/bruno:/bin/sh'' ''carla:x:1007:2010:Carla Ruiz:/home/carla:/bin/bash''
+    ''david:x:1020:2020:David Paz:/home/david:/usr/sbin/nologin'' ''elena:x:1005:2011:Elena
+    Soto:/home/elena:/bin/bash'' ''fabio:x:1015:2020:Fabio Mar:/home/fabio:/bin/sh''
+    ''gloria:x:1009:2021:Gloria Gil:/home/gloria:/bin/zsh'' > /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+
+    printf ''%s\n'' zeta:x:70:80:Zeta:/home/zeta:/bin/sh alba:x:20:30:Alba:/home/alba:/bin/bash
+    mario:x:100:30:Mario:/home/mario:/bin/bash > /home/learner/lab/aso-fundamentos/datos/usuarios-corto.txt
+
+    printf ''%s\n'' apple orange idea table flame sky dry shush ash shish education
+    action election ending planted moon queue aeiou spark shell bash casa > /home/learner/lab/aso-fundamentos/datos/palabras.txt
+
+    printf ''%s\n'' pera manzana pera uva manzana pera kiwi uva > /home/learner/lab/aso-fundamentos/datos/frutas.txt
+
+    printf ''%s\n'' rojo azul verde rojo amarillo azul > /home/learner/lab/aso-fundamentos/datos/colores.txt
+
+    printf ''%s\n'' INFO:inicio ERROR:disco INFO:usuario AVISO:memoria ERROR:red INFO:fin
+    > /home/learner/lab/aso-fundamentos/datos/mensajes.txt
+
+    printf ''%s\n'' uno dos tres > /home/learner/lab/aso-fundamentos/datos/tres-lineas.txt
+
+    touch /home/learner/lab/aso-fundamentos/datos/vacio.txt
+
+    printf ''%s\n'' ''Hola mundo'' ''bash es un shell'' FIN > /home/learner/lab/aso-fundamentos/datos/simple.txt
+
+    printf ''%s\n'' a > /home/learner/lab/aso-fundamentos/extensiones/informe1.txt
+
+    printf ''%s\n'' b > /home/learner/lab/aso-fundamentos/extensiones/informe2.txt
+
+    printf ''%s\n'' c > ''/home/learner/lab/aso-fundamentos/extensiones/notas clase.txt''
+
+    printf ''%s\n'' log > /home/learner/lab/aso-fundamentos/extensiones/error1.log
+
+    printf ''%s\n'' log > /home/learner/lab/aso-fundamentos/extensiones/error2.log
+
+    printf ''%s\n'' imagen > /home/learner/lab/aso-fundamentos/extensiones/foto1.jpg
+
+    printf ''%s\n'' subdir > /home/learner/lab/aso-fundamentos/extensiones/sub/oculto.txt
+
+    chown -R learner:learner /home/learner/lab/aso-fundamentos
+
+    '
+  user: root
+  timeout: 15
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/permisos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/umask
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/sticky-a
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/sticky-b
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/directorios/privado
+
+    printf ''%s\n'' ''solo un ejemplo'' > /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+
+    printf ''%s\n'' ''datos de prueba'' > /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+
+    printf ''%s\n'' ''datos de prueba'' > /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+
+    printf ''%s\n'' ''contenido grupo'' > /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt
+
+    printf ''%s\n'' ''contenido usuario'' > /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+
+    printf ''%s\n'' ''no soy un directorio'' > /home/learner/lab/aso-fundamentos/permisos/un-fichero.txt
+
+    chown -R learner:learner /home/learner/lab/aso-fundamentos
+
+    chmod 0640 /home/learner/lab/aso-fundamentos/permisos/ver-permisos.txt
+
+    chmod 0666 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+
+    chmod 0644 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+
+    chmod 0600 /home/learner/lab/aso-fundamentos/permisos/para-grupo.txt /home/learner/lab/aso-fundamentos/permisos/para-dueno.txt
+
+    chmod 0777 /home/learner/lab/aso-fundamentos/directorios/sticky-a /home/learner/lab/aso-fundamentos/directorios/sticky-b
+
+    groupadd aso_taller_equipo
+
+    groupadd aso_taller_comun
+
+    useradd -M -U -s /bin/bash aso_taller_a
+
+    useradd -M -U -s /bin/bash aso_taller_b
+
+    groupadd aso_p13_equipo
+
+    useradd -M -U -s /bin/bash aso_p13_miembro
+
+    useradd -M -U -s /bin/bash aso_p13_externo
+
+    useradd -M -U -s /bin/bash aso_p13_nuevo
+
+    usermod -aG aso_p13_equipo aso_p13_miembro
+
+    groupadd aso_p13_admin
+
+    useradd -M -U -s /bin/bash aso_p13_admin1
+
+    useradd -M -U -s /bin/bash aso_p13_admin2
+
+    '
+  user: root
+  timeout: 15
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/datos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/series
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c
+
+    printf ''%s\n'' ''ana:x:1100:1100:Ana Sol:/home/ana:/bin/bash'' ''beto:x:1101:2100:Beto
+    Paz:/home/beto:/bin/sh'' ''cora:x:1102:1102:Cora Ruiz:/srv/cora:/bin/bash'' ''dani:x:1103:2100:Dani
+    Gil:/home/dani:/usr/sbin/nologin'' ''elena:x:1104:1104:Elena Mar:/home/elena:/bin/bash''
+    ''fede:x:1110:2110:Fede Sur:/srv/fede:/bin/sh'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+
+    printf ''%s\n'' ''lola:x:1201:1201:Lola Luz:/home/lola:/bin/bash'' ''paco:x:1202:1400:Paco
+    Sur:/srv/paco:/bin/sh'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+
+    printf ''%s\n'' uno dos tres cuatro cinco seis > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+
+    printf ''%s\n'' ''primera corta'' ''segunda corta'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas
+    cortas.txt''
+
+    touch /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+
+    printf ''%s\n'' alpha apple arena avion banana barco casa perro nube sol BOSQUE
+    avena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt
+
+    printf ''%s\n'' proyecto:x:2500:ana,cora comun:x:2501:beto,dani,elena vacio:x:2502:
+    > /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt
+
+    printf ''%s\n'' ana:/home/ana beto:/tmp/beto cora:/home/cora dani:/srv/dani elena:/home/elena
+    > /home/learner/lab/aso-fundamentos/bash-21-22/datos/hogares.txt
+
+    printf ''%s\n'' A1 A2 A3 A4 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt
+
+    printf ''%s\n'' B1 B2 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt
+
+    printf ''%s\n'' C1 C2 C3 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-c.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/comun.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas
+    clase.txt''
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/comun.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/uno.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/notas
+    clase.txt''
+
+    printf ''%s\n'' ''no descender'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub/interior.txt
+
+    chown -R learner:learner /home/learner/lab/aso-fundamentos/bash-21-22
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/datos
+
+    printf ''%s\n'' INFO:inicio ERROR:disco INFO:usuario AVISO:memoria ERROR:red INFO:fin
+    > /home/learner/lab/aso-fundamentos/datos/mensajes.txt
+
+    '
+  user: root
+  timeout: 15
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/datos
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/series
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b
+
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c
+
+    printf ''%s\n'' ''ana:x:1100:1100:Ana Sol:/home/ana:/bin/bash'' ''beto:x:1101:2100:Beto
+    Paz:/home/beto:/bin/sh'' ''cora:x:1102:1102:Cora Ruiz:/srv/cora:/bin/bash'' ''dani:x:1103:2100:Dani
+    Gil:/home/dani:/usr/sbin/nologin'' ''elena:x:1104:1104:Elena Mar:/home/elena:/bin/bash''
+    ''fede:x:1110:2110:Fede Sur:/srv/fede:/bin/sh'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+
+    printf ''%s\n'' ''lola:x:1201:1201:Lola Luz:/home/lola:/bin/bash'' ''paco:x:1202:1400:Paco
+    Sur:/srv/paco:/bin/sh'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+
+    printf ''%s\n'' uno dos tres cuatro cinco seis > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+
+    printf ''%s\n'' ''primera corta'' ''segunda corta'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas
+    cortas.txt''
+
+    touch /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+
+    printf ''%s\n'' alpha apple arena avion banana barco casa perro nube sol BOSQUE
+    avena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt
+
+    printf ''%s\n'' proyecto:x:2500:ana,cora comun:x:2501:beto,dani,elena vacio:x:2502:
+    > /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt
+
+    printf ''%s\n'' ana:/home/ana beto:/tmp/beto cora:/home/cora dani:/srv/dani elena:/home/elena
+    > /home/learner/lab/aso-fundamentos/bash-21-22/datos/hogares.txt
+
+    printf ''%s\n'' A1 A2 A3 A4 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt
+
+    printf ''%s\n'' B1 B2 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt
+
+    printf ''%s\n'' C1 C2 C3 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-c.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/comun.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas
+    clase.txt''
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/comun.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/uno.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+
+    printf ''%s\n'' ''archivo de prueba'' > ''/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/notas
+    clase.txt''
+
+    printf ''%s\n'' ''no descender'' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub/interior.txt
+
+    chown -R learner:learner /home/learner/lab/aso-fundamentos/bash-21-22
+
+    printf ''%s\n'' ''/bin/bash'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/shells-permitidos.txt
+
+    printf ''%s\n'' ''UID_MIN 1101'' ''UID_MAX 1104'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/login-valores.txt
+
+    printf ''%s\n'' ''uno dos tres cuatro'' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/vector-cuatro.txt
+
+    '
+  user: root
+  timeout: 15
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-procesos
+
+    install -d -o learner -g learner /home/learner/lab/aso-procesos/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-procesos/datos
+
+    printf ''%s\n'' ''100|root|1|S|0.0|1.2|00:01:10|05:10:00|systemd|?|/usr/lib/systemd/systemd''
+    ''210|root|100|S|0.1|0.7|00:00:10|02:00:00|sshd|?|/usr/sbin/sshd -D'' ''310|ana|210|S+|0.0|0.4|00:00:12|01:30:00|bash|pts/0|-bash''
+    ''315|ana|310|R+|7.5|1.1|00:03:30|00:45:00|python3|pts/0|python3 demo.py'' ''316|ana|310|S|0.0|0.1|00:00:01|00:05:00|sleep|pts/0|sleep
+    100'' ''320|bruno|210|S+|0.0|0.4|00:00:05|00:35:00|bash|pts/1|-bash'' ''325|bruno|320|R|15.1|6.5|00:20:00|00:24:00|gcc|pts/1|gcc
+    main.c'' ''330|bruno|320|S|0.0|0.2|00:00:00|00:20:00|grep|pts/1|grep bash'' ''340|ana|310|R|3.0|2.0|00:05:15|00:20:00|java|pts/0|java
+    -jar app.jar'' ''350|carla|210|S|0.0|0.3|00:00:30|00:40:00|bash|pts/2|-bash''
+    ''355|carla|350|S|0.0|0.8|00:00:07|00:30:00|vim|pts/2|vim notas.txt'' ''400|root|100|S|0.0|0.9|00:00:20|00:50:00|httpd|?|/usr/sbin/httpd
+    -DFOREGROUND'' ''401|apache|400|S|0.2|1.3|00:00:42|00:49:00|httpd|?|/usr/sbin/httpd
+    -DFOREGROUND'' ''402|apache|400|S|0.1|1.2|00:00:34|00:48:00|httpd|?|/usr/sbin/httpd
+    -DFOREGROUND'' ''450|root|100|S|0.0|0.2|00:00:25|00:55:00|cron|?|/usr/sbin/cron
+    -f'' ''500|ana|310|Z|0.0|0.0|00:00:00|00:01:00|child|pts/0|[child] <defunct>''
+    ''510|bruno|320|S|0.1|0.1|00:00:08|00:12:00|tail|pts/1|tail -f debug.log'' ''520|root|100|Ssl|0.0|0.5|00:00:06|00:20:00|dbus-daemon|?|/usr/bin/dbus-daemon''
+    > /home/learner/lab/aso-procesos/datos/procesos.psv
+
+    printf ''%s\n'' root:x:0:0::/home/root:/bin/bash ana:x:1001:1001::/home/ana:/bin/bash
+    bruno:x:1002:1002::/home/bruno:/bin/bash carla:x:1003:1003::/home/carla:/bin/bash
+    apache:x:48:48::/home/apache:/bin/bash sinprocesos:x:1900:1001::/home/sinprocesos:/bin/bash
+    > /home/learner/lab/aso-procesos/datos/cuentas.passwd
+
+    chown learner:learner /home/learner/lab/aso-procesos/datos/procesos.psv /home/learner/lab/aso-procesos/datos/cuentas.passwd
+
+    '
+  user: root
+  timeout: 15
+- script: 'install -d -o learner -g learner /home/learner/lab/aso-servicios
+
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/scripts
+
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/bin
+
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/estado-base
+
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/datos
+
+    printf ''%s\n'' ''#!/bin/bash'' ''set -u'' ''s=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}''
+    ''cmd=${1:-}; (($#>0)) && shift'' ''log(){ printf ''"''"''%s\n''"''"'' "$*" >>
+    "$s/acciones.log"; }'' ''svc(){ case "$1" in httpd|sshd|cron|httpd.service|sshd.service|cron.service)
+    service=${1%.service};; *) return 1;; esac; }'' ''case "$cmd" in'' '' get-default)
+    (($#==0)) || exit 2; cat "$s/default-target";;'' '' set-default) (($#==1)) ||
+    exit 2; case "$1" in graphical.target|multi-user.target) printf ''"''"''%s\n''"''"''
+    "$1" > "$s/default-target"; log set-default "$1";; *) exit 2;; esac;;'' '' is-active|is-enabled)''
+    ''   (($#==1)) && svc "$1" || exit 4'' ''   case "$cmd" in is-active) value=$(cat
+    "$s/$service.active");; is-enabled) value=$(cat "$s/$service.enabled");; esac''
+    ''   printf ''"''"''%s\n''"''"'' "$value"'' ''   [[ "$value" == active || "$value"
+    == enabled ]] || exit 3'' ''   ;;'' '' start|stop|restart|reload|enable|disable)''
+    ''   if [[ "$cmd" == enable && ${1:-} == --now ]]; then'' ''     shift'' ''     (($#==1))
+    && svc "$1" || exit 4'' ''     printf ''"''"''enabled\n''"''"'' > "$s/$service.enabled"''
+    ''     printf ''"''"''active\n''"''"'' > "$s/$service.active"'' ''     log ''"''"''enable
+    --now''"''"'' "$service"'' ''     exit 0'' ''   fi'' ''   (($#==1)) && svc "$1"
+    || exit 4'' ''   log "$cmd" "$service"'' ''   case "$cmd" in'' ''     start|restart)
+    printf ''"''"''active\n''"''"'' > "$s/$service.active";;'' ''     stop) printf
+    ''"''"''inactive\n''"''"'' > "$s/$service.active";;'' ''     enable) printf ''"''"''enabled\n''"''"''
+    > "$s/$service.enabled";;'' ''     disable) printf ''"''"''disabled\n''"''"''
+    > "$s/$service.enabled";;'' ''     reload) [[ "$(cat "$s/$service.active")" ==
+    active ]] || exit 3;;'' ''   esac'' ''   ;;'' '' list-units)'' ''   [[ " $* "
+    == *''"''"'' --type=service ''"''"''* ]] || exit 2'' ''   for service in cron
+    httpd sshd; do'' ''     v=$(cat "$s/$service.active")'' ''     if [[ " $* " ==
+    *''"''"'' --state=inactive ''"''"''* && "$v" != inactive ]]; then continue; fi''
+    ''     if [[ " $* " == *''"''"'' --state=active ''"''"''* && "$v" != active ]];
+    then continue; fi'' ''     if [[ " $* " != *''"''"'' --all ''"''"''* && "$v" ==
+    inactive && " $* " != *''"''"'' --state=inactive ''"''"''* ]]; then continue;
+    fi'' ''     printf ''"''"''%s.service %s\n''"''"'' "$service" "$v"'' ''   done''
+    ''   ;;'' '' list-unit-files)'' ''   [[ " $* " == *''"''"'' --type=service ''"''"''*
+    ]] || exit 2'' ''   for service in cron httpd sshd; do'' ''     v=$(cat "$s/$service.enabled")''
+    ''     if [[ " $* " == *''"''"'' --state=enabled ''"''"''* && "$v" != enabled
+    ]]; then continue; fi'' ''     printf ''"''"''%s.service %s\n''"''"'' "$service"
+    "$v"'' ''   done'' ''   ;;'' '' daemon-reload) (($#==0)) || exit 2; log daemon-reload;;''
+    '' set-property)'' ''   mode=permanent'' ''   if [[ ${1:-} == --runtime ]]; then
+    mode=runtime; shift; fi'' ''   (($#>=2)) && svc "$1" || exit 4'' ''   shift''
+    ''   log set-property "$mode" "$service" "$@"'' ''   printf ''"''"''%s\n''"''"''
+    "$@" > "$s/$service.properties"'' ''   ;;'' '' show)'' ''   (($#==1)) && svc "$1"
+    || exit 4'' ''   if [[ -s "$s/$service.properties" ]]; then cat "$s/$service.properties";
+    fi'' ''   ;;'' '' status)'' ''   (($#==1)) && svc "$1" || exit 4'' ''   printf
+    ''"''"''%s.service - simulated service\nActive: %s\n''"''"'' "$service" "$(cat
+    "$s/$service.active")"'' ''   ;;'' '' revert)'' ''   (($#==1)) && svc "$1" ||
+    exit 4'' ''   rm -f "$s/$service.properties"'' ''   log revert "$service"'' ''   ;;''
+    '' *) exit 2;;'' esac > /home/learner/lab/aso-servicios/bin/systemctl
+
+    chmod 0755 /home/learner/lab/aso-servicios/bin/systemctl
+
+    printf ''%s\n'' ''#!/bin/bash'' ''s=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}''
+    ''[[ "$*" == ''"''"''list installed httpd''"''"'' ]] || exit 2'' ''[[ "$(cat "$s/httpd.installed")"
+    == 1 ]] || exit 1'' ''printf ''"''"''Installed Packages\nhttpd.x86_64 2.4.0 mock\n''"''"''''
+    > /home/learner/lab/aso-servicios/bin/dnf
+
+    chmod 0755 /home/learner/lab/aso-servicios/bin/dnf
+
+    printf ''%s\n'' ''#!/bin/bash'' ''s=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}''
+    ''case "$*" in'' '' ''"''"''--list-services''"''"'') cat "$s/firewall.current";;''
+    '' ''"''"''--add-service=http''"''"'') printf ''"''"''ssh http\n''"''"'' > "$s/firewall.current";
+    printf ''"''"''%s\n''"''"'' ''"''"''firewall --add-service=http''"''"'' >> "$s/acciones.log";;''
+    '' ''"''"''--permanent --add-service=http''"''"'') printf ''"''"''ssh http\n''"''"''
+    > "$s/firewall.permanent"; printf ''"''"''%s\n''"''"'' ''"''"''firewall --permanent
+    --add-service=http''"''"'' >> "$s/acciones.log";;'' '' ''"''"''--reload''"''"'')
+    cp "$s/firewall.permanent" "$s/firewall.current"; printf ''"''"''%s\n''"''"''
+    ''"''"''firewall --reload''"''"'' >> "$s/acciones.log";;'' '' *) exit 2;;'' esac
+    > /home/learner/lab/aso-servicios/bin/firewall-cmd
+
+    chmod 0755 /home/learner/lab/aso-servicios/bin/firewall-cmd
+
+    printf ''%s\n'' ''#!/bin/bash'' ''s=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}''
+    ''[[ "$*" == *localhost* ]] || exit 2'' ''[[ "$(cat "$s/httpd.active")" == active
+    && "$(cat "$s/web_ok")" == 1 ]] || exit 7'' ''printf ''"''"''%s\n''"''"'' ''"''"''<html><body>Enhorabuena,
+    tu configuracion es correcta.</body></html>''"''"'''' > /home/learner/lab/aso-servicios/bin/curl
+
+    chmod 0755 /home/learner/lab/aso-servicios/bin/curl
+
+    printf ''%s\n'' multi-user.target > /home/learner/lab/aso-servicios/estado-base/default-target
+
+    printf ''%s\n'' inactive > /home/learner/lab/aso-servicios/estado-base/httpd.active
+
+    printf ''%s\n'' disabled > /home/learner/lab/aso-servicios/estado-base/httpd.enabled
+
+    printf ''%s\n'' active > /home/learner/lab/aso-servicios/estado-base/sshd.active
+
+    printf ''%s\n'' enabled > /home/learner/lab/aso-servicios/estado-base/sshd.enabled
+
+    printf ''%s\n'' active > /home/learner/lab/aso-servicios/estado-base/cron.active
+
+    printf ''%s\n'' enabled > /home/learner/lab/aso-servicios/estado-base/cron.enabled
+
+    printf ''%s\n'' 1 > /home/learner/lab/aso-servicios/estado-base/httpd.installed
+
+    printf ''%s\n'' ssh > /home/learner/lab/aso-servicios/estado-base/firewall.current
+
+    printf ''%s\n'' ssh > /home/learner/lab/aso-servicios/estado-base/firewall.permanent
+
+    printf ''%s\n'' 1 > /home/learner/lab/aso-servicios/estado-base/web_ok
+
+    : > /home/learner/lab/aso-servicios/estado-base/acciones.log
+
+    chown -R learner:learner /home/learner/lab/aso-servicios
+
+    '
+  user: root
+  timeout: 15
+exercises:
+- id: p12-e01-nombres-ordenados
+  title: '[1.2] Nombres de usuario ordenados'
+  description: 'Escribe un script que reciba un fichero con el formato de `/etc/passwd`
+    y muestre **solo el campo 1** (nombre de usuario), un nombre por línea y en orden
+    alfabético.
+
+
+    Prueba con `/home/learner/lab/aso-fundamentos/datos/usuarios.txt` y `/home/learner/lab/aso-fundamentos/datos/usuarios-corto.txt`.
+    No modifiques el fichero original. Usa `cut` y `sort`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `cut -d: -f1`, `sort`, `|`.
+
+    - **Bash / conceptos:** `"$1"`, `[[ -f ... ]]`, `if`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh`
+
+    - **Uso:** `p12-e01-nombres-ordenados.sh FICHERO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Debes aportar exactamente una ruta.
+
+    - La ruta debe ser un fichero regular.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Se espera un fichero`.
+
+    - **no-fichero:** código `2`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `No existe un fichero regular`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    ana
+
+    bruno
+
+    carla
+
+    david
+
+    elena
+
+    fabio
+
+    gloria
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: dos-ficheros
+    description: Extrae y ordena los nombres en dos conjuntos distintos.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''ana
+
+        bruno
+
+        carla
+
+        david
+
+        elena
+
+        fabio
+
+        gloria
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh /home/learner/lab/aso-fundamentos/datos/usuarios-corto.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''alba
+
+        mario
+
+        zeta
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Rechaza falta de argumentos y rutas inexistentes.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Se espera un fichero'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        /home/learner/lab/aso-fundamentos/datos/usuarios-corto.txt </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Se espera un fichero'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e01-nombres-ordenados.sh /home/learner/lab/aso-fundamentos/datos/inexistente.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''No existe un fichero regular'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - El separador de `/etc/passwd` es `:`.
+  - Las tuberías conectan la salida de un filtro con la entrada del siguiente.
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p12-e03-contar-shell
+  title: '[1.2] Contar usuarios según su shell'
+  description: 'Recibe un fichero con formato `/etc/passwd` y una ruta de shell (por
+    ejemplo `/bin/bash`). Muestra únicamente cuántas cuentas tienen **exactamente**
+    ese shell en el campo 7; imprime `0` si ninguna lo utiliza.
+
+
+    Puedes separar el campo con `cut` y contar las coincidencias con `grep -Fxc`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `cut -d: -f7`, `grep -Fxc`, `|`.
+
+    - **Bash / conceptos:** `if`, `"$1"`, `"$2"`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh`
+
+    - **Uso:** `p12-e03-contar-shell.sh FICHERO SHELL`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Se esperan exactamente dos argumentos.
+
+    - El primer argumento es un fichero regular.
+
+    - La ruta del shell empieza por `/` y no está vacía.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Uso: FICHERO SHELL`.
+
+    - **no-fichero:** código `2`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Fichero no valido`.
+
+    - **shell:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `Shell invalido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+    /bin/bash
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    3
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: cuentas
+    description: Incluye shells presentes y ausentes.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        /bin/bash </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''3
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        /bin/sh </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios-corto.txt
+        /bin/bash </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        /bin/fish </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''0
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Errores de uso, fichero y shell.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO SHELL'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /no/existe
+        /bin/bash </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e03-contar-shell.sh /home/learner/lab/aso-fundamentos/datos/usuarios.txt
+        bash </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Shell invalido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - 'No cuentes la aparición de la palabra `bash` en cualquier campo: busca coincidencias
+    exactas en el campo 7.'
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p12-e09-expresiones-regulares
+  title: '[1.2] Buscar palabras con expresiones regulares'
+  description: 'Recibe un fichero de palabras (una palabra por línea) y una de estas
+    opciones:
+
+
+    - `vocal`: palabras que empiezan por a, e, i, o, u.
+
+    - `cinco`: palabras de exactamente cinco letras.
+
+    - `sin-vocal`: palabras sin a, e, i, o, u.
+
+
+    Solo hay palabras inglesas en minúsculas en el fichero de prueba. Muestra las
+    palabras que cumplan el patrón **en el orden original**. Aplica expresiones regulares
+    con `grep -E` y condicionales de Bash. Si ninguna palabra coincide, la salida
+    será vacía y el código 0.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `grep -E`, `grep -vE`.
+
+    - **Bash / conceptos:** `case`, `if`, `expresiones regulares`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh`
+
+    - **Uso:** `p12-e09-expresiones-regulares.sh FICHERO TIPO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente dos argumentos.
+
+    - Fichero regular.
+
+    - TIPO es vocal, cinco o sin-vocal.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Uso: FICHERO TIPO`.
+
+    - **no-fichero:** código `2`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Fichero no valido`.
+
+    - **tipo:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `Tipo desconocido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh /home/learner/lab/aso-fundamentos/datos/palabras.txt
+    vocal
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    apple
+
+    orange
+
+    idea
+
+    ash
+
+    education
+
+    action
+
+    election
+
+    ending
+
+    aeiou
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: reglas
+    description: Tres patrones sobre el diccionario de prueba.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /home/learner/lab/aso-fundamentos/datos/palabras.txt vocal </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''apple
+
+        orange
+
+        idea
+
+        ash
+
+        education
+
+        action
+
+        election
+
+        ending
+
+        aeiou
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /home/learner/lab/aso-fundamentos/datos/palabras.txt cinco </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''apple
+
+        table
+
+        flame
+
+        shush
+
+        shish
+
+        queue
+
+        aeiou
+
+        spark
+
+        shell
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /home/learner/lab/aso-fundamentos/datos/palabras.txt sin-vocal </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''sky
+
+        dry
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Forma y opciones válidas.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /home/learner/lab/aso-fundamentos/datos/palabras.txt </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO TIPO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /no/existe vocal </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e09-expresiones-regulares.sh
+        /home/learner/lab/aso-fundamentos/datos/palabras.txt larga </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Tipo desconocido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Anclas `^` y `$`, conjuntos `[aeiou]`, y cuantificadores `{5}`.
+  - Puedes usar `if` y `elif` para elegir un patrón.
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p12-e11-contar-repetidos
+  title: '[1.2] Contar repeticiones con uniq -c'
+  description: "Recibe un fichero con una palabra por línea. Muestra una línea por\
+    \ palabra, ordenadas alfabéticamente, precedida por su frecuencia **en el formato\
+    \ estándar de `uniq -c`** (incluidos sus espacios de alineación).\n\nPractica\
+    \ `sort | uniq -c` con los ficheros de frutas y colores.\n\n### Comandos y conceptos\
+    \ a practicar\n- **Comandos principales:** `sort`, `uniq -c`, `|`.\n- **Bash /\
+    \ conceptos:** `if`, `[[ -f ... ]]`.\n\n### Script solicitado\n- **Ruta obligatoria:**\
+    \ `/home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh`\n- **Uso:**\
+    \ `p12-e11-contar-repetidos.sh FICHERO`\n- Crea tú el fichero (no lo proporciona\
+    \ la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.\n\
+    \n### Requisitos de entrada\n- Exactamente un argumento.\n- El fichero debe ser\
+    \ regular.\n\n### Resultados y códigos de salida\n- **correcto:** código `0`,\
+    \ salida `stdout`. Resultado indicado; stderr vacío.\n- **argumentos:** código\
+    \ `1`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje: `Se espera un\
+    \ fichero`.\n- **no-fichero:** código `2`, salida `stderr`. Mensaje de error y\
+    \ stdout vacío. Mensaje: `Fichero no valido`.\n\n### Ejemplo de ejecución\n\n\
+    ```bash\n/home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh\
+    \ /home/learner/lab/aso-fundamentos/datos/frutas.txt\n```\nSalida estándar esperada:\n\
+    ```text\n      1 kiwi\n      2 manzana\n      3 pera\n      2 uva\n```\nCódigo\
+    \ de salida: `0`.\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: frecuencias
+    description: Frecuencias de dos listas distintas.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh /home/learner/lab/aso-fundamentos/datos/frutas.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(LC_ALL=C sort /home/learner/lab/aso-fundamentos/datos/frutas.txt
+        | uniq -c)
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh /home/learner/lab/aso-fundamentos/datos/colores.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(LC_ALL=C sort /home/learner/lab/aso-fundamentos/datos/colores.txt
+        | uniq -c)
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Validaciones.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Se espera un fichero'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p12-e11-contar-repetidos.sh /no/existe
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - La salida debe tener exactamente el formato de `uniq -c`, sin reformatear los
+    números.
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p13-e04-chmod-octal
+  title: '[1.3] Cambiar permisos con chmod octal'
+  description: 'Recibe un modo octal de **tres dígitos** (por ejemplo `600`, `640`,
+    `755`) y la ruta de un fichero regular. Asigna exactamente esos permisos usando
+    `chmod`. Imprime `Permisos cambiados` cuando termina bien.
+
+
+    Trabaja con `/home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt`. Rechaza
+    caracteres fuera de 0-7 y cualquier fichero inexistente.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `chmod`.
+
+    - **Bash / conceptos:** `[[ ... =~ ... ]]`, `if`, `códigos de salida`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh`
+
+    - **Uso:** `p13-e04-chmod-octal.sh MODO FICHERO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Dos argumentos.
+
+    - Modo compuesto exactamente por tres dígitos de 0 a 7.
+
+    - Fichero regular existente.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Uso: MODO FICHERO`.
+
+    - **modo:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `Modo octal invalido`.
+
+    - **no-fichero:** código `3`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Fichero no valido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Permisos cambiados
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: modo600
+    description: Establece modo 600.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        chmod 0644 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh
+        600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Permisos cambiados
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+      mode: '600'
+  - id: modo750
+    description: Establece modo 750.
+    points: 7
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        chmod 0600 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh
+        750 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Permisos cambiados
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+      mode: '750'
+  - id: errores
+    description: Modos inválidos y fichero.
+    points: 5
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: MODO FICHERO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 999 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Modo octal invalido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 64 /home/learner/lab/aso-fundamentos/permisos/archivo-octal.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Modo octal invalido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e04-chmod-octal.sh 600 /no/existe
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - 'Recuerda: lectura=4, escritura=2 y ejecución=1.'
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p13-e05-chmod-simbolico
+  title: '[1.3] Modificar permisos con notación simbólica'
+  description: 'Recibe la ruta de un fichero. Conserva los permisos de lectura existentes,
+    **añade** ejecución al propietario y **quita** escritura al grupo y a otros usuarios.
+    No modifiques otros bits. Al terminar imprime `Permisos cambiados`.
+
+
+    Usa `chmod u+x,go-w` o una notación simbólica equivalente.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `chmod u+x,go-w`.
+
+    - **Bash / conceptos:** `if`, `[[ -f ... ]]`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh`
+
+    - **Uso:** `p13-e05-chmod-simbolico.sh FICHERO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente un argumento.
+
+    - El argumento debe ser fichero regular.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Uso: FICHERO`.
+
+    - **no-fichero:** código `2`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Fichero no valido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Permisos cambiados
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: desde-666
+    description: Desde 666 debe quedar 744.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        chmod 0666 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh
+        /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Permisos cambiados
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+      mode: '744'
+  - id: desde-600
+    description: Desde 600 debe quedar 700.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        chmod 0600 /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh
+        /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Permisos cambiados
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: permissions
+      path: /home/learner/lab/aso-fundamentos/permisos/archivo-simbolico.txt
+      mode: '700'
+  - id: errores
+    description: Cantidad y ruta.
+    points: 4
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e05-chmod-simbolico.sh /no/existe
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - 'Los cambios simbólicos son relativos: no sustituyas los permisos con un valor
+    fijo.'
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p13-e11-crear-usuario
+  title: '[1.3] Crear usuario y añadirlo a un grupo secundario'
+  description: 'Script de administración (root). Recibe un nombre de usuario nuevo
+    y el de un grupo existente. Si el usuario no existe, créalo con `useradd -m -U
+    -s /bin/bash` (directorio personal y grupo privado propio), y después añádelo
+    al grupo indicado como **secundario** usando `usermod -aG` o `gpasswd -a`. Muestra
+    `Usuario creado: NOMBRE`.
+
+
+    NOMBRE admite una letra inicial y después minúsculas, dígitos o `_`, con longitud
+    total entre 1 y 20. No establezcas contraseñas ni modifiques cuentas existentes.
+    Se han preparado los grupos `aso_taller_equipo` y `aso_taller_comun`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `useradd -m -U -s`, `usermod -aG`, `id`.
+
+    - **Bash / conceptos:** `if`, `[[ ... =~ ... ]]`, `exit`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh`
+
+    - **Uso:** `p13-e11-crear-usuario.sh USUARIO GRUPO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente dos argumentos.
+
+    - Nombre de usuario válido, máximo 20 caracteres.
+
+    - El grupo secundario debe existir.
+
+    - El usuario no debe existir todavía.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Resultado indicado; stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Mensaje de error y stdout vacío.
+    Mensaje: `Uso: USUARIO GRUPO`.
+
+    - **nombre:** código `2`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `Nombre de usuario invalido`.
+
+    - **grupo:** código `3`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `Grupo inexistente`.
+
+    - **existe:** código `4`, salida `stderr`. Mensaje de error y stdout vacío. Mensaje:
+    `El usuario ya existe`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    sudo /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr1
+    aso_taller_equipo
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Usuario creado: aso_nuevo_usr1
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: alta-equipo
+    description: Alta de usuario en grupo de equipo.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        userdel -r aso_nuevo_usr1 2>/dev/null || true
+
+        set +e
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr1
+        aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Usuario creado: aso_nuevo_usr1
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: user
+      name: aso_nuevo_usr1
+      exists: true
+      shell: /bin/bash
+      home: /home/aso_nuevo_usr1
+    - type: membership
+      user: aso_nuevo_usr1
+      group: aso_taller_equipo
+    - type: membership
+      user: aso_nuevo_usr1
+      group: aso_nuevo_usr1
+  - id: alta-comun
+    description: Alta en otro grupo sin cambiar el primario.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        userdel -r aso_nuevo_usr2 2>/dev/null || true
+
+        set +e
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_nuevo_usr2
+        aso_taller_comun </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Usuario creado: aso_nuevo_usr2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: user
+      name: aso_nuevo_usr2
+      exists: true
+      shell: /bin/bash
+      home: /home/aso_nuevo_usr2
+    - type: membership
+      user: aso_nuevo_usr2
+      group: aso_taller_comun
+    - script: test "$(id -gn aso_nuevo_usr2)" = "aso_nuevo_usr2"
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: No crea usuarios con entrada errónea.
+    points: 4
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: USUARIO GRUPO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh UsuarioMalo
+        aso_taller_equipo </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Nombre de usuario invalido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh aso_otra_persona
+        grupo_inexistente_2 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Grupo inexistente'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e11-crear-usuario.sh root aso_taller_equipo
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 4 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''El usuario ya existe'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - No olvides `-a` al usar `usermod -G`; sin ella se reemplazan los grupos secundarios
+    previos.
+  - Los usuarios de prueba solo existen dentro del contenedor Linux Lab.
+  setup: []
+  sources: []
+  supplemental: Ficheros y nombres de prueba creados únicamente para este entorno
+    Linux Lab.
+- id: p13-e16-directorio-compartido-con-sgid
+  title: '[1.3] Directorio compartido con SGID'
+  description: 'Recibe DIRECTORIO y prepara un directorio compartido: debe quedar
+    con grupo propietario `aso_p13_equipo` y permisos **2770** (SGID activo). Si el
+    directorio no existe, debe dar un error. Necesita privilegios de administrador
+    al ejecutarse.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos:** `chgrp`, `chmod 2770`, `ls -ld`.
+
+    - **Bash / conceptos:** `[[ -d ]]`, `if !`, códigos de salida.
+
+
+    ### Entrega
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh`
+
+    - **Uso:** `p13-e16-directorio-compartido-con-sgid.sh DIRECTORIO`
+
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod
+    +x`).
+
+
+    ### Validaciones y resultados
+
+    - 0: `OK` y directorio con grupo `aso_p13_equipo` y modo 2770.
+
+    - 1: `Uso: DIRECTORIO`.
+
+    - 2: `Directorio no valido`.
+
+
+    ### Ejemplo
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+    /temporal
+
+    ```
+
+    Salida esperada:
+
+    ```text
+
+    OK
+
+
+    ```
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        d="$td/compartido"
+
+        mkdir "$d"
+
+        chmod 0755 "$d"
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+        "$d" </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OK
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        [ "$(stat -c %a "$d")" = 2770 ] || exit 1
+
+        [ "$(stat -c %G "$d")" = aso_p13_equipo ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh  </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: DIRECTORIO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p13-e16-directorio-compartido-con-sgid.sh
+        /no-existe </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Directorio no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - El SGID en directorios favorece la herencia de grupo. Se representa con el primer
+    dígito 2 en modo octal.
+  setup: []
+  sources: []
+- id: p21-e02-clasificar-numero
+  title: '[2.1] Clasificar un número según sus dígitos'
+  description: 'El script recibe una única cadena y responde con **una sola línea**,
+    según el contenido: `NO ES NUMERO` si está vacía o tiene algún carácter no numérico;
+    `UN DIGITO` si tiene un dígito; `DOS DIGITOS` si tiene dos; `TRES O MAS DIGITOS`
+    si tiene tres o más.
+
+
+    Clasifica el texto, no el valor matemático: `007` tiene tres dígitos. El contenido
+    no numérico **no es un error de ejecución**; solo se considera error una cantidad
+    incorrecta de argumentos. Practica `[[ =~ ]]`, condiciones y `${#variable}`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `printf`.
+
+    - **Bash / conceptos:** `if/elif/else`, `[[ ... =~ ... ]]`, `${#variable}`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh`
+
+    - **Uso:** `p21-e02-clasificar-numero.sh CADENA`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente una cadena (puede ser vacía).
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: CADENA`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 007
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    TRES O MAS DIGITOS
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: categorias
+    description: Clasifica todos los tipos, incluidos ceros a la izquierda.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 5 </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''UN DIGITO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 42
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''DOS DIGITOS
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 007
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''TRES O MAS DIGITOS
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 12345
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''TRES O MAS DIGITOS
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 3a
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''NO ES NUMERO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh ''''
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''NO ES NUMERO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Distingue una cadena vacía de la ausencia de argumentos.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: CADENA'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e02-clasificar-numero.sh 1 2
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: CADENA'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Usa una expresión regular anclada para aceptar únicamente dígitos.
+  - La longitud de una variable se obtiene con `${#cadena}`.
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p21-e04-sumar-funcion
+  title: '[2.1] Sumar con una función y sustitución de comandos'
+  description: 'Recibe dos números enteros **no negativos de 0 a 9999**. Define una
+    función Bash `sumar` que muestre la suma por stdout, utilízala y escribe `Resultado:
+    SUMA` en una sola línea.
+
+
+    Este ejercicio reproduce el razonamiento sobre `return` y los resultados de funciones
+    de la práctica 2.1: no uses el código de retorno para guardar la suma, ya que
+    puede superar 255. Usa `$(( ))` y, preferiblemente, `$(sumar ...)`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `printf`, `echo`.
+
+    - **Bash / conceptos:** `funciones`, `$(( ... ))`, `$(...)`, `return`.
+
+    - **Ampliación opcional (no evaluada):** Si tienes Python instalado, comprueba
+    **aparte** que `python3 -c "print(7+8)"` devuelve `15`. No lo uses para resolver
+    el script Bash ni es necesario para aprobar.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh`
+
+    - **Uso:** `p21-e04-sumar-funcion.sh A B`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente dos valores.
+
+    - Ambos deben ser cadenas de dígitos.
+
+    - Los valores deben estar entre 0 y 9999.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: A B`.
+
+    - **numero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Argumentos no numericos`.
+
+    - **rango:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Valor fuera de rango`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 250 10
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Resultado: 260
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: sumas
+    description: Suma valores pequeños y sumas mayores que 255.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 2 3 </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Resultado: 5
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 250 10
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Resultado: 260
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 9999 1
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Resultado: 10000
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 0 0 </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Resultado: 0
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Valida cantidad, números y rangos.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: A B'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 3 no </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Argumentos no numericos'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh -1 2 </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Argumentos no numericos'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e04-sumar-funcion.sh 10000 2
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Valor fuera de rango'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Una función devuelve información mediante stdout y estado mediante `return`.
+  - Comprueba primero la cadena con una expresión regular antes de operar.
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p21-e11-detectar-el-tipo-de-ruta
+  title: '[2.1] Detectar el tipo de ruta'
+  description: 'Recibe una ruta e indica si es un fichero regular (`FICHERO`), un
+    directorio (`DIRECTORIO`) o no existe ninguno de esos tipos (`OTRO`). El número
+    de argumentos siempre debe ser uno. Similar al primer ejercicio de la práctica
+    2.1, ampliado con prueba de directorio.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos:** `test`, `ls`.
+
+    - **Bash / conceptos:** `$#`, `if/elif/else`, `[[ -f ]]`, `[[ -d ]]`.
+
+
+    ### Entrega
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh`
+
+    - **Uso:** `p21-e11-detectar-el-tipo-de-ruta.sh RUTA`
+
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod
+    +x`).
+
+
+    ### Validaciones y resultados
+
+    - 0: una de las cadenas `FICHERO`, `DIRECTORIO`, `OTRO`.
+
+    - 1: stderr `Uso: RUTA`.
+
+
+    ### Ejemplo
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+    /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+
+    ```
+
+    Salida esperada:
+
+    ```text
+
+    FICHERO
+
+
+    ```
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''FICHERO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''DIRECTORIO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        /fichero_que_no_existe </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OTRO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e11-detectar-el-tipo-de-ruta.sh  </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: RUTA
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p21-e14-sumar-de-1-hasta-n-con-while
+  title: '[2.1] Sumar de 1 hasta N con while'
+  description: 'Recibe un entero N de 1 a 20. Utiliza un bucle `while` y aritmética
+    Bash para calcular 1+2+...+N. Imprime `Suma: RESULTADO`. Debes diferenciar un
+    número no válido de un valor fuera de rango.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos:** `echo`.
+
+    - **Bash / conceptos:** `while`, `(( ))`, variables, regex `^[0-9]+$`.
+
+
+    ### Entrega
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh`
+
+    - **Uso:** `p21-e14-sumar-de-1-hasta-n-con-while.sh N`
+
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod
+    +x`).
+
+
+    ### Validaciones y resultados
+
+    - 0: resultado numérico `Suma: X`.
+
+    - 1: `Uso: N`.
+
+    - 2: `No es entero`.
+
+    - 3: `Fuera de rango` si N no está entre 1 y 20.
+
+
+    ### Ejemplo
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+    1
+
+    ```
+
+    Salida esperada:
+
+    ```text
+
+    Suma: 1
+
+
+    ```
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        1 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Suma: 1
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        5 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Suma: 15
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        20 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Suma: 210
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh  </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: N
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        x </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''No es entero
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p21-e14-sumar-de-1-hasta-n-con-while.sh
+        0 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fuera de rango
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p22-e01-leer-registros
+  title: '[2.2] Recorrer passwd con read e IFS'
+  description: 'Lee un fichero de texto con el formato de `/etc/passwd`, indicado
+    como único argumento. Por cada registro imprime `nombre:uid:gid` (campos 1, 3
+    y 4, separados por `:`) y, al final, `Total: N`. Si el fichero está vacío, imprime
+    solo `Total: 0`.
+
+
+    En esta actividad se quiere practicar el bucle `while IFS=: read nombre clave
+    uid gid ...; do ... done < FICHERO`, como en la práctica 2.2. No es necesario
+    instalar ni modificar usuarios. Archivos de prueba: `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt`
+    y `/home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt`.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `redirección <`.
+
+    - **Bash / conceptos:** `while IFS=: read -r`, `(( ... ))`, `variables`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh`
+
+    - **Uso:** `p22-e01-leer-registros.sh FICHERO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente una ruta de fichero.
+
+    - Debe existir un fichero regular.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO`.
+
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    ana:1100:1100
+
+    beto:1101:2100
+
+    cora:1102:1102
+
+    dani:1103:2100
+
+    elena:1104:1104
+
+    fede:1110:2110
+
+    Total: 6
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: lectura
+    description: Lee registros, cuenta elementos y soporta fichero vacío.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''ana:1100:1100
+
+        beto:1101:2100
+
+        cora:1102:1102
+
+        dani:1103:2100
+
+        elena:1104:1104
+
+        fede:1110:2110
+
+        Total: 6
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''lola:1201:1201
+
+        paco:1202:1400
+
+        Total: 2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Total: 0
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Comprueba número de argumentos y existencia.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Redirige el fichero al `while` completo para conservar el contador en el shell
+    principal.
+  - '`IFS=:` separa campos por los dos puntos.'
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p22-e02-vector-campos
+  title: '[2.2] Elegir un campo de cada registro con un vector'
+  description: 'Recibe `FICHERO CAMPO` y muestra el campo elegido (de **1 a 7**) de
+    cada registro tipo passwd, anteponiendo `Registro N: ` con un número N creciente
+    desde 1. Ejemplo: `Registro 1: ana`.
+
+
+    Practica `while IFS=: read -a vector`, el acceso con `${vector[indice]}` y que
+    los vectores comienzan en 0. Usa `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt`
+    o `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt`. Valida
+    en este orden la cantidad, el fichero, el formato de CAMPO y el rango.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `redirección <`.
+
+    - **Bash / conceptos:** `read -a`, `IFS=:`, `${vector[indice]}`, `while`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh`
+
+    - **Uso:** `p22-e02-vector-campos.sh FICHERO CAMPO`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente dos argumentos.
+
+    - FICHERO debe ser regular.
+
+    - CAMPO debe ser numérico.
+
+    - CAMPO debe estar entre 1 y 7.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO CAMPO`.
+
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    - **numero:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Campo no numerico`.
+
+    - **rango:** código `4`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Campo fuera de rango`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+    1
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Registro 1: ana
+
+    Registro 2: beto
+
+    Registro 3: cora
+
+    Registro 4: dani
+
+    Registro 5: elena
+
+    Registro 6: fede
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: columnas
+    description: Selecciona columnas diferentes y maneja vectores.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+        1 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Registro 1: ana
+
+        Registro 2: beto
+
+        Registro 3: cora
+
+        Registro 4: dani
+
+        Registro 5: elena
+
+        Registro 6: fede
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+        7 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Registro 1: /bin/bash
+
+        Registro 2: /bin/sh
+
+        Registro 3: /bin/bash
+
+        Registro 4: /usr/sbin/nologin
+
+        Registro 5: /bin/bash
+
+        Registro 6: /bin/sh
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+        3 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Registro 1: 1201
+
+        Registro 2: 1202
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Valida argumentos, fichero y campo.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO CAMPO'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /no-existe
+        1 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+        abc </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Campo no numerico'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+        8 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 4 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Campo fuera de rango'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - El campo 1 se encuentra en el índice 0 del vector.
+  - No pierdas el contador introduciendo el while en una tubería.
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p22-e05-contar-varios-shells
+  title: '[2.2] Contar shells variables usando shift'
+  description: 'Recibe **uno o más nombres de shell** (sin ruta), como `bash`, `sh`
+    o `nologin`. Para cada argumento válido, en el orden recibido, escribe `NOMBRE:
+    NUMERO` con el número de entradas de `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt`
+    cuyo último componente de shell coincide exactamente con ese nombre.
+
+
+    Los nombres válidos tienen solo letras minúsculas. Si hay uno inválido, escribe
+    `Shell invalido: VALOR` en stderr y continúa con los demás; el código final debe
+    ser 2. Si todos son válidos, devuelve 0. Con cero argumentos, emite `Uso: SHELLS...`
+    y código 1. Practica `while (( $# > 0 ))`, `$1`, `shift` y `case` o expresiones
+    regulares de la práctica 2.2.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `cut -d: -f7`, `grep -c`, `|`.
+
+    - **Bash / conceptos:** `while`, `$#`, `shift`, `case`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh`
+
+    - **Uso:** `p22-e05-contar-varios-shells.sh SHELLS...`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Debes facilitar al menos un nombre de shell.
+
+    - Los nombres con otros caracteres se omiten con un error.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: SHELLS...`.
+
+    - **invalido:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Shell invalido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash
+    sh
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    bash: 3
+
+    sh: 2
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: varios
+    description: Maneja argumentos variables y valores repetidos.
+    points: 12
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        bash sh </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''bash: 3
+
+        sh: 2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        nologin zsh </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''nologin: 1
+
+        zsh: 0
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        bash bash </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''bash: 3
+
+        bash: 3
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: errores
+    description: Da error por valores inválidos pero continúa procesando.
+    points: 8
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: SHELLS...'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        bash BASH sh </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''bash: 3
+
+        sh: 2
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Shell invalido: BASH'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh
+        bash2 </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s '''')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Shell invalido: bash2'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Al acabar cada vuelta de `while`, no olvides `shift`.
+  - Cuenta coincidencias con `cut`, `grep` y `wc`; no utilices awk.
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p22-e08-guardar-descriptores
+  title: '[2.2] Leer por el descriptor 3 y guardar por el 4'
+  description: 'Recibe `FICHERO NOMBRE`, con NOMBRE de **3 a 12** letras minúsculas.
+    Lee las líneas de FICHERO y escribe en `/home/learner/lab/aso-fundamentos/bash-21-22/salidas/NOMBRE.txt`
+    los registros numerados como `Registro 1: texto`, `Registro 2: texto`, ... y al
+    final `Total: N`.
+
+
+    El fichero de salida debe **sobrescribirse**, no añadirse. El script muestra únicamente
+    `Guardado` en stdout. Practica los descriptores de la práctica 2.2: `exec 3<"$fichero"`,
+    `read -u3`, `exec 4>"$salida"`, `>&4`, y el cierre de descriptores. Valida los
+    argumentos antes de abrir el fichero de salida.
+
+
+    ### Comandos y conceptos a practicar
+
+    - **Comandos principales:** `redirección >`.
+
+    - **Bash / conceptos:** `exec 3<`, `exec 4>`, `read -u3`, `>&4`, `while`.
+
+
+    ### Script solicitado
+
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh`
+
+    - **Uso:** `p22-e08-guardar-descriptores.sh FICHERO NOMBRE`
+
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash`
+    y hazlo ejecutable con `chmod +x`.
+
+
+    ### Requisitos de entrada
+
+    - Exactamente dos argumentos.
+
+    - FICHERO debe ser regular.
+
+    - NOMBRE tiene de 3 a 12 letras minúsculas.
+
+
+    ### Resultados y códigos de salida
+
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado
+    y deja stderr vacío.
+
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en
+    stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO NOMBRE`.
+
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    - **nombre:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr;
+    no emite mensajes adicionales. Mensaje: `Nombre invalido`.
+
+
+    ### Ejemplo de ejecución
+
+
+    ```bash
+
+    /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    informe
+
+    ```
+
+    Salida estándar esperada:
+
+    ```text
+
+    Guardado
+
+    ```
+
+    Código de salida: `0`.
+
+    '
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: descriptores
+    description: Guarda registros numerados sobrescribiendo la salida previa.
+    points: 10
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        printf ''%s\n'' ANTIGUO > /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+
+        chown learner:learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt informe </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Guardado
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+      value: 'Registro 1: uno
+
+        Registro 2: dos
+
+        Registro 3: tres
+
+        Registro 4: cuatro
+
+        Registro 5: cinco
+
+        Registro 6: seis
+
+        Total: 6
+
+        '
+      match: exact
+  - id: otro-fichero
+    description: También funciona con otra entrada, sin datos sobrantes.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set -e
+
+        rm -f /home/learner/lab/aso-fundamentos/bash-21-22/salidas/resumen.txt
+
+        set +e
+
+        set +e
+
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh
+        ''/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt'' resumen
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''Guardado
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: root
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/resumen.txt
+      value: 'Registro 1: primera corta
+
+        Registro 2: segunda corta
+
+        Total: 2
+
+        '
+      match: exact
+  - id: errores
+    description: Valida el fichero y el nombre de salida.
+    points: 4
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: FICHERO NOMBRE'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos informe </dev/null >"$td/out"
+        2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Fichero no valido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        set +e
+
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt ../../x </dev/null
+        >"$td/out" 2>"$td/err"
+
+        status=$?
+
+        [ "$status" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Nombre invalido'')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - '`>` vacía el contenido previo si el fichero ya existía.'
+  - Cierra `3` y `4` después de terminar de leer y escribir.
+  setup: []
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se
+    crea el script del estudiante.
+- id: p31-e02-contar-procesos-de-cada-usuario
+  title: '[3.1] Contar procesos de cada usuario'
+  description: "Recibe USUARIO y devuelve `USUARIO: N`, siendo N el número de filas\
+    \ de `/home/learner/lab/aso-procesos/datos/procesos.psv` cuyo campo 2 coincide\
+    \ exactamente. Si no aparece, usa N=0.\n\n### Comandos a practicar\n- **Comandos:**\
+    \ `cut`, `grep -Fxc`, `wc -l`.\n- **Bash y conceptos:** validación de argumentos\
+    \ y sustitución `$(...)`.\n\n### Script a entregar\n- **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh`.\n\
+    - **Uso:** `p31-e02-contar-procesos-de-cada-usuario.sh USUARIO`.\n- Debe comenzar\
+    \ con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas, salidas y errores\n\
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.\n- **Errores:**\
+    \ stdout vacío; el mensaje se imprime en stderr, con salto de línea.\n  - **Código\
+    \ 1:** `Uso: USUARIO`.\n\n### Ejemplo de invocación\n```bash\n/home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh\
+    \ root\n```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        root </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''root: 5
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        ana </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''ana: 5
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        nadie </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''nadie: 0
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e02-contar-procesos-de-cada-usuario.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: USUARIO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - '`grep -Fxc` facilita un recuento exacto sin imprimir las coincidencias.'
+  setup: []
+  sources: []
+- id: p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu
+  title: '[3.1] Cinco procesos con mayor porcentaje de CPU'
+  description: "Muestra `PID COMANDO PORCENTAJE` para los cinco registros con mayor\
+    \ uso de CPU (campo 5), de mayor a menor, tomando ese campo como número decimal.\
+    \ Si empatan, conserva el orden original del fichero.\n\n### Comandos a practicar\n\
+    - **Comandos:** `sort -s -t'|' -k5,5nr`, `head`, `cut`.\n- **Bash y conceptos:**\
+    \ tuberías y comparación numérica en sort.\n\n### Script a entregar\n- **Ruta:**\
+    \ `/home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh`.\n\
+    - **Uso:** `p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh (sin argumentos)`.\n\
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas,\
+    \ salidas y errores\n- **Salida correcta:** stdout según el enunciado, stderr\
+    \ vacío, código 0.\n- **Errores:** stdout vacío; el mensaje se imprime en stderr,\
+    \ con salto de línea.\n  - **Código 1:** `Uso: (sin argumentos)`.\n\n### Ejemplo\
+    \ de invocación\n```bash\n/home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh\n\
+    ```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''325 gcc 15.1
+
+        315 python3 7.5
+
+        340 java 3.0
+
+        401 httpd 0.2
+
+        210 sshd 0.1
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e04-cinco-procesos-con-mayor-porcentaje-de-cpu.sh
+        1 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: (sin argumentos)
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p31-e13-procesos-hijos-de-un-pid
+  title: '[3.1] Procesos hijos de un PID'
+  description: "Recibe un PID decimal positivo. Lista, en orden ascendente, los PID\
+    \ de todas las filas cuyo PPID (campo 3) sea igual al PID dado. Si no hay hijos,\
+    \ salida vacía. Rechaza valores no numéricos o 0.\n\n### Comandos a practicar\n\
+    - **Comandos:** `grep`, `cut`, `sort -n`.\n- **Bash y conceptos:** regex `^[0-9]+$`,\
+    \ `(( ))` y parámetros.\n\n### Script a entregar\n- **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh`.\n\
+    - **Uso:** `p31-e13-procesos-hijos-de-un-pid.sh PID`.\n- Debe comenzar con `#!/bin/bash`\
+    \ y tener permiso de ejecución.\n\n### Entradas, salidas y errores\n- **Salida\
+    \ correcta:** stdout según el enunciado, stderr vacío, código 0.\n- **Errores:**\
+    \ stdout vacío; el mensaje se imprime en stderr, con salto de línea.\n  - **Código\
+    \ 1:** `Uso: PID`.\n  - **Código 2:** `PID no valido`.\n\n### Ejemplo de invocación\n\
+    ```bash\n/home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh\
+    \ 310\n```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        310 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''315
+
+        316
+
+        340
+
+        500
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        400 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''401
+
+        402
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        9999 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: PID
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        xx </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''PID no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e13-procesos-hijos-de-un-pid.sh
+        0 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''PID no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p31-e16-localizar-procesos-con-pgrep
+  title: '[3.1] Localizar procesos con pgrep'
+  description: "Recibe un nombre de comando y muestra los PID, uno por línea y ordenados\
+    \ numéricamente, que devuelva `pgrep -x` (nombre exacto). Si no hay coincidencias,\
+    \ stdout vacío y código 0. Para practicar, prueba `pgrep -x bash` o `pgrep -x\
+    \ sleep`.\n\n### Comandos a practicar\n- **Comandos:** `pgrep -x`, `sort -n`.\n\
+    - **Bash y conceptos:** `if`, salida de comandos y manejo de coincidencia vacía.\n\
+    \n### Script a entregar\n- **Ruta:** `/home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh`.\n\
+    - **Uso:** `p31-e16-localizar-procesos-con-pgrep.sh COMANDO`.\n- Debe comenzar\
+    \ con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas, salidas y errores\n\
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.\n- **Errores:**\
+    \ stdout vacío; el mensaje se imprime en stderr, con salto de línea.\n  - **Código\
+    \ 1:** `Uso: COMANDO`.\n\nPara evitar resultados cambiantes, la evaluación comprueba\
+    \ el caso sin coincidencias y también una búsqueda de un proceso `sleep` creado\
+    \ de forma aislada.\n\n### Ejemplo de invocación\n```bash\n/home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh\
+    \ proceso_que_no_existe_xxx\n```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh
+        proceso_que_no_existe_xxx </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: "td=$(mktemp -d) || exit 1\nsleep 30 &\npid=$!\ntrap 'kill \"$pid\"\
+        \ 2>/dev/null || true; wait \"$pid\" 2>/dev/null || true; rm -rf \"$td\"'\
+        \ EXIT\nset +e\n/home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh\
+        \ sleep </dev/null >\"$td/out\" 2>\"$td/err\"\nrc=$?\n[ \"$rc\" -eq 0 ] &&\
+        \ [ ! -s \"$td/err\" ] || exit 1\ngrep -Fxq \"$pid\" \"$td/out\" || exit 1\n\
+        while IFS= read -r value; do\n  printf '%s\\n' \"$value\" | grep -Eq '^[0-9]+$'\
+        \ || exit 1\ndone <\"$td/out\"\nexit 0\n"
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        [ -x /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-procesos/scripts/p31-e16-localizar-procesos-con-pgrep.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: COMANDO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - '`pgrep` devuelve código 1 si no encuentra coincidencias: en este ejercicio, la
+    ausencia no es un error del script.'
+  setup: []
+  sources: []
+- id: p32-e03-comprobar-si-un-servicio-esta-activo
+  title: '[3.2] Comprobar si un servicio está activo'
+  description: "Recibe SERVICIO, limitado a `httpd`, `sshd` o `cron`. Consulta `systemctl\
+    \ is-active`. Si está activo imprime `ACTIVO`; si está inactivo imprime `INACTIVO`.\
+    \ Ambos son resultados correctos, exit 0. Otros nombres son error.\n\n### Comandos\
+    \ a practicar\n- **Comandos:** `systemctl is-active`.\n- **Bash y conceptos:**\
+    \ `if/else`, códigos de salida de systemctl.\n\n### Script a entregar\n- **Ruta:**\
+    \ `/home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh`.\n\
+    - **Uso:** `p32-e03-comprobar-si-un-servicio-esta-activo.sh SERVICIO`.\n- Debe\
+    \ comenzar con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas, salidas\
+    \ y errores\n- **Salida correcta:** stdout según el enunciado, stderr vacío, código\
+    \ 0.\n- **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto\
+    \ de línea.\n  - **Código 1:** `Uso: SERVICIO`.\n  - **Código 2:** `Servicio no\
+    \ valido`.\n\n### Ejemplo de invocación\n```bash\n/home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh\
+    \ httpd\n```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        httpd </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''INACTIVO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        sshd </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''ACTIVO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        printf "active\n" > "$td/estado/httpd.active"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        httpd </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''ACTIVO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: SERVICIO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh
+        desconocido </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Servicio no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p32-e08-habilitar-y-arrancar-a-la-vez
+  title: '[3.2] Habilitar y arrancar a la vez'
+  description: "Recibe SERVICIO y ejecuta `systemctl enable --now SERVICIO`. Tras\
+    \ la ejecución comprueba que queda activo **y** habilitado y muestra `OK`. Servicios\
+    \ válidos: `httpd`, `sshd`, `cron`.\n\n### Comandos a practicar\n- **Comandos:**\
+    \ `systemctl enable --now`, `systemctl is-active`, `systemctl is-enabled`.\n-\
+    \ **Bash y conceptos:** condicionales, opciones largas y validación.\n\n### Script\
+    \ a entregar\n- **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh`.\n\
+    - **Uso:** `p32-e08-habilitar-y-arrancar-a-la-vez.sh SERVICIO`.\n- Debe comenzar\
+    \ con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas, salidas y errores\n\
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.\n- **Errores:**\
+    \ stdout vacío; el mensaje se imprime en stderr, con salto de línea.\n  - **Código\
+    \ 1:** `Uso: SERVICIO`.\n  - **Código 2:** `Servicio no valido`.\n\n### Ejemplo\
+    \ de invocación\n```bash\n/home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh\
+    \ httpd\n```\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        httpd </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OK
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        [ "$(cat "$td/estado/httpd.active")" = active ] && [ "$(cat "$td/estado/httpd.enabled")"
+        = enabled ] || exit 1
+
+        grep -Fxq "enable --now httpd" "$td/estado/acciones.log"
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: SERVICIO
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh
+        invalido </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Servicio no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []
+- id: p32-e15-crear-un-fichero-de-unidad-service
+  title: '[3.2] Crear un fichero de unidad .service'
+  description: "Recibe DIRECTORIO NOMBRE. En el directorio existente genera `NOMBRE.service`.\
+    \ NOMBRE debe comenzar con letra minúscula y continuar con minúsculas, dígitos\
+    \ o guiones. El contenido debe incluir exactamente las líneas `[Unit]`, `Description=Servicio\
+    \ de practica`, `[Service]`, `Type=simple`, `ExecStart=/usr/bin/sleep 30`, `[Install]`,\
+    \ `WantedBy=multi-user.target` (puedes insertar líneas vacías entre secciones).\
+    \ Muestra `OK`. No edites `/etc/systemd` real.\n\n### Comandos a practicar\n-\
+    \ **Comandos:** `printf`, `cat`, `vi` (para comprobar manualmente), `ls -l`.\n\
+    - **Bash y conceptos:** redirección `>`, parámetros y regex de nombres.\n\n###\
+    \ Script a entregar\n- **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh`.\n\
+    - **Uso:** `p32-e15-crear-un-fichero-de-unidad-service.sh DIRECTORIO NOMBRE`.\n\
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas,\
+    \ salidas y errores\n- **Salida correcta:** stdout según el enunciado, stderr\
+    \ vacío, código 0.\n- **Errores:** stdout vacío; el mensaje se imprime en stderr,\
+    \ con salto de línea.\n  - **Código 1:** `Uso: DIRECTORIO NOMBRE`.\n  - **Código\
+    \ 2:** `Directorio no valido`.\n  - **Código 3:** `Nombre no valido`.\n\n### Ejemplo\
+    \ de invocación\n```bash\n/home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh\
+    \ DIRECTORIO NOMBRE\n```\n(Usa una ruta existente o un PID válido en lugar de\
+    \ los marcadores.)\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        d="$td/units"
+
+        mkdir "$d"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        "$d" demo </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OK
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        f="$d/demo.service"
+
+        [ -f "$f" ] || exit 1
+
+        for l in "[Unit]" "Description=Servicio de practica" "[Service]" "Type=simple"
+        "ExecStart=/usr/bin/sleep 30" "[Install]" "WantedBy=multi-user.target"; do
+        grep -Fxq "$l" "$f" || exit 1; done
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: DIRECTORIO NOMBRE
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        /no-existe demo </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Directorio no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        d="$td/units"
+
+        mkdir "$d"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh
+        "$d" INVALIDO </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Nombre no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips:
+  - Recuerda que los archivos `.service` usan secciones INI; en `ExecStart` no debe
+    faltar la ruta absoluta.
+  setup: []
+  sources: []
+- id: p32-e16-crear-un-drop-in-con-reinicio-automatico
+  title: '[3.2] Crear un drop-in con reinicio automático'
+  description: "Recibe DIRECTORIO SEGUNDOS (entero del 1 al 60). Dentro del directorio\
+    \ existente crea `httpd.service.d/restart-policy.conf` con sección `[Service]`,\
+    \ `Restart=on-failure` y `RestartSec=SEGUNDOS`, en ese orden. Muestra `OK`. Usa\
+    \ un directorio local de práctica.\n\n### Comandos a practicar\n- **Comandos:**\
+    \ `mkdir -p`, `printf`, `cat`, `vi`.\n- **Bash y conceptos:** regex numérica,\
+    \ rango y redirecciones.\n\n### Script a entregar\n- **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh`.\n\
+    - **Uso:** `p32-e16-crear-un-drop-in-con-reinicio-automatico.sh DIRECTORIO SEGUNDOS`.\n\
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.\n\n### Entradas,\
+    \ salidas y errores\n- **Salida correcta:** stdout según el enunciado, stderr\
+    \ vacío, código 0.\n- **Errores:** stdout vacío; el mensaje se imprime en stderr,\
+    \ con salto de línea.\n  - **Código 1:** `Uso: DIRECTORIO SEGUNDOS`.\n  - **Código\
+    \ 2:** `Directorio no valido`.\n  - **Código 3:** `Segundos no validos`.\n\n###\
+    \ Ejemplo de invocación\n```bash\n/home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh\
+    \ DIRECTORIO SEGUNDOS\n```\n(Usa una ruta existente o un PID válido en lugar de\
+    \ los marcadores.)\n"
+  input_requirements: []
+  output_requirements: []
+  examples: []
+  evaluations:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        d="$td/conf"
+
+        mkdir "$d"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        "$d" 10 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OK
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        f="$d/httpd.service.d/restart-policy.conf"
+
+        [ -f "$f" ] || exit 1
+
+        [ "$(grep -cFx "[Service]" "$f")" = 1 ] || exit 1
+
+        grep -Fxq "Restart=on-failure" "$f"
+
+        grep -Fxq "RestartSec=10" "$f"
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        d="$td/conf"
+
+        mkdir "$d"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        "$d" 20 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 0 ] || exit 1
+
+        actual=$(cat "$td/out")
+
+        expected=$(printf %s ''OK
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        [ ! -s "$td/err" ] || exit 1
+
+        grep -Fxq "RestartSec=20" "$d/httpd.service.d/restart-policy.conf"
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 1 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Uso: DIRECTORIO SEGUNDOS
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        /no-existe 10 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 2 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Directorio no valido
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+    - script: 'td=$(mktemp -d) || exit 1
+
+        trap ''rm -rf "$td"'' EXIT
+
+        mkdir -p "$td/estado"
+
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit
+        1
+
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+
+        d="$td/conf"
+
+        mkdir "$d"
+
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        ] || exit 1
+
+        set +e
+
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh
+        "$d" 0 </dev/null >"$td/out" 2>"$td/err"
+
+        rc=$?
+
+        [ "$rc" -eq 3 ] || exit 1
+
+        [ ! -s "$td/out" ] || exit 1
+
+        actual=$(cat "$td/err")
+
+        expected=$(printf %s ''Segundos no validos
+
+        '')
+
+        [ "$actual" = "$expected" ] || exit 1
+
+        exit 0
+
+        '
+      user: learner
+      timeout: 15
+      type: command
+      expected_exit: 0
+  tips: []
+  setup: []
+  sources: []

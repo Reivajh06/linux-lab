@@ -9,6 +9,8 @@ type AppKind = 'terminal' | 'editor' | 'browser' | 'app';
 type WindowTab = { id: string; title: string; kind: AppKind; class_name: string };
 type WindowState = { windows: WindowTab[]; active_id: string | null };
 const icons = { terminal: Terminal, editor: FilePenLine, browser: Globe, app: AppWindow };
+const launchNames: Record<AppKind, string> = { terminal: 'The terminal', editor: 'gedit', browser: 'Firefox', app: 'The application' };
+const launchCommands: Record<AppKind, string> = { terminal: 'lab-terminal &', editor: 'gedit &', browser: 'firefox &', app: 'it' };
 
 export default function Desktop({ id, running }: { id: string; running: boolean }) {
   const screen = useRef<HTMLDivElement>(null);
@@ -25,6 +27,21 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
   const [busy, setBusy] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [paste, setPaste] = useState<string | null>(null);
+  // A launch is only a request; the app counts as open once a new window of its kind appears.
+  const [pending, setPending] = useState<{ kind: AppKind; before: number } | null>(null);
+
+  useEffect(() => {
+    if (pending && windows.filter(w => w.kind === pending.kind).length > pending.before) setPending(null);
+  }, [windows, pending]);
+  useEffect(() => {
+    if (!pending) return;
+    const name = launchNames[pending.kind];
+    const timer = setTimeout(() => {
+      setPending(null);
+      setError(`${name} did not open. It may have failed inside the Linux environment. Try again, or run ${launchCommands[pending.kind]} in the terminal to see its error output.`);
+    }, pending.kind === 'browser' ? 45000 : 20000);
+    return () => clearTimeout(timer);
+  }, [pending]);
 
   useEffect(() => {
     const changed = () => setFullscreen(document.fullscreenElement === frame.current);
@@ -33,6 +50,7 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
   }, []);
 
   useEffect(() => {
+    setPending(null);
     if (!screen.current || !running) { setPrepared(false); setWindows([]); setActive(null); return; }
     let disposed = false;
     let rfb: RFB | null = null;
@@ -76,13 +94,16 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
 
   const operate = async (action: string, body: object, focusDisplay = true) => {
     setBusy(true); setError('');
-    try { await post(`/environments/${id}/workspace/${action}`, body); await refresh.current(); if (focusDisplay) connection.current?.focus(); }
-    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    try { await post(`/environments/${id}/workspace/${action}`, body); await refresh.current(); if (focusDisplay) connection.current?.focus(); return true; }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); return false; }
     finally { setBusy(false); }
   };
   // Arrow keys keep focus on the tab strip; a click hands the keyboard to the Linux display.
   const select = (window: WindowTab, fromKeyboard = false) => { setActive(window.id); if (fromKeyboard) tabs.current.get(window.id)?.focus(); operate('activate', { window: window.id }, !fromKeyboard); };
-  const launch = (app: 'terminal' | 'editor' | 'browser') => operate('launch', { app });
+  const launch = (app: 'terminal' | 'editor' | 'browser') => {
+    setPending({ kind: app, before: windows.filter(w => w.kind === app).length });
+    operate('launch', { app }).then(ok => { if (!ok) setPending(null); });
+  };
   const toggleFullscreen = async () => {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await frame.current?.requestFullscreen(); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
@@ -111,6 +132,7 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
             {!pinned && <button className="close-application" aria-label={`Close ${label}`} title="Close application" disabled={busy} onClick={() => operate('close', { window: window.id })}><X size={14}/></button>}
           </div>;
         })}
+        {pending && <span className="environment-tab-placeholder launching" role="status"><Loader2 size={15} className="spin"/>Opening {pending.kind === 'terminal' ? 'terminal' : launchNames[pending.kind]}…</span>}
       </div>
       <div className="environment-launchers">
         <button title="New terminal" aria-label="New terminal" disabled={!prepared || busy} onClick={() => launch('terminal')}><Plus size={17}/></button>
@@ -131,7 +153,7 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
       {running && !prepared && <div className="workspace-overlay">{status === 'Unavailable' ? <AppWindow size={30}/> : <Loader2 size={26} className="spin"/>}<h2>{status === 'Unavailable' ? 'Workspace unavailable' : 'Preparing workspace'}</h2><p>{status === 'Unavailable' ? 'Reconnect to retry. Your Linux files are preserved.' : 'Installing desktop tools on older environments may take a moment.'}</p></div>}
       {running && prepared && !windows.length && status === 'Connected' && <div className="workspace-overlay"><Terminal size={30}/><h2>No applications open</h2><button className="button" disabled={busy} onClick={() => launch('terminal')}><Plus size={15}/>Open terminal</button></div>}
     </div>
-    {running && prepared && status !== 'Connected' && <div className="workspace-notice">{status === 'Connecting' ? <Loader2 size={14} className="spin"/> : <span className="dot"/>}{status === 'Connecting' ? 'Connecting…' : 'Disconnected. Reconnect to resume your workspace.'}</div>}
+    {running && prepared && status !== 'Connected' && <div className={'workspace-notice ' + (status === 'Connecting' ? '' : 'disconnected')}>{status === 'Connecting' ? <Loader2 size={14} className="spin"/> : <span className="dot"/>}{status === 'Connecting' ? 'Connecting…' : 'Disconnected. Reconnect to resume your workspace.'}</div>}
     {error && <div role="alert" className="workspace-error"><p>{error}</p><button aria-label="Dismiss workspace error" onClick={() => setError('')}><X size={15}/></button></div>}
     {paste !== null && <Modal title="Linux clipboard" className="small" onClose={() => setPaste(null)} description="Paste text here, send it to Linux, then use Ctrl+Shift+V in the terminal."><label className="field-label" htmlFor="linux-clipboard">Text to send</label><textarea id="linux-clipboard" autoFocus value={paste} onChange={e => setPaste(e.target.value)} rows={5}/><div className="modal-actions"><button className="button secondary" onClick={() => setPaste(null)}>Cancel</button><button className="button" disabled={!paste} onClick={() => { connection.current?.clipboardPasteFrom(paste); connection.current?.focus(); setPaste(null); }}>Send to clipboard</button></div></Modal>}
   </div>;

@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p3-1
 version: '1.0'
 title: ASO Práctica 3.1 · Procesos
+folder: ASO Prácticas
 description: "Consulta y cuenta procesos del sistema con ps, top, pgrep y las herramientas de gestión de procesos. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p31/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
 setup:
 - script: 'set -e

@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p2-1
 version: '1.0'
 title: ASO Bash 2.1 · Programación de scripts en Bash
+folder: ASO Bash
 description: "Los scripts que desarrolla la Práctica 2.1, las dos actividades de laboratorio\
   \ y los seis ejercicios autónomos: validación de argumentos, `if`, `while`, `((\
   \ ))`, `[[ ]]`, `=~`, `$?`, funciones y sustitución de comandos.\n    Se aplican\

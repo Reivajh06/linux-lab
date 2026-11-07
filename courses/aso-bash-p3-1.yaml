@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p3-1
 version: '1.0'
 title: ASO Bash 3.1 · Procesos
+folder: ASO Bash
 description: "Consulta y controla **procesos reales** del contenedor: `ps` con `-e`,\
   \ `-o`, `-u`, `--sort` y `--no-headers`, `pgrep`, `top -b`, `kill`, señales, `&`,\
   \ `wait` y `$!`.\n    El evaluador lanza procesos `sleep` reales con las cuentas\

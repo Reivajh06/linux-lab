@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p2-2
 version: '1.0'
 title: ASO Bash 2.2 · Lectura de ficheros, vectores, argumentos y canales
+folder: ASO Bash
 description: "Lee `/etc/passwd` y otros ficheros reales línea a línea: `while IFS=:\
   \ read`, `case`, `read -a`, `shift`, `\"$@\"`, `continue`, y canales propios con\
   \ `exec`, `read -u` y `>&4`.\n    Incluye los scripts guía, las dos actividades\
