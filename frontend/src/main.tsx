@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Markdown from 'react-markdown';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, Volume2, VolumeX, PanelRightOpen } from 'lucide-react';
 import Desktop from './Desktop';
 import { plainText } from './text';
 import Environments from './Environments';
@@ -10,6 +10,7 @@ import Modal from './Modal';
 import ChatMessage from './ChatMessage';
 import EnvironmentAssistant from './EnvironmentAssistant';
 import { applyTheme, defaults, palettes } from './theme';
+import { evaluationSound, play, readSoundSettings, saveSoundSettings } from './sounds';
 import type { Preferences } from './theme';
 import { api, configure, download, post, progressPercent, selectLocalModel } from './api';
 import type { Chat, Config, CourseDetail, CourseSummary, Environment, Result, Source } from './api';
@@ -41,6 +42,8 @@ function App() {
   const [build, setBuild] = useState({ state: 'idle', log: '' });
   const [search, setSearch] = useState('');
   const [chatDirty, setChatDirty] = useState(false);
+  const [sound, setSound] = useState(readSoundSettings);
+  const updateSound = (next: typeof sound) => { setSound(next); saveSoundSettings(next); };
   const fileInput = useRef<HTMLInputElement>(null);
   const fail = useCallback((e: unknown) => setError(e instanceof Error ? e.message : String(e)), []);
   const refreshCourses = useCallback(async () => { setCourses(await api<CourseSummary[]>('/courses')); setCoursesLoaded(true); }, []);
@@ -143,6 +146,11 @@ function App() {
     {modal === 'appearance' && <Modal title="Appearance" onClose={closeModal} description="Select a dark palette or choose a custom accent color.">
       <div className="palette-grid" role="group" aria-label="Palettes">{palettes.map(palette => <button className={'palette-option ' + (preferences.palette === palette.id ? 'selected' : '')} aria-pressed={preferences.palette === palette.id} key={palette.id} onClick={() => saveAppearance({ palette: palette.id, accent: null })}><span className="palette-preview" aria-hidden="true" style={{ background: palette.background }}><span style={{ background: palette.sidebar }}/><i style={{ background: palette.surface }}/><b style={{ background: palette.accent }}/></span><strong>{palette.name}</strong>{preferences.palette === palette.id && <Check size={15}/>}</button>)}</div>
       <label className="accent-picker">Accent color<input type="color" value={currentAccent} onChange={e => setPreferences(p => ({ ...p, accent: e.target.value }))} onBlur={e => saveAppearance({ accent: e.target.value })}/><code>{currentAccent}</code></label>
+      <div className="sound-settings">
+        <label className="sound-toggle"><input type="checkbox" checked={sound.enabled} onChange={e => updateSound({ ...sound, enabled: e.target.checked })}/>{sound.enabled ? <Volume2 size={18}/> : <VolumeX size={18}/>}Sound effects</label>
+        <input type="range" aria-label="Sound volume" min={0} max={1} step={0.05} value={sound.volume} disabled={!sound.enabled} onChange={e => updateSound({ ...sound, volume: Number(e.target.value) })} onPointerUp={() => play('complete')} onKeyUp={() => play('complete')}/>
+        <button className="text-button" disabled={!sound.enabled} onClick={() => play('complete')}>Test</button>
+      </div>
       <div className="modal-actions"><button className="button secondary" onClick={() => saveAppearance({ palette: 'tux', accent: null })}>Reset appearance</button><button className="button" onClick={() => { if (preferences.accent) saveAppearance({ accent: preferences.accent }); closeModal(); }}>Done</button></div>
     </Modal>}
     {modal === 'format' && <Modal title="Exercise format guide" className="wide" onClose={closeModal}><article className="markdown docs"><Markdown>{format}</Markdown></article></Modal>}
@@ -202,13 +210,14 @@ function Workspace({ courseKey, environmentId, onBack, onError, onChanged, onSet
   useEffect(() => { setSelected(0); setEnvironment(null); setDetail(null); setPanel('exercise'); load().catch(onError); }, [load, onError]);
   const lifecycle = async (action: string) => {
     if (!environment) return; setBusy(action);
-    try { setEnvironment(await post<Environment>(`/environments/${environment.id}/${action}`)); setDesktopKey(n => n + 1); if (action === 'recreate') await load(); await onChanged(); }
-    catch (e) { onError(e); await load().catch(onError); } finally { setBusy(''); setReset(false); }
+    try { const next = await post<Environment>(`/environments/${environment.id}/${action}`); setEnvironment(next); setDesktopKey(n => n + 1); if (action !== 'stop' && next.state === 'running') play('ready'); if (action === 'recreate') await load(); await onChanged(); }
+    catch (e) { play('error'); onError(e); await load().catch(onError); } finally { setBusy(''); setReset(false); }
   };
   const grade = async (all: boolean) => {
     if (!environment || !detail) return; setBusy(all ? 'evaluate-all' : 'evaluate');
-    try { const response = await post<{ results: Result[] }>(`/environments/${environment.id}/evaluate`, { exercise_id: all ? null : exercise?.id }); setDetail(d => d ? { ...d, results: { ...d.results, ...Object.fromEntries(response.results.map(r => [r.exercise_id, r])) } } : null); await onChanged(); }
-    catch (e) { onError(e); } finally { setBusy(''); }
+    const before = detail.results, ids = detail.course.exercises.map(e => e.id);
+    try { const response = await post<{ results: Result[] }>(`/environments/${environment.id}/evaluate`, { exercise_id: all ? null : exercise?.id }); play(evaluationSound(before, response.results, ids)); setDetail(d => d ? { ...d, results: { ...d.results, ...Object.fromEntries(response.results.map(r => [r.exercise_id, r])) } } : null); await onChanged(); }
+    catch (e) { play('error'); onError(e); } finally { setBusy(''); }
   };
   const earned = detail ? Object.values(detail.results).reduce((n, r) => n + r.earned, 0) : 0;
   const points = detail?.course.exercises.reduce((n, e) => n + e.evaluations.reduce((m, t) => m + t.points, 0), 0) || 0;
@@ -340,6 +349,13 @@ function ExerciseChat({ sources, onError, onImport, onDirtyChange }: { sources: 
     if (!running || !chat || deleting || loadingChat) return;
     const timer = setInterval(() => loadChat(chat.id).catch(onError), 1500); return () => clearInterval(timer);
   }, [running, chat?.id, deleting, loadingChat, loadChat, onError]);
+  const wasRunning = useRef<string | null>(null);
+  useEffect(() => {
+    const job = chat?.job;
+    if (running) { wasRunning.current = job?.id || null; return; }
+    if (job && wasRunning.current === job.id) play(job.state === 'done' ? 'generated' : job.state === 'cancelled' ? null : 'error');
+    wasRunning.current = null;
+  }, [running, chat?.job]);
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [chat?.messages.length]);
   useEffect(() => { onDirtyChange(draftDirty); }, [draftDirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
