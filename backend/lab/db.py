@@ -76,6 +76,9 @@ class Database:
                     DROP TABLE environments_old;
                 """)
             con.execute("UPDATE environments SET name=CASE WHEN course_key IS NULL THEN 'Free Practice' ELSE 'Course environment' END WHERE name=''")
+            if "folder" not in {r[1] for r in con.execute("PRAGMA table_info(courses)")}:
+                # NULL follows the collection's own `folder`; '' means the learner moved it out of any folder.
+                con.execute("ALTER TABLE courses ADD COLUMN folder TEXT")
             con.execute("CREATE UNIQUE INDEX IF NOT EXISTS environment_defaults ON environments(COALESCE(course_key,'free')) WHERE is_default=1")
 
     @contextmanager

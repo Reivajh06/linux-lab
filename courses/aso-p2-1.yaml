@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p2-1
 version: '1.0'
 title: ASO Práctica 2.1 · Scripts en bash
+folder: ASO Prácticas
 description: "Desarrolla scripts en bash que validen argumentos y consulten ficheros, usuarios y grupos del sistema. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p21/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
 setup:
 - script: 'set -e

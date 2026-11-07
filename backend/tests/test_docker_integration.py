@@ -19,7 +19,7 @@ COURSE_FILES = sorted((Path(__file__).resolve().parents[2] / 'courses').glob('*.
 async def test_all_course_solutions_and_lifecycle(db, course_file):
     course = parse_course(course_file.read_text(encoding='utf-8'))
     course_key = course_file.stem
-    db.execute("INSERT INTO courses VALUES(?,?,?,?,?)", (course_key, course.id, course.version, course_yaml(course), now()))
+    db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?)", (course_key, course.id, course.version, course_yaml(course), now()))
     runtime = Runtime(db)
     env = runtime.environment(course_key)
     free = runtime.environment()

@@ -1,0 +1,2216 @@
+schema_version: 1
+id: aso-p32-20-ejercicios-bash-2026
+version: '1.1'
+title: 'ASO - Práctica 3.2: servicios, systemd y recursos (20 ejercicios)'
+folder: ASO Prácticas · 20 ejercicios
+description: |-
+  Basado en la Práctica 3.2 de ULPGC (2026/2027). Comandos generales: `systemctl` (`get-default`, `set-default`, `is-active`, `is-enabled`, `start`, `stop`, `restart`, `reload`, `enable --now`, `list-units`, `list-unit-files`, `daemon-reload`, `show`, `set-property`, `revert`), `dnf list installed`, `curl`, `firewall-cmd`, `grep`, `cut`, `sort`, `printf`, `mkdir`, `cat` y `vi` para la edición manual. Conceptos: systemd, targets, unidades `.service`, `[Unit]`, `[Service]`, `[Install]`, drop-ins, dependencias, `Restart`, `RestartSec`, `ExecStart`, `CPUQuota`, `CPUWeight`, `MemoryMin`, `MemoryMax`, límites temporales/permanentes, stdout/stderr, funciones y validación Bash.
+
+  Esta plataforma puede no ejecutar `systemd` como PID 1. Para realizar actividades seguras y **evaluables sin tocar servicios reales**, la preparación incluye simuladores de `systemctl`, `dnf`, `firewall-cmd` y `curl` en `/home/learner/lab/aso-servicios/bin`. **Antes de probar los scripts en la terminal**, ejecuta: `export PATH="/home/learner/lab/aso-servicios/bin:$PATH"`. No llames a los comandos por su ruta absoluta ni uses sudo en las simulaciones. Estado inicial en `/home/learner/lab/aso-servicios/estado-base`; los evaluadores crean una copia independiente del estado para cada caso. Los ejercicios 15-18 y 20 crean configuraciones locales en directorios temporales, nunca en `/etc/systemd` del contenedor.
+
+  Las órdenes que modifican servicios, paquetes, firewall o cgroups se simulan. Los ficheros `.service` y `.conf` sí se crean de verdad en la carpeta de laboratorio. En una máquina Fedora con systemd real, las órdenes de clase funcionarían sobre servicios reales, con los privilegios adecuados.
+
+  Cada ejercicio especifica qué comandos y qué conceptos Bash practicar. Escribe tú los scripts; el entorno solo prepara datos y herramientas simuladas. Las tareas de evaluación usan `tasks` y comandos de comprobación de sintaxis compatible con el importador. En todos los casos separa stdout y stderr, y usa los códigos de salida indicados.
+setup:
+- script: |
+    install -d -o learner -g learner /home/learner/lab/aso-servicios
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/scripts
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/bin
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/estado-base
+    install -d -o learner -g learner /home/learner/lab/aso-servicios/datos
+    printf '%s\n' '#!/bin/bash' 'set -u' 's=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}' 'cmd=${1:-}; (($#>0)) && shift' 'log(){ printf '"'"'%s\n'"'"' "$*" >> "$s/acciones.log"; }' 'svc(){ case "$1" in httpd|sshd|cron|httpd.service|sshd.service|cron.service) service=${1%.service};; *) return 1;; esac; }' 'case "$cmd" in' ' get-default) (($#==0)) || exit 2; cat "$s/default-target";;' ' set-default) (($#==1)) || exit 2; case "$1" in graphical.target|multi-user.target) printf '"'"'%s\n'"'"' "$1" > "$s/default-target"; log set-default "$1";; *) exit 2;; esac;;' ' is-active|is-enabled)' '   (($#==1)) && svc "$1" || exit 4' '   case "$cmd" in is-active) value=$(cat "$s/$service.active");; is-enabled) value=$(cat "$s/$service.enabled");; esac' '   printf '"'"'%s\n'"'"' "$value"' '   [[ "$value" == active || "$value" == enabled ]] || exit 3' '   ;;' ' start|stop|restart|reload|enable|disable)' '   if [[ "$cmd" == enable && ${1:-} == --now ]]; then' '     shift' '     (($#==1)) && svc "$1" || exit 4' '     printf '"'"'enabled\n'"'"' > "$s/$service.enabled"' '     printf '"'"'active\n'"'"' > "$s/$service.active"' '     log '"'"'enable --now'"'"' "$service"' '     exit 0' '   fi' '   (($#==1)) && svc "$1" || exit 4' '   log "$cmd" "$service"' '   case "$cmd" in' '     start|restart) printf '"'"'active\n'"'"' > "$s/$service.active";;' '     stop) printf '"'"'inactive\n'"'"' > "$s/$service.active";;' '     enable) printf '"'"'enabled\n'"'"' > "$s/$service.enabled";;' '     disable) printf '"'"'disabled\n'"'"' > "$s/$service.enabled";;' '     reload) [[ "$(cat "$s/$service.active")" == active ]] || exit 3;;' '   esac' '   ;;' ' list-units)' '   [[ " $* " == *'"'"' --type=service '"'"'* ]] || exit 2' '   for service in cron httpd sshd; do' '     v=$(cat "$s/$service.active")' '     if [[ " $* " == *'"'"' --state=inactive '"'"'* && "$v" != inactive ]]; then continue; fi' '     if [[ " $* " == *'"'"' --state=active '"'"'* && "$v" != active ]]; then continue; fi' '     if [[ " $* " != *'"'"' --all '"'"'* && "$v" == inactive && " $* " != *'"'"' --state=inactive '"'"'* ]]; then continue; fi' '     printf '"'"'%s.service %s\n'"'"' "$service" "$v"' '   done' '   ;;' ' list-unit-files)' '   [[ " $* " == *'"'"' --type=service '"'"'* ]] || exit 2' '   for service in cron httpd sshd; do' '     v=$(cat "$s/$service.enabled")' '     if [[ " $* " == *'"'"' --state=enabled '"'"'* && "$v" != enabled ]]; then continue; fi' '     printf '"'"'%s.service %s\n'"'"' "$service" "$v"' '   done' '   ;;' ' daemon-reload) (($#==0)) || exit 2; log daemon-reload;;' ' set-property)' '   mode=permanent' '   if [[ ${1:-} == --runtime ]]; then mode=runtime; shift; fi' '   (($#>=2)) && svc "$1" || exit 4' '   shift' '   log set-property "$mode" "$service" "$@"' '   printf '"'"'%s\n'"'"' "$@" > "$s/$service.properties"' '   ;;' ' show)' '   (($#==1)) && svc "$1" || exit 4' '   if [[ -s "$s/$service.properties" ]]; then cat "$s/$service.properties"; fi' '   ;;' ' status)' '   (($#==1)) && svc "$1" || exit 4' '   printf '"'"'%s.service - simulated service\nActive: %s\n'"'"' "$service" "$(cat "$s/$service.active")"' '   ;;' ' revert)' '   (($#==1)) && svc "$1" || exit 4' '   rm -f "$s/$service.properties"' '   log revert "$service"' '   ;;' ' *) exit 2;;' esac > /home/learner/lab/aso-servicios/bin/systemctl
+    chmod 0755 /home/learner/lab/aso-servicios/bin/systemctl
+    printf '%s\n' '#!/bin/bash' 's=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}' '[[ "$*" == '"'"'list installed httpd'"'"' ]] || exit 2' '[[ "$(cat "$s/httpd.installed")" == 1 ]] || exit 1' 'printf '"'"'Installed Packages\nhttpd.x86_64 2.4.0 mock\n'"'"'' > /home/learner/lab/aso-servicios/bin/dnf
+    chmod 0755 /home/learner/lab/aso-servicios/bin/dnf
+    printf '%s\n' '#!/bin/bash' 's=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}' 'case "$*" in' ' '"'"'--list-services'"'"') cat "$s/firewall.current";;' ' '"'"'--add-service=http'"'"') printf '"'"'ssh http\n'"'"' > "$s/firewall.current"; printf '"'"'%s\n'"'"' '"'"'firewall --add-service=http'"'"' >> "$s/acciones.log";;' ' '"'"'--permanent --add-service=http'"'"') printf '"'"'ssh http\n'"'"' > "$s/firewall.permanent"; printf '"'"'%s\n'"'"' '"'"'firewall --permanent --add-service=http'"'"' >> "$s/acciones.log";;' ' '"'"'--reload'"'"') cp "$s/firewall.permanent" "$s/firewall.current"; printf '"'"'%s\n'"'"' '"'"'firewall --reload'"'"' >> "$s/acciones.log";;' ' *) exit 2;;' esac > /home/learner/lab/aso-servicios/bin/firewall-cmd
+    chmod 0755 /home/learner/lab/aso-servicios/bin/firewall-cmd
+    printf '%s\n' '#!/bin/bash' 's=${ASO_SYSTEMD_STATE_DIR:-/home/learner/lab/aso-servicios/estado-base}' '[[ "$*" == *localhost* ]] || exit 2' '[[ "$(cat "$s/httpd.active")" == active && "$(cat "$s/web_ok")" == 1 ]] || exit 7' 'printf '"'"'%s\n'"'"' '"'"'<html><body>Enhorabuena, tu configuracion es correcta.</body></html>'"'"'' > /home/learner/lab/aso-servicios/bin/curl
+    chmod 0755 /home/learner/lab/aso-servicios/bin/curl
+    printf '%s\n' multi-user.target > /home/learner/lab/aso-servicios/estado-base/default-target
+    printf '%s\n' inactive > /home/learner/lab/aso-servicios/estado-base/httpd.active
+    printf '%s\n' disabled > /home/learner/lab/aso-servicios/estado-base/httpd.enabled
+    printf '%s\n' active > /home/learner/lab/aso-servicios/estado-base/sshd.active
+    printf '%s\n' enabled > /home/learner/lab/aso-servicios/estado-base/sshd.enabled
+    printf '%s\n' active > /home/learner/lab/aso-servicios/estado-base/cron.active
+    printf '%s\n' enabled > /home/learner/lab/aso-servicios/estado-base/cron.enabled
+    printf '%s\n' 1 > /home/learner/lab/aso-servicios/estado-base/httpd.installed
+    printf '%s\n' ssh > /home/learner/lab/aso-servicios/estado-base/firewall.current
+    printf '%s\n' ssh > /home/learner/lab/aso-servicios/estado-base/firewall.permanent
+    printf '%s\n' 1 > /home/learner/lab/aso-servicios/estado-base/web_ok
+    : > /home/learner/lab/aso-servicios/estado-base/acciones.log
+    chown -R learner:learner /home/learner/lab/aso-servicios
+exercises:
+- id: p32-e01-consultar-el-target-por-defecto
+  title: 01. Consultar el target por defecto
+  description: |
+    Sin argumentos, muestra exactamente el target configurado como predeterminado (`multi-user.target` al empezar). Debes consultar `systemctl get-default`, no deducirlo de un texto fijo.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl get-default`.
+    - **Bash y conceptos:** `$(...)`, `if` y salida estándar.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh`.
+    - **Uso:** `p32-e01-consultar-el-target-por-defecto.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'multi-user.target
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        printf "graphical.target\n" > "$td/estado/default-target"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'graphical.target
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e01-consultar-el-target-por-defecto.sh x </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e02-seleccionar-target-por-defecto
+  title: 02. Seleccionar target por defecto
+  description: |
+    Recibe TARGET, que solo puede ser `graphical.target` o `multi-user.target`. Ejecuta `systemctl set-default TARGET`, muestra `OK` si termina bien y conserva el target en la simulación. No uses `isolate` ni cambies el target activo.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl set-default`.
+    - **Bash y conceptos:** `case`, `if !`, redirección de errores.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh`.
+    - **Uso:** `p32-e02-seleccionar-target-por-defecto.sh TARGET`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: TARGET`.
+      - **Código 2:** `Target no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh graphical.target
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh graphical.target </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/default-target")" = graphical.target ] || exit 1
+        grep -Fxq "set-default graphical.target" "$td/estado/acciones.log"
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh multi-user.target </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/default-target")" = multi-user.target ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: TARGET
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e02-seleccionar-target-por-defecto.sh rescue.target </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Target no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e03-comprobar-si-un-servicio-esta-activo
+  title: 03. Comprobar si un servicio está activo
+  description: |
+    Recibe SERVICIO, limitado a `httpd`, `sshd` o `cron`. Consulta `systemctl is-active`. Si está activo imprime `ACTIVO`; si está inactivo imprime `INACTIVO`. Ambos son resultados correctos, exit 0. Otros nombres son error.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl is-active`.
+    - **Bash y conceptos:** `if/else`, códigos de salida de systemctl.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh`.
+    - **Uso:** `p32-e03-comprobar-si-un-servicio-esta-activo.sh SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: SERVICIO`.
+      - **Código 2:** `Servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'INACTIVO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh sshd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ACTIVO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        printf "active\n" > "$td/estado/httpd.active"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ACTIVO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e03-comprobar-si-un-servicio-esta-activo.sh desconocido </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e04-comprobar-si-un-servicio-esta-habilitado
+  title: 04. Comprobar si un servicio está habilitado
+  description: |
+    Recibe SERVICIO (`httpd`, `sshd` o `cron`) y consulta `systemctl is-enabled`. Escribe `HABILITADO` o `DESHABILITADO`. La habilitación no equivale a estar ejecutándose.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl is-enabled`.
+    - **Bash y conceptos:** condicionales y valores de retorno.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh`.
+    - **Uso:** `p32-e04-comprobar-si-un-servicio-esta-habilitado.sh SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: SERVICIO`.
+      - **Código 2:** `Servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'DESHABILITADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh cron </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'HABILITADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e04-comprobar-si-un-servicio-esta-habilitado.sh otro </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e05-arrancar-un-servicio
+  title: 05. Arrancar un servicio
+  description: |
+    Recibe SERVICIO (`httpd`, `sshd` o `cron`). Ejecuta `systemctl start SERVICIO` en la simulación y muestra `OK`. Comprueba el resultado del comando para no informar éxito cuando falle.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl start`, `systemctl is-active`.
+    - **Bash y conceptos:** `if !`, códigos y supresión de salida interna.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh`.
+    - **Uso:** `p32-e05-arrancar-un-servicio.sh SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: SERVICIO`.
+      - **Código 2:** `Servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/httpd.active")" = active ] || exit 1
+        grep -Fxq "start httpd" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e05-arrancar-un-servicio.sh otro </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e06-detener-un-servicio
+  title: 06. Detener un servicio
+  description: |
+    Recibe SERVICIO. Ejecuta `systemctl stop SERVICIO` y devuelve `OK` si se completa. Verifica mediante el estado simulado que pasa a inactivo. Servicios permitidos: `httpd`, `sshd`, `cron`.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl stop`.
+    - **Bash y conceptos:** `if`, validación y control de exit status.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh`.
+    - **Uso:** `p32-e06-detener-un-servicio.sh SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: SERVICIO`.
+      - **Código 2:** `Servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh sshd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh sshd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/sshd.active")" = inactive ] || exit 1
+        grep -Fxq "stop sshd" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e06-detener-un-servicio.sh otro </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e07-reiniciar-o-recargar-un-servicio
+  title: 07. Reiniciar o recargar un servicio
+  description: |
+    Recibe OPERACION SERVICIO, donde OPERACION es `restart` o `reload` y SERVICIO es `httpd`, `sshd` o `cron`. Ejecuta la orden `systemctl` correspondiente y muestra `OK` si tiene éxito. Recargar no es lo mismo que hacer `daemon-reload`.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl restart`, `systemctl reload`.
+    - **Bash y conceptos:** `case`, varios argumentos y manejo de fallo.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh`.
+    - **Uso:** `p32-e07-reiniciar-o-recargar-un-servicio.sh OPERACION SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: OPERACION SERVICIO`.
+      - **Código 2:** `Operacion o servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh restart httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh restart httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "restart httpd" "$td/estado/acciones.log"
+        [ "$(cat "$td/estado/httpd.active")" = active ]
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh reload sshd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "reload sshd" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: OPERACION SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e07-reiniciar-o-recargar-un-servicio.sh enable httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Operacion o servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e08-habilitar-y-arrancar-a-la-vez
+  title: 08. Habilitar y arrancar a la vez
+  description: |
+    Recibe SERVICIO y ejecuta `systemctl enable --now SERVICIO`. Tras la ejecución comprueba que queda activo **y** habilitado y muestra `OK`. Servicios válidos: `httpd`, `sshd`, `cron`.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl enable --now`, `systemctl is-active`, `systemctl is-enabled`.
+    - **Bash y conceptos:** condicionales, opciones largas y validación.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh`.
+    - **Uso:** `p32-e08-habilitar-y-arrancar-a-la-vez.sh SERVICIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: SERVICIO`.
+      - **Código 2:** `Servicio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh httpd
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/httpd.active")" = active ] && [ "$(cat "$td/estado/httpd.enabled")" = enabled ] || exit 1
+        grep -Fxq "enable --now httpd" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SERVICIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e08-habilitar-y-arrancar-a-la-vez.sh invalido </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Servicio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e09-filtrar-servicios-por-estado
+  title: 09. Filtrar servicios por estado
+  description: |
+    Recibe ESTADO igual a `active` o `inactive`. Obtén las unidades con `systemctl list-units --type=service --all` y muestra solo los **nombres** `*.service` cuyo estado coincida, en orden alfabético. No incluyas el estado.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl list-units --type=service --all`, `grep`, `cut`, `sort`.
+    - **Bash y conceptos:** tuberías y comparación de campos.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh`.
+    - **Uso:** `p32-e09-filtrar-servicios-por-estado.sh ESTADO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: ESTADO`.
+      - **Código 2:** `Estado no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh active
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh active </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'cron.service
+        sshd.service
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh inactive </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'httpd.service
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: ESTADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e09-filtrar-servicios-por-estado.sh failed </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Estado no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e10-listar-ficheros-de-unidad-habilitados
+  title: 10. Listar ficheros de unidad habilitados
+  description: |
+    Sin argumentos, consulta `systemctl list-unit-files --type=service --state=enabled` y muestra solo los nombres de las unidades `.service`, ordenados alfabéticamente.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl list-unit-files --type=service --state=enabled`, `cut`, `sort`.
+    - **Bash y conceptos:** filtrado de columnas.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh`.
+    - **Uso:** `p32-e10-listar-ficheros-de-unidad-habilitados.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'cron.service
+        sshd.service
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e10-listar-ficheros-de-unidad-habilitados.sh -a </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e11-comprobar-si-apache-esta-instalado
+  title: 11. Comprobar si Apache está instalado
+  description: |
+    Sin argumentos, utiliza `dnf list installed httpd` (simulado) para determinar si Apache está instalado. Muestra `INSTALADO` o `NO INSTALADO`, con código 0 en ambos casos. No muestres mensajes de `dnf`.
+
+    ### Comandos a practicar
+    - **Comandos:** `dnf list installed httpd`, `>/dev/null 2>&1`.
+    - **Bash y conceptos:** `if`, captura de código de retorno.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh`.
+    - **Uso:** `p32-e11-comprobar-si-apache-esta-instalado.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'INSTALADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        printf "0\n" > "$td/estado/httpd.installed"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'NO INSTALADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e11-comprobar-si-apache-esta-instalado.sh httpd </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e12-comprobar-la-pagina-local-de-apache
+  title: 12. Comprobar la página local de Apache
+  description: |
+    Sin argumentos, intenta `curl -fsS http://localhost` (simulado). Si responde y el HTML contiene `Enhorabuena`, muestra `WEB OK`. Si falla, escribe `Apache no disponible` en stderr y termina con 3. En la evaluación el servicio puede estar activo o inactivo.
+
+    ### Comandos a practicar
+    - **Comandos:** `curl`, `grep -Fq`.
+    - **Bash y conceptos:** tuberías, condicionales y redirección de stderr.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh`.
+    - **Uso:** `p32-e12-comprobar-la-pagina-local-de-apache.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+      - **Código 3:** `Apache no disponible`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        printf "active\n" > "$td/estado/httpd.active"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'WEB OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh -x </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e12-comprobar-la-pagina-local-de-apache.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Apache no disponible
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e13-consultar-la-apertura-de-http-en-el-cortaf
+  title: 13. Consultar la apertura de HTTP en el cortafuegos
+  description: |
+    Sin argumentos, consulta `firewall-cmd --list-services` y comprueba si la palabra completa `http` aparece en la lista. Muestra `ABIERTO` si aparece o `CERRADO` si no. No confundas `http` con `https`.
+
+    ### Comandos a practicar
+    - **Comandos:** `firewall-cmd --list-services`, `grep -w`.
+    - **Bash y conceptos:** palabras completas, condiciones y stdout.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh`.
+    - **Uso:** `p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'CERRADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        printf "ssh http\n" > "$td/estado/firewall.current"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ABIERTO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e13-consultar-la-apertura-de-http-en-el-cortaf.sh http </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e14-abrir-http-permanentemente
+  title: 14. Abrir HTTP permanentemente
+  description: |
+    Sin argumentos, ejecuta `firewall-cmd --permanent --add-service=http` y después `firewall-cmd --reload` para actualizar el cortafuegos activo. Muestra `OK` solo si las dos órdenes se completan. El entorno es simulado y no cambia reglas reales.
+
+    ### Comandos a practicar
+    - **Comandos:** `firewall-cmd --permanent --add-service=http`, `firewall-cmd --reload`.
+    - **Bash y conceptos:** `&&`, `if !`, control de códigos y secuencia de órdenes.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh`.
+    - **Uso:** `p32-e14-abrir-http-permanentemente.sh (sin argumentos)`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: (sin argumentos)`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$td/estado/firewall.current")" = "ssh http" ] && [ "$(cat "$td/estado/firewall.permanent")" = "ssh http" ] || exit 1
+        grep -Fxq "firewall --permanent --add-service=http" "$td/estado/acciones.log"
+        grep -Fxq "firewall --reload" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e14-abrir-http-permanentemente.sh --now </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: (sin argumentos)
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e15-crear-un-fichero-de-unidad-service
+  title: 15. Crear un fichero de unidad .service
+  description: |
+    Recibe DIRECTORIO NOMBRE. En el directorio existente genera `NOMBRE.service`. NOMBRE debe comenzar con letra minúscula y continuar con minúsculas, dígitos o guiones. El contenido debe incluir exactamente las líneas `[Unit]`, `Description=Servicio de practica`, `[Service]`, `Type=simple`, `ExecStart=/usr/bin/sleep 30`, `[Install]`, `WantedBy=multi-user.target` (puedes insertar líneas vacías entre secciones). Muestra `OK`. No edites `/etc/systemd` real.
+
+    ### Comandos a practicar
+    - **Comandos:** `printf`, `cat`, `vi` (para comprobar manualmente), `ls -l`.
+    - **Bash y conceptos:** redirección `>`, parámetros y regex de nombres.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh`.
+    - **Uso:** `p32-e15-crear-un-fichero-de-unidad-service.sh DIRECTORIO NOMBRE`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: DIRECTORIO NOMBRE`.
+      - **Código 2:** `Directorio no valido`.
+      - **Código 3:** `Nombre no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh DIRECTORIO NOMBRE
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips:
+  - Recuerda que los archivos `.service` usan secciones INI; en `ExecStart` no debe faltar la ruta 
+    absoluta.
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/units"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh "$d" demo </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        f="$d/demo.service"
+        [ -f "$f" ] || exit 1
+        for l in "[Unit]" "Description=Servicio de practica" "[Service]" "Type=simple" "ExecStart=/usr/bin/sleep 30" "[Install]" "WantedBy=multi-user.target"; do grep -Fxq "$l" "$f" || exit 1; done
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO NOMBRE
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh /no-existe demo </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/units"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e15-crear-un-fichero-de-unidad-service.sh "$d" INVALIDO </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e16-crear-un-drop-in-con-reinicio-automatico
+  title: 16. Crear un drop-in con reinicio automático
+  description: |
+    Recibe DIRECTORIO SEGUNDOS (entero del 1 al 60). Dentro del directorio existente crea `httpd.service.d/restart-policy.conf` con sección `[Service]`, `Restart=on-failure` y `RestartSec=SEGUNDOS`, en ese orden. Muestra `OK`. Usa un directorio local de práctica.
+
+    ### Comandos a practicar
+    - **Comandos:** `mkdir -p`, `printf`, `cat`, `vi`.
+    - **Bash y conceptos:** regex numérica, rango y redirecciones.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh`.
+    - **Uso:** `p32-e16-crear-un-drop-in-con-reinicio-automatico.sh DIRECTORIO SEGUNDOS`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: DIRECTORIO SEGUNDOS`.
+      - **Código 2:** `Directorio no valido`.
+      - **Código 3:** `Segundos no validos`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh DIRECTORIO SEGUNDOS
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/conf"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh "$d" 10 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        f="$d/httpd.service.d/restart-policy.conf"
+        [ -f "$f" ] || exit 1
+        [ "$(grep -cFx "[Service]" "$f")" = 1 ] || exit 1
+        grep -Fxq "Restart=on-failure" "$f"
+        grep -Fxq "RestartSec=10" "$f"
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/conf"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh "$d" 20 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "RestartSec=20" "$d/httpd.service.d/restart-policy.conf"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO SEGUNDOS
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh /no-existe 10 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/conf"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e16-crear-un-drop-in-con-reinicio-automatico.sh "$d" 0 </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Segundos no validos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e17-modificar-la-descripcion-con-un-drop-in
+  title: 17. Modificar la descripción con un drop-in
+  description: |
+    Recibe DIRECTORIO. Dentro crea `httpd.service.d/descripcion.conf` con dos líneas: `[Unit]` y `Description=My Apache HTTP Server`. Debe respetar el fichero original (el drop-in es adicional). Muestra `OK`.
+
+    ### Comandos a practicar
+    - **Comandos:** `mkdir -p`, `printf`, `cat`, `vi`.
+    - **Bash y conceptos:** rutas, cadenas con espacios y redirecciones.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh`.
+    - **Uso:** `p32-e17-modificar-la-descripcion-con-un-drop-in.sh DIRECTORIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: DIRECTORIO`.
+      - **Código 2:** `Directorio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh DIRECTORIO
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/conf"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        [ "$(cat "$d/httpd.service.d/descripcion.conf")" = $(printf "[Unit]\nDescription=My Apache HTTP Server\n") ] || exit 1
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e17-modificar-la-descripcion-con-un-drop-in.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re
+  title: 18. Límites de memoria, peso de CPU y daemon-reload
+  description: |
+    Recibe DIRECTORIO. Crea `httpd.service.d/recursos.conf` con la sección `[Service]` y las propiedades `MemoryMin=1G`, `MemoryMax=2G` y `CPUWeight=50`. Después ejecuta `systemctl daemon-reload` (simulado) y muestra `OK`. Diferencia recargar la configuración de systemd de recargar la configuración interna de Apache.
+
+    ### Comandos a practicar
+    - **Comandos:** `printf`, `systemctl daemon-reload`, `grep -Fx`.
+    - **Bash y conceptos:** rutas, redirecciones, if ! y orden de acciones.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh`.
+    - **Uso:** `p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh DIRECTORIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: DIRECTORIO`.
+      - **Código 2:** `Directorio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh DIRECTORIO
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/conf"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        f="$d/httpd.service.d/recursos.conf"
+        [ -f "$f" ] || exit 1
+        for l in "[Service]" "MemoryMin=1G" "MemoryMax=2G" "CPUWeight=50"; do grep -Fxq "$l" "$f" || exit 1; done
+        grep -Fxq "daemon-reload" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e18-limites-de-memoria-peso-de-cpu-y-daemon-re.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e19-aplicar-limites-de-recursos-temporales-o-p
+  title: 19. Aplicar límites de recursos temporales o permanentes
+  description: |
+    Recibe MODO, `runtime` o `permanent`. Aplica al servicio `httpd` un máximo de CPU del 25% y de memoria de 300M. En modo runtime usa `systemctl set-property --runtime httpd CPUQuota=25% MemoryMax=300M`; en permanent omite `--runtime`. Muestra `OK`.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl set-property`, opción `--runtime`.
+    - **Bash y conceptos:** `case`, opciones y códigos de retorno.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh`.
+    - **Uso:** `p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh MODO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: MODO`.
+      - **Código 2:** `Modo no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh runtime
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh runtime </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "set-property runtime httpd CPUQuota=25% MemoryMax=300M" "$td/estado/acciones.log"
+        grep -Fxq "CPUQuota=25%" "$td/estado/httpd.properties"
+        grep -Fxq "MemoryMax=300M" "$td/estado/httpd.properties"
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh permanent </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'OK
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        grep -Fxq "set-property permanent httpd CPUQuota=25% MemoryMax=300M" "$td/estado/acciones.log"
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: MODO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e19-aplicar-limites-de-recursos-temporales-o-p.sh temporal </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Modo no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p32-e20-proyecto-final-configurar-apache-completo
+  title: '20. Proyecto final: configurar Apache completo'
+  description: |
+    Adaptación de la actividad de laboratorio 3.2: recibe DIRECTORIO (existente). En el entorno simulado: 1) habilita y arranca `httpd` con `systemctl enable --now httpd`; 2) permite HTTP permanentemente y recarga el cortafuegos; 3) crea `httpd.service.d/personalizacion.conf` con `[Unit]`, `Description=My Apache HTTP Server`, `[Service]`, `Restart=on-failure`, `RestartSec=10`, `MemoryMin=1G` y `MemoryMax=2G`; 4) ejecuta `systemctl daemon-reload`; 5) imprime `CONFIGURADO`. No cambies el Apache real.
+
+    ### Comandos a practicar
+    - **Comandos:** `systemctl enable --now`, `firewall-cmd`, `printf`, `mkdir`, `systemctl daemon-reload`.
+    - **Bash y conceptos:** funciones, secuencia con control de errores, ficheros drop-in y permisos.
+
+    ### Script a entregar
+    - **Ruta:** `/home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh`.
+    - **Uso:** `p32-e20-proyecto-final-configurar-apache-completo.sh DIRECTORIO`.
+    - Debe comenzar con `#!/bin/bash` y tener permiso de ejecución.
+
+    ### Entradas, salidas y errores
+    - **Salida correcta:** stdout según el enunciado, stderr vacío, código 0.
+    - **Errores:** stdout vacío; el mensaje se imprime en stderr, con salto de línea.
+      - **Código 1:** `Uso: DIRECTORIO`.
+      - **Código 2:** `Directorio no valido`.
+
+    ### Ejemplo de invocación
+    ```bash
+    /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh DIRECTORIO
+    ```
+    (Usa una ruta existente o un PID válido en lugar de los marcadores.)
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba casos de éxito y resultados.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        d="$td/config"
+        mkdir "$d"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh "$d" </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'CONFIGURADO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        f="$d/httpd.service.d/personalizacion.conf"
+        [ -f "$f" ] || exit 1
+        for l in "[Unit]" "Description=My Apache HTTP Server" "[Service]" "Restart=on-failure" "RestartSec=10" "MemoryMin=1G" "MemoryMax=2G"; do grep -Fxq "$l" "$f" || exit 1; done
+        [ "$(cat "$td/estado/httpd.active")" = active ] && [ "$(cat "$td/estado/httpd.enabled")" = enabled ] || exit 1
+        [ "$(cat "$td/estado/firewall.current")" = "ssh http" ] && [ "$(cat "$td/estado/firewall.permanent")" = "ssh http" ] || exit 1
+        for l in "enable --now httpd" "firewall --permanent --add-service=http" "firewall --reload" "daemon-reload"; do grep -Fxq "$l" "$td/estado/acciones.log" || exit 1; done
+        exit 0
+  - id: validaciones
+    description: Comprueba argumentos, errores y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        mkdir -p "$td/estado"
+        cp -a /home/learner/lab/aso-servicios/estado-base/. "$td/estado/" || exit 1
+        export ASO_SYSTEMD_STATE_DIR="$td/estado"
+        export PATH=/home/learner/lab/aso-servicios/bin:"$PATH"
+        [ -x /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-servicios/scripts/p32-e20-proyecto-final-configurar-apache-completo.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        rc=$?
+        [ "$rc" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0

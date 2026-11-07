@@ -104,3 +104,19 @@ def test_environment_assistant_streams_without_storing(db, monkeypatch):
         wrong = {'model': 'test', 'messages': [{'role': 'assistant', 'content': 'Hi'}]}
         assert client.post(f"/api/environments/{env['id']}/assistant", headers=headers, json=wrong).status_code == 422
         assert db.all('SELECT * FROM chats') == []
+
+
+def test_collections_are_grouped_into_folders(db, course_data):
+    with TestClient(create_app(db, NoDocker(db))) as client:
+        headers = {'X-Lab-Token': client.get('/api/config').json()['token']}
+        listed = {c['id']: c for c in client.get('/api/courses').json()}
+        assert listed['aso-bash-p1-2']['folder'] == 'ASO Bash'
+        assert listed['linux-foundations']['folder'] is None
+        key = client.post('/api/courses/import', headers=headers, json={'yaml': yaml.safe_dump({**course_data, 'folder': 'Mine'})}).json()['key']
+        folder = lambda: next(c['folder'] for c in client.get('/api/courses').json() if c['key'] == key)
+        assert folder() == 'Mine'
+        assert client.patch(f'/api/courses/{key}', headers=headers, json={'folder': ' Repaso '}).json()['folder'] == 'Repaso'
+        assert folder() == 'Repaso'
+        client.patch(f'/api/courses/{key}', headers=headers, json={'folder': ''})
+        assert folder() is None
+        assert client.patch('/api/courses/missing', headers=headers, json={'folder': 'x'}).status_code == 404

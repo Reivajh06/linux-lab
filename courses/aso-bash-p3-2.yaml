@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p3-2
 version: '1.0'
 title: ASO Bash 3.2 · Servicios, drop-ins, vi y recursos
+folder: ASO Bash
 description: "Trabaja con los **ficheros de unidad reales** de Fedora en `/usr/lib/systemd/system`\
   \ y `/etc/systemd/system`, con `systemctl --root=/`, con ficheros *drop-in*, con\
   \ `vi` en modo no interactivo y con los límites `cgroup` que el contenedor tiene\

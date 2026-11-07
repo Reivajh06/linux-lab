@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p1-3
 version: '1.0'
 title: ASO Práctica 1.3 · Usuarios, permisos y grupos
+folder: ASO Prácticas
 description: 'Actividad 8 de ULPGC ASO: cuentas, contraseñas, grupos y directorio compartido. Ejecuta
   los ejercicios en orden, con sudo. Se evalúa el estado final. Elige las contraseñas; deben estar establecidas
   y desbloqueadas.'

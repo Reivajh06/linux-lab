@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-bash-p1-2
 version: '1.0'
 title: ASO Bash 1.2 · Filtros, tuberías y expresiones regulares
+folder: ASO Bash
 description: "Los ejercicios 7, 8 y 10 de la Práctica 1.2 convertidos en scripts:\
   \ `cut`, `sort`, `uniq`, `tr`, `grep`, `head`, `tail`, `wc`, `nl`,\n    redirecciones\
   \ y comodines sobre `/etc/passwd`, `/etc`, `/dev`, `/usr/bin` y `/usr/share/dict/words`.\n\

@@ -122,7 +122,7 @@ async def test_scoring_recomputes_and_serializes(db, course_data):
         {"id": "timeout", "description": "A check times out", "points": 7, "checks": [{"type": "command", "script": "sleep 10", "timeout": 1}]},
         {"id": "pass", "description": "This passes", "points": 3, "checks": [{"type": "command", "script": "true"}]},
     ]
-    db.execute("INSERT INTO courses VALUES('course','sample-course','1.0',?,?)", (course_yaml(Course.model_validate(course_data)), now()))
+    db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES('course','sample-course','1.0',?,?)", (course_yaml(Course.model_validate(course_data)), now()))
     runtime = EvaluationRuntime(db)
     env = runtime.environment("course")
     db.execute("UPDATE environments SET state='running',setup_done=1 WHERE id=?", (env["id"],))

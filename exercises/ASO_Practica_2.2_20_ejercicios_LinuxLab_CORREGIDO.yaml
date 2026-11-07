@@ -1,0 +1,2843 @@
+schema_version: 1
+id: aso-p22-20-ejercicios-bash-2026
+version: '1.1'
+title: 'ASO - Práctica 2.2: lectura, vectores, argumentos y descriptores'
+folder: ASO Prácticas · 20 ejercicios
+description: |-
+  20 ejercicios independientes basados en Práctica 2.2 (ULPGC, curso 2026/2027). Comandos: cat, wc, grep, cut, sort, uniq, tr; Bash: read -r, IFS, while read, read -a, vectores e índices, ${#array[@]}, case/esac, for, shift, "$@", break/continue, exec 3<, read -u3, exec 4>, cierre de descriptores y redirecciones. Regex y validación numérica cuando sea necesario.
+
+  Cada ejercicio incluye enunciado, ruta de script, comandos/conceptos y pruebas automáticas. Crea los scripts tú: la preparación solo facilita datos. Para las tareas Bash, escribe el shebang #!/bin/bash y da permisos de ejecución al script. Se usan las claves legacy `tasks` y `command`, compatibles con el formato solicitado por tu importador. Cuando no se diga otra cosa, stdout lleva los resultados, stderr los errores, éxito devuelve 0 y el número incorrecto de argumentos devuelve 1.
+setup:
+- script: |
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/scripts
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/datos
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/series
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b
+    install -d -o learner -g learner /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c
+    printf '%s\n' 'ana:x:1100:1100:Ana Sol:/home/ana:/bin/bash' 'beto:x:1101:2100:Beto Paz:/home/beto:/bin/sh' 'cora:x:1102:1102:Cora Ruiz:/srv/cora:/bin/bash' 'dani:x:1103:2100:Dani Gil:/home/dani:/usr/sbin/nologin' 'elena:x:1104:1104:Elena Mar:/home/elena:/bin/bash' 'fede:x:1110:2110:Fede Sur:/srv/fede:/bin/sh' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+    printf '%s\n' 'lola:x:1201:1201:Lola Luz:/home/lola:/bin/bash' 'paco:x:1202:1400:Paco Sur:/srv/paco:/bin/sh' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+    printf '%s\n' uno dos tres cuatro cinco seis > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    printf '%s\n' 'primera corta' 'segunda corta' > '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt'
+    touch /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+    printf '%s\n' alpha apple arena avion banana barco casa perro nube sol BOSQUE avena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/diccionario.txt
+    printf '%s\n' proyecto:x:2500:ana,cora comun:x:2501:beto,dani,elena vacio:x:2502: > /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt
+    printf '%s\n' ana:/home/ana beto:/tmp/beto cora:/home/cora dani:/srv/dani elena:/home/elena > /home/learner/lab/aso-fundamentos/bash-21-22/datos/hogares.txt
+    printf '%s\n' A1 A2 A3 A4 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt
+    printf '%s\n' B1 B2 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt
+    printf '%s\n' C1 C2 C3 > /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-c.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/comun.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+    printf '%s\n' 'archivo de prueba' > '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas clase.txt'
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/comun.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/uno.txt
+    printf '%s\n' 'archivo de prueba' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+    printf '%s\n' 'archivo de prueba' > '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/notas clase.txt'
+    printf '%s\n' 'no descender' > /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/sub/interior.txt
+    chown -R learner:learner /home/learner/lab/aso-fundamentos/bash-21-22
+    printf '%s\n' '/bin/bash' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/shells-permitidos.txt
+    printf '%s\n' 'UID_MIN 1101' 'UID_MAX 1104' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/login-valores.txt
+    printf '%s\n' 'uno dos tres cuatro' > /home/learner/lab/aso-fundamentos/bash-21-22/datos/vector-cuatro.txt
+exercises:
+- id: p22-e01-leer-registros
+  title: 01. Recorrer passwd con read e IFS
+  description: |
+    Lee un fichero de texto con el formato de `/etc/passwd`, indicado como único argumento. Por cada registro imprime `nombre:uid:gid` (campos 1, 3 y 4, separados por `:`) y, al final, `Total: N`. Si el fichero está vacío, imprime solo `Total: 0`.
+
+    En esta actividad se quiere practicar el bucle `while IFS=: read nombre clave uid gid ...; do ... done < FICHERO`, como en la práctica 2.2. No es necesario instalar ni modificar usuarios. Archivos de prueba: `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt` y `/home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `while IFS=: read -r`, `(( ... ))`, `variables`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh`
+    - **Uso:** `p22-e01-leer-registros.sh FICHERO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente una ruta de fichero.
+    - Debe existir un fichero regular.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO`.
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    ana:1100:1100
+    beto:1101:2100
+    cora:1102:1102
+    dani:1103:2100
+    elena:1104:1104
+    fede:1110:2110
+    Total: 6
+    ```
+    Código de salida: `0`.
+  tips:
+  - Redirige el fichero al `while` completo para conservar el contador en el shell principal.
+  - '`IFS=:` separa campos por los dos puntos.'
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: lectura
+    description: Lee registros, cuenta elementos y soporta fichero vacío.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana:1100:1100
+        beto:1101:2100
+        cora:1102:1102
+        dani:1103:2100
+        elena:1104:1104
+        fede:1110:2110
+        Total: 6
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'lola:1201:1201
+        paco:1202:1400
+        Total: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Comprueba número de argumentos y existencia.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e01-leer-registros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e02-vector-campos
+  title: 02. Elegir un campo de cada registro con un vector
+  description: |
+    Recibe `FICHERO CAMPO` y muestra el campo elegido (de **1 a 7**) de cada registro tipo passwd, anteponiendo `Registro N: ` con un número N creciente desde 1. Ejemplo: `Registro 1: ana`.
+
+    Practica `while IFS=: read -a vector`, el acceso con `${vector[indice]}` y que los vectores comienzan en 0. Usa `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt` o `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt`. Valida en este orden la cantidad, el fichero, el formato de CAMPO y el rango.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `read -a`, `IFS=:`, `${vector[indice]}`, `while`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh`
+    - **Uso:** `p22-e02-vector-campos.sh FICHERO CAMPO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos argumentos.
+    - FICHERO debe ser regular.
+    - CAMPO debe ser numérico.
+    - CAMPO debe estar entre 1 y 7.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO CAMPO`.
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+    - **numero:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Campo no numerico`.
+    - **rango:** código `4`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Campo fuera de rango`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 1
+    ```
+    Salida estándar esperada:
+    ```text
+    Registro 1: ana
+    Registro 2: beto
+    Registro 3: cora
+    Registro 4: dani
+    Registro 5: elena
+    Registro 6: fede
+    ```
+    Código de salida: `0`.
+  tips:
+  - El campo 1 se encuentra en el índice 0 del vector.
+  - No pierdas el contador introduciendo el while en una tubería.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: columnas
+    description: Selecciona columnas diferentes y maneja vectores.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Registro 1: ana
+        Registro 2: beto
+        Registro 3: cora
+        Registro 4: dani
+        Registro 5: elena
+        Registro 6: fede
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 7 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Registro 1: /bin/bash
+        Registro 2: /bin/sh
+        Registro 3: /bin/bash
+        Registro 4: /usr/sbin/nologin
+        Registro 5: /bin/bash
+        Registro 6: /bin/sh
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt 3 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Registro 1: 1201
+        Registro 2: 1202
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida argumentos, fichero y campo.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO CAMPO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /no-existe 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt abc </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Campo no numerico')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e02-vector-campos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 8 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 4 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Campo fuera de rango')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e03-uid-gid-igual
+  title: 03. Comparar UID y GID con opción -d
+  description: |
+    Recibe `FICHERO [-d]`. Recorre los registros con `read` e `IFS=:`. De forma predeterminada imprime los usuarios cuyo **UID es igual a su GID**; con `-d`, los usuarios con identificadores distintos. Por cada coincidencia imprime `nombre:uid:gid`, y finaliza con `Total: N`. Si no hay coincidencias, escribe `Ninguno` y luego `Total: 0`.
+
+    Es una adaptación, sobre datos controlados, de la primera actividad de laboratorio de la práctica 2.2. Usa `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt` y `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `read`, `IFS=:`, `while`, `if`, `(( ... ))`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh`
+    - **Uso:** `p22-e03-uid-gid-igual.sh FICHERO [-d]`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Se admiten uno o dos argumentos.
+    - Si se indica una opción, debe ser exactamente -d.
+    - La primera ruta debe ser un fichero regular.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO [-d]`.
+    - **opcion:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Opcion invalida`.
+    - **fichero:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    ana:1100:1100
+    cora:1102:1102
+    elena:1104:1104
+    Total: 3
+    ```
+    Código de salida: `0`.
+  tips:
+  - Usa `if` y comparaciones numéricas `((uid == gid))`.
+  - El contador final debe permanecer disponible después del bucle.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: comparacion
+    description: Muestra coincidencias e invierte el filtro.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana:1100:1100
+        cora:1102:1102
+        elena:1104:1104
+        Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt -d </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'beto:1101:2100
+        dani:1103:2100
+        fede:1110:2110
+        Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt -d </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'paco:1202:1400
+        Total: 1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Ninguno
+        Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida opción y entrada.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO [-d]')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt -x </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Opcion invalida')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e03-uid-gid-igual.sh /no/existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e04-contar-archivos
+  title: 04. Contar líneas en varios ficheros con for y $@
+  description: |
+    Recibe **uno o más nombres de fichero**. Recorre `"$@"` con `for`. Por cada fichero regular muestra `RUTA: NUMERO`, donde NUMERO es el número de líneas. Soporta rutas con espacios.
+
+    Si hay algún argumento que no sea fichero regular, escribe `Fichero omitido: RUTA` en stderr, continúa con los demás y finaliza con código 2 (si no hay errores, con 0). La falta de argumentos termina con código 1. Prueba `/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt`, `/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt` y `/home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt`. Es la práctica de `"$@"` y `continue` de la 2.2.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `wc -l`.
+    - **Bash / conceptos:** `for`, `"$@"`, `continue`, `stderr`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh`
+    - **Uso:** `p22-e04-contar-archivos.sh FICHEROS...`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Al menos un argumento.
+    - Cuando hay rutas no regulares, se omiten y se informa en stderr.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHEROS...`.
+    - **omitido:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero omitido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt'
+    ```
+    Salida estándar esperada:
+    ```text
+    /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+    /home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt: 2
+    ```
+    Código de salida: `0`.
+  tips:
+  - Usa `for fichero in "$@"` y entrecomilla las rutas.
+  - Para mostrar solo el número sin el nombre usa `wc -l < "$fichero"`.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: listas
+    description: Procesa nombres con espacios y fichero vacío.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt' </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt' /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt: 2
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Continúa tras un fichero no válido pero usa un código de error.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHEROS...')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/ausente.txt '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt' </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero omitido: /home/learner/lab/aso-fundamentos/bash-21-22/datos/ausente.txt')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e04-contar-archivos.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero omitido: /home/learner/lab/aso-fundamentos/bash-21-22/datos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e05-contar-varios-shells
+  title: 05. Contar shells variables usando shift
+  description: |
+    Recibe **uno o más nombres de shell** (sin ruta), como `bash`, `sh` o `nologin`. Para cada argumento válido, en el orden recibido, escribe `NOMBRE: NUMERO` con el número de entradas de `/home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt` cuyo último componente de shell coincide exactamente con ese nombre.
+
+    Los nombres válidos tienen solo letras minúsculas. Si hay uno inválido, escribe `Shell invalido: VALOR` en stderr y continúa con los demás; el código final debe ser 2. Si todos son válidos, devuelve 0. Con cero argumentos, emite `Uso: SHELLS...` y código 1. Practica `while (( $# > 0 ))`, `$1`, `shift` y `case` o expresiones regulares de la práctica 2.2.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `cut -d: -f7`, `grep -c`, `|`.
+    - **Bash / conceptos:** `while`, `$#`, `shift`, `case`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh`
+    - **Uso:** `p22-e05-contar-varios-shells.sh SHELLS...`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Debes facilitar al menos un nombre de shell.
+    - Los nombres con otros caracteres se omiten con un error.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: SHELLS...`.
+    - **invalido:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Shell invalido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash sh
+    ```
+    Salida estándar esperada:
+    ```text
+    bash: 3
+    sh: 2
+    ```
+    Código de salida: `0`.
+  tips:
+  - Al acabar cada vuelta de `while`, no olvides `shift`.
+  - Cuenta coincidencias con `cut`, `grep` y `wc`; no utilices awk.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: varios
+    description: Maneja argumentos variables y valores repetidos.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'bash: 3
+        sh: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh nologin zsh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'nologin: 1
+        zsh: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash bash </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'bash: 3
+        bash: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Da error por valores inválidos pero continúa procesando.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: SHELLS...')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash BASH sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'bash: 3
+        sh: 2
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Shell invalido: BASH')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e05-contar-varios-shells.sh bash2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '')
+        [ "$actual" = "$expected" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Shell invalido: bash2')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e06-lineas-pares-impares
+  title: 06. Seleccionar líneas pares o impares con case
+  description: |
+    Recibe exactamente `OPCION FICHERO`. Con `-p` muestra las líneas de posición **par** (2, 4, 6...). Con `-i` muestra las líneas de posición **impar** (1, 3, 5...). Conserva el contenido y el orden de las líneas; para un fichero vacío no imprime nada.
+
+    Usa `case` para elegir la opción y `while IFS= read -r linea` con un contador. Ejercicio basado en el apartado autónomo de la práctica 2.2. Prueba `/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `case`, `while IFS= read -r`, `((indice % 2))`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh`
+    - **Uso:** `p22-e06-lineas-pares-impares.sh -p|-i FICHERO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Dos argumentos obligatorios.
+    - El primer argumento debe ser -p o -i.
+    - El segundo argumento debe ser fichero regular.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: -p|-i FICHERO`.
+    - **opcion:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Opcion invalida`.
+    - **fichero:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -i /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    uno
+    tres
+    cinco
+    ```
+    Código de salida: `0`.
+  tips:
+  - En una estructura `case`, las ramas terminan con `;;`.
+  - El resto de dividir el número de línea entre 2 permite reconocer la paridad.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: seleccion
+    description: Selecciona posiciones pares/impares y maneja un vacío.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -p /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'dos
+        cuatro
+        seis
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -i /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'uno
+        tres
+        cinco
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -i '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt' </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'primera corta
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -p /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Valida opción, cantidad y fichero.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: -p|-i FICHERO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -x /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Opcion invalida')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e06-lineas-pares-impares.sh -p /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e07-intercalar-ficheros
+  title: 07. Entrelazar las líneas de dos ficheros
+  description: |
+    Recibe `FICHERO1 FICHERO2`. Muestra la primera línea del primero, luego la primera del segundo, después la segunda del primero, la segunda del segundo, etc. Si un fichero termina antes, continúa con las líneas que queden del otro. No añadas etiquetas ni líneas vacías.
+
+    Corresponde al ejercicio autónomo de la práctica 2.2. Puedes usar dos descriptores con `exec 3< ...`, `exec 4< ...` y `read -u3` / `read -u4`, o una solución equivalente con herramientas básicas. Prueba `/home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt`, `/home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt` y `/home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `exec 3<`, `exec 4<`, `read -u3`, `read -u4`, `while`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh`
+    - **Uso:** `p22-e07-intercalar-ficheros.sh FICHERO1 FICHERO2`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Se necesitan exactamente dos ficheros.
+    - Los dos argumentos deben ser ficheros regulares.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO1 FICHERO2`.
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Ficheros no validos`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt
+    ```
+    Salida estándar esperada:
+    ```text
+    A1
+    B1
+    A2
+    B2
+    A3
+    A4
+    ```
+    Código de salida: `0`.
+  tips:
+  - Al terminar uno, sigue leyendo el otro hasta EOF.
+  - Piensa en el caso de uno de los ficheros vacío.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: intercalado
+    description: Intercala con longitudes distintas y archivos vacíos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'A1
+        B1
+        A2
+        B2
+        A3
+        A4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'B1
+        A1
+        B2
+        A2
+        A3
+        A4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'A1
+        A2
+        A3
+        A4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-b.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-c.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'B1
+        C1
+        B2
+        C2
+        C3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza rutas no válidas y argumentos insuficientes.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO1 FICHERO2')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e07-intercalar-ficheros.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lista-a.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Ficheros no validos')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e08-guardar-descriptores
+  title: 08. Leer por el descriptor 3 y guardar por el 4
+  description: |
+    Recibe `FICHERO NOMBRE`, con NOMBRE de **3 a 12** letras minúsculas. Lee las líneas de FICHERO y escribe en `/home/learner/lab/aso-fundamentos/bash-21-22/salidas/NOMBRE.txt` los registros numerados como `Registro 1: texto`, `Registro 2: texto`, ... y al final `Total: N`.
+
+    El fichero de salida debe **sobrescribirse**, no añadirse. El script muestra únicamente `Guardado` en stdout. Practica los descriptores de la práctica 2.2: `exec 3<"$fichero"`, `read -u3`, `exec 4>"$salida"`, `>&4`, y el cierre de descriptores. Valida los argumentos antes de abrir el fichero de salida.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección >`.
+    - **Bash / conceptos:** `exec 3<`, `exec 4>`, `read -u3`, `>&4`, `while`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh`
+    - **Uso:** `p22-e08-guardar-descriptores.sh FICHERO NOMBRE`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos argumentos.
+    - FICHERO debe ser regular.
+    - NOMBRE tiene de 3 a 12 letras minúsculas.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: FICHERO NOMBRE`.
+    - **fichero:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Fichero no valido`.
+    - **nombre:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Nombre invalido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt informe
+    ```
+    Salida estándar esperada:
+    ```text
+    Guardado
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`>` vacía el contenido previo si el fichero ya existía.'
+  - Cierra `3` y `4` después de terminar de leer y escribir.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: descriptores
+    description: Guarda registros numerados sobrescribiendo la salida previa.
+    points: 10
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        printf '%s\n' ANTIGUO > /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+        chown learner:learner /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt informe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Guardado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/informe.txt
+      match: exact
+      value: |
+        Registro 1: uno
+        Registro 2: dos
+        Registro 3: tres
+        Registro 4: cuatro
+        Registro 5: cinco
+        Registro 6: seis
+        Total: 6
+  - id: otro-fichero
+    description: También funciona con otra entrada, sin datos sobrantes.
+    points: 6
+    checks:
+    - type: command
+      user: root
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set -e
+        rm -f /home/learner/lab/aso-fundamentos/bash-21-22/salidas/resumen.txt
+        set +e
+        set +e
+        runuser -u learner -- /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh '/home/learner/lab/aso-fundamentos/bash-21-22/datos/notas cortas.txt' resumen </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Guardado
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: content
+      path: /home/learner/lab/aso-fundamentos/bash-21-22/salidas/resumen.txt
+      match: exact
+      value: |
+        Registro 1: primera corta
+        Registro 2: segunda corta
+        Total: 2
+  - id: errores
+    description: Valida el fichero y el nombre de salida.
+    points: 4
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO NOMBRE')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos informe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e08-guardar-descriptores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt ../../x </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Nombre invalido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e09-buscar-hogares
+  title: 09. Seleccionar cuentas por directorio personal
+  description: |
+    Recibe una **ruta absoluta de directorio existente**. Lee `/home/learner/lab/aso-fundamentos/bash-21-22/datos/hogares.txt`, donde cada registro es `nombre:ruta-personal`, y muestra los nombres de usuarios cuyo directorio personal esté **dentro de** la ruta indicada (por ejemplo, `/home/ana` está dentro de `/home`). Muestra cada nombre en el orden de los datos y termina con `Total: N`.
+
+    Si no hay ninguno, imprime `Ninguno` y `Total: 0`. Este ejercicio adapta la búsqueda de domicilios bajo un directorio de la práctica 2.2 y practica `read` con `IFS=:`. Comprueba cantidad, ruta absoluta y directorio existente, en ese orden.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `redirección <`.
+    - **Bash / conceptos:** `while IFS=: read -r`, `[[ ... == ... ]]`, `(( ... ))`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh`
+    - **Uso:** `p22-e09-buscar-hogares.sh DIRECTORIO`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente una ruta de directorio.
+    - La ruta debe comenzar por / y ser absoluta.
+    - Debe existir el directorio.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: DIRECTORIO`.
+    - **absoluta:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Ruta no absoluta`.
+    - **directorio:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Directorio no valido`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh /home
+    ```
+    Salida estándar esperada:
+    ```text
+    ana
+    cora
+    elena
+    Total: 3
+    ```
+    Código de salida: `0`.
+  tips:
+  - 'Añade una barra después del directorio base para evitar falsos positivos: `/home` no es `/home2`.'
+  - Puedes comparar cadenas con `[[ $ruta == "$base"/* ]]`.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: hogares
+    description: Filtra bases distintas e incluye el caso sin usuarios.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh /home </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'ana
+        cora
+        elena
+        Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh /tmp </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'beto
+        Total: 1
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh /usr </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Ninguno
+        Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza rutas relativas, inexistentes y sin argumentos.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh home </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Ruta no absoluta')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e09-buscar-hogares.sh /noexiste-de-prueba </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e10-diferencias-carpetas
+  title: 10. Ficheros exclusivos de dos directorios
+  description: |
+    Recibe dos directorios distintos. Muestra las **rutas absolutas** de los ficheros regulares que están directamente en uno de ellos y cuyo nombre **no existe como fichero regular** en el otro. Ordena alfabéticamente todas las rutas de salida, sin repetirlas. No desciendas por subdirectorios ni incluyas entradas ocultas.
+
+    Es una adaptación de la comparación de directorios de la práctica 2.2. Usa comodines, bucles `for`, `[[ -f ... ]]`, `sort` y, si lo necesitas, `basename`. Los directorios de ejemplo están en `/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a`, `/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b` y `/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos principales:** `comodín *`, `sort`, `basename`.
+    - **Bash / conceptos:** `for`, `[[ -f ... ]]`, `if`.
+
+    ### Script solicitado
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh`
+    - **Uso:** `p22-e10-diferencias-carpetas.sh DIRECTORIO1 DIRECTORIO2`
+    - Crea tú el fichero (no lo proporciona la preparación), empieza con `#!/bin/bash` y hazlo ejecutable con `chmod +x`.
+
+    ### Requisitos de entrada
+    - Exactamente dos directorios.
+    - Los dos argumentos son directorios existentes.
+    - Los directorios no pueden ser la misma ruta.
+
+    ### Resultados y códigos de salida
+    - **correcto:** código `0`, salida `stdout`. Produce el resultado especificado y deja stderr vacío.
+    - **argumentos:** código `1`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Uso: DIRECTORIO1 DIRECTORIO2`.
+    - **directorio:** código `2`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Directorio no valido`.
+    - **iguales:** código `3`, salida `stderr`. Imprime el mensaje indicado en stderr; no emite mensajes adicionales. Mensaje: `Directorios iguales`.
+
+    ### Ejemplo de ejecución
+
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b
+    ```
+    Salida estándar esperada:
+    ```text
+    /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas clase.txt
+    /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+    /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+    ```
+    Código de salida: `0`.
+  tips:
+  - '`"$directorio"/*` permite iterar entradas directas, no descendientes.'
+  - No intentes procesar una coincidencia del comodín si no existe un fichero.
+  sources: []
+  supplemental: Datos ficticios preparados solo para practicar en Linux Lab; no se crea el script 
+    del estudiante.
+  tasks:
+  - id: diferencias
+    description: Compara pares diferentes y ordena rutas.
+    points: 12
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/notas clase.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/uno.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a/comun.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/comun.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/b/dos.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/notas clase.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/tres.txt
+        /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/c/uno.txt
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: errores
+    description: Rechaza argumentos incorrectos y directorios idénticos.
+    points: 8
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: DIRECTORIO1 DIRECTORIO2')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorio no valido')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e10-diferencias-carpetas.sh /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a /home/learner/lab/aso-fundamentos/bash-21-22/carpetas/a </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Directorios iguales')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e11-contar-lineas-con-read-desde-stdin
+  title: 11. Contar líneas con read desde stdin
+  description: |
+    Sin argumentos, lee la entrada estándar línea a línea mediante `while IFS= read -r`. Cuenta todas las líneas completas (incluidas las vacías) y muestra `Total: N`. Para facilitar pruebas, el programa debe terminar al llegar a EOF.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`, `wc -l` (solo para contrastar).
+    - **Bash / conceptos:** `read -r`, `while`, `IFS=`, `<`, `((...))`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh`
+    - **Uso:** `p22-e11-contar-lineas-con-read-desde-stdin.sh (sin argumentos)`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Total: N`.
+    - 1: `No se admiten argumentos` si se recibe algún argumento.
+
+    ### Ejemplo
+    ```bash
+    printf %s 'rojo
+    azul
+    verde
+    ' | /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh
+    ```
+    Salida esperada:
+    ```text
+    Total: 3
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        printf %s 'rojo
+        azul
+        verde
+        ' > "$td/stdin"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh  <"$td/stdin" >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        printf %s 'uno
+
+        tres
+        ' > "$td/stdin"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh  <"$td/stdin" >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        printf %s '' > "$td/stdin"
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh  <"$td/stdin" >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e11-contar-lineas-con-read-desde-stdin.sh extra </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'No se admiten argumentos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e12-extraer-grupo-y-gid-con-ifs
+  title: 12. Extraer grupo y GID con IFS
+  description: |
+    Recibe un fichero con formato de `/etc/group` (`grupo:x:gid:usuarios`). Para cada línea muestra `grupo:gid` y, al final, `Total: N`. Divide el registro con `IFS=:` y `read`; conserva el orden del fichero.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`, `cut -d: -f1,3` (para contrastar).
+    - **Bash / conceptos:** `while IFS=: read -r`, variables, contador.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh`
+    - **Uso:** `p22-e12-extraer-grupo-y-gid-con-ifs.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: cada registro como `grupo:gid` y `Total: N`.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt
+    ```
+    Salida esperada:
+    ```text
+    proyecto:2500
+    comun:2501
+    vacio:2502
+    Total: 3
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/grupos.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'proyecto:2500
+        comun:2501
+        vacio:2502
+        Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e12-extraer-grupo-y-gid-con-ifs.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e13-leer-palabras-en-un-vector
+  title: 13. Leer palabras en un vector
+  description: |
+    Recibe un fichero de una línea con palabras separadas por espacios. Usa `read -a` para guardar los campos en un vector y muestra el primer elemento, el último y el número de elementos exactamente como `Primero: ...`, `Ultimo: ...`, `Total: N`. Si no hay palabras, muestra solo `Total: 0`.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`.
+    - **Bash / conceptos:** `read -a`, vectores `${vector[0]}`, `${#vector[@]}`, índices aritméticos.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh`
+    - **Uso:** `p22-e13-leer-palabras-en-un-vector.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Primero`, `Ultimo`, `Total`, salvo fichero sin campos, que solo muestra `Total: 0`.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vector-cuatro.txt
+    ```
+    Salida esperada:
+    ```text
+    Primero: uno
+    Ultimo: cuatro
+    Total: 4
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vector-cuatro.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Primero: uno
+        Ultimo: cuatro
+        Total: 4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e13-leer-palabras-en-un-vector.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e14-seleccionar-campo-con-case
+  title: 14. Seleccionar campo con case
+  description: |
+    Recibe MODO FICHERO; MODO puede ser `nombre`, `uid` o `shell`. Lee cada registro como `/etc/passwd` usando `IFS=:` y selecciona el campo apropiado mediante `case`. Imprime un valor por línea, sin encabezado.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cut` (para contrastar).
+    - **Bash / conceptos:** `while read -r`, `IFS=:`, `case/esac`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh`
+    - **Uso:** `p22-e14-seleccionar-campo-con-case.sh nombre|uid|shell FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: un valor por registro.
+    - 1: `Uso: MODO FICHERO`.
+    - 2: `Modo no valido`.
+    - 3: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh nombre /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt
+    ```
+    Salida esperada:
+    ```text
+    lola
+    paco
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh nombre /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'lola
+        paco
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh uid /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '1201
+        1202
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh shell /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/bin/bash
+        /bin/sh
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: MODO FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh otro /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Modo no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e14-seleccionar-campo-con-case.sh uid /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e15-contar-varios-ficheros-y-saltar-errores
+  title: 15. Contar varios ficheros y saltar errores
+  description: |
+    Recibe uno o más nombres de fichero. Recorre los argumentos con `shift` (o con `for ... in "$@"`). Muestra `FICHERO: N` para cada fichero válido, donde N es el número de líneas; si uno no existe, emite `Fichero no valido: RUTA` a stderr pero continúa con los demás. El código final será 2 si hubo alguno inválido, o 0 si fueron todos válidos. Admite rutas con espacios.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `wc -l`.
+    - **Bash / conceptos:** `while (( $# > 0 ))`, `shift`, `"$@"`, `continue`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh`
+    - **Uso:** `p22-e15-contar-varios-ficheros-y-saltar-errores.sh FICHEROS...`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: imprime cada fichero válido y su conteo, stderr vacío.
+    - 1: `Uso: FICHEROS...` si no se pasan argumentos.
+    - 2: continuar e informar `Fichero no valido: RUTA` en stderr por cada ruta no regular.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt
+    ```
+    Salida esperada:
+    ```text
+    /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+    /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt: 0
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt /no-existe /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt: 6
+        /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido: /no-existe
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e15-contar-varios-ficheros-y-saltar-errores.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHEROS...
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e16-contar-usuarios-con-uid-minimo
+  title: 16. Contar usuarios con UID mínimo
+  description: |
+    Recibe FICHERO MINIMO. Lee un fichero con registros tipo `/etc/passwd` mediante `IFS=:` y cuenta cuántos usuarios tienen UID mayor o igual al número indicado. Muestra `Total: N`. Usa variables de `read` y aritmética Bash; valida número sin signo.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`, `cut`.
+    - **Bash / conceptos:** `while IFS=: read`, `(( ))`, regex `^[0-9]+$`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh`
+    - **Uso:** `p22-e16-contar-usuarios-con-uid-minimo.sh FICHERO MINIMO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Total: N`.
+    - 1: `Uso: FICHERO MINIMO`.
+    - 2: `UID no valido`.
+    - 3: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 1102
+    ```
+    Salida esperada:
+    ```text
+    Total: 4
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt 1102 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros-corto.txt 2000 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO MINIMO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/registros.txt xx </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'UID no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e16-contar-usuarios-con-uid-minimo.sh /no-existe 1100 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e17-leer-un-fichero-por-el-descriptor-3
+  title: 17. Leer un fichero por el descriptor 3
+  description: |
+    Recibe FICHERO, ábrelo con `exec 3<"$1"` y recórrelo usando `read -u3`. Cuenta el número de líneas y muestra `Total: N`. Cierra después el descriptor 3 (`exec 3<&-`). El script no debe alterar el contenido.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`, `wc -l` (comparación).
+    - **Bash / conceptos:** `exec 3<`, `read -u3 -r`, `while`, `exec 3<&-`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh`
+    - **Uso:** `p22-e17-leer-un-fichero-por-el-descriptor-3.sh FICHERO`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: `Total: N`.
+    - 1: `Uso: FICHERO`.
+    - 2: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt
+    ```
+    Salida esperada:
+    ```text
+    Total: 6
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 6
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e17-leer-un-fichero-por-el-descriptor-3.sh /no-existe </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e18-comprobar-shells-permitidos-y-quitar-repeti
+  title: 18. Comprobar shells permitidos y quitar repetidos
+  description: |
+    Recibe opcionalmente `-u` y consulta los shells (campo 7) de las cuentas del fichero de práctica `registros.txt`. Compáralos con `shells-permitidos.txt` de la misma carpeta, que contiene uno por línea. Imprime **solo los shells no permitidos**. Sin opción, muéstralos por cada cuenta (con repeticiones), en el orden original. Con `-u`, elimina duplicados y ordénalos alfabéticamente. Adaptación de la última actividad autónoma de la Práctica 2.2.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `sort`, `uniq`, `grep -Fx`, `cut`.
+    - **Bash / conceptos:** `case`, `while IFS=: read`, opción `-u`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh`
+    - **Uso:** `p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh [-u]`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: shells que no figuran en shells-permitidos.txt, uno por línea; sin resultados, stdout vacío.
+    - 1: `Uso: [-u]` si la opción no es válida o sobran argumentos.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh
+    ```
+    Salida esperada:
+    ```text
+    /bin/sh
+    /usr/sbin/nologin
+    /bin/sh
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/bin/sh
+        /usr/sbin/nologin
+        /bin/sh
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh -u </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s '/bin/sh
+        /usr/sbin/nologin
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh -x </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: [-u]
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e18-comprobar-shells-permitidos-y-quitar-repeti.sh -u -x </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: [-u]
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e19-seleccionar-una-linea-por-numero-usando-rea
+  title: 19. Seleccionar una línea por número usando read
+  description: |
+    Recibe FICHERO N. Recorre el fichero usando `while IFS= read -r` y muestra exclusivamente la línea número N (contando desde uno). Si N es mayor que el número de líneas, stdout estará vacío y el código será 0. Rechaza formatos no numéricos y cero.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `cat`, `head`, `tail` (para contrastar).
+    - **Bash / conceptos:** `read -r`, `while`, `(( ))`, `break`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh`
+    - **Uso:** `p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh FICHERO N`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: imprime solo la línea N si existe.
+    - 1: `Uso: FICHERO N`.
+    - 2: `Numero no valido` si N no es entero decimal positivo.
+    - 3: `Fichero no valido`.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt 2
+    ```
+    Salida esperada:
+    ```text
+    dos
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'dos
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt 40 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/vacio.txt 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: FICHERO N
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /home/learner/lab/aso-fundamentos/bash-21-22/datos/lineas.txt 0 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Numero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e19-seleccionar-una-linea-por-numero-usando-rea.sh /no-existe 2 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Fichero no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+- id: p22-e20-filtrar-usuarios-por-rango-de-uid
+  title: 20. Filtrar usuarios por rango de UID
+  description: |
+    Recibe cero o dos argumentos MINIMO MAXIMO. Lee `registros.txt` como `/etc/passwd`, muestra los **nombres** de usuarios cuyo UID esté incluido en el rango, preservando el orden del fichero, y termina con `Total: N`. Sin argumentos, lee `UID_MIN` y `UID_MAX` del fichero `login-valores.txt` preparado (imitación de `/etc/login.defs`). Es una adaptación directa del segundo ejercicio autónomo de 2.2.
+
+    ### Comandos y conceptos a practicar
+    - **Comandos:** `grep`, `cut`.
+    - **Bash / conceptos:** `while IFS=: read`, `read`, `if`, `(( ))`, validación de `$#`.
+
+    ### Entrega
+    - **Ruta obligatoria:** `/home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh`
+    - **Uso:** `p22-e20-filtrar-usuarios-por-rango-de-uid.sh [MINIMO MAXIMO]`
+    - Empieza con `#!/bin/bash`, guarda el script tú mismo y hazlo ejecutable (`chmod +x`).
+
+    ### Validaciones y resultados
+    - 0: nombres en orden, y `Total: N`.
+    - 1: `Uso: [MINIMO MAXIMO]` para cualquier cantidad distinta de 0 o 2.
+    - 2: `Rango no valido` si uno de los valores no es entero sin signo.
+    - 3: `Minimo mayor que maximo` si el intervalo está invertido.
+
+    ### Ejemplo
+    ```bash
+    /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh
+    ```
+    Salida esperada:
+    ```text
+    beto
+    cora
+    dani
+    elena
+    Total: 4
+
+    ```
+  tips: []
+  tasks:
+  - id: funcionamiento
+    description: Comprueba la salida y los resultados correctos.
+    points: 14
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh  </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'beto
+        cora
+        dani
+        elena
+        Total: 4
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh 1103 1110 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'dani
+        elena
+        fede
+        Total: 3
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh 2000 3000 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 0 ] || exit 1
+        actual=$(cat "$td/out")
+        expected=$(printf %s 'Total: 0
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        [ ! -s "$td/err" ] || exit 1
+        exit 0
+  - id: validacion
+    description: Comprueba validación de entrada, stderr y códigos de salida.
+    points: 6
+    checks:
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh 1 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 1 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Uso: [MINIMO MAXIMO]
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh aa 1102 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 2 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Rango no valido
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0
+    - type: command
+      user: learner
+      timeout: 15
+      script: |
+        td=$(mktemp -d) || exit 1
+        trap 'rm -rf "$td"' EXIT
+        [ -x /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh ] || exit 1
+        set +e
+        /home/learner/lab/aso-fundamentos/scripts/p22-e20-filtrar-usuarios-por-rango-de-uid.sh 1105 1101 </dev/null >"$td/out" 2>"$td/err"
+        status=$?
+        [ "$status" -eq 3 ] || exit 1
+        [ ! -s "$td/out" ] || exit 1
+        actual=$(cat "$td/err")
+        expected=$(printf %s 'Minimo mayor que maximo
+        ')
+        [ "$actual" = "$expected" ] || exit 1
+        exit 0

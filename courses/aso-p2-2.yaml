@@ -2,6 +2,7 @@ schema_version: 1
 id: aso-p2-2
 version: '1.0'
 title: ASO Práctica 2.2 · Lectura, vectores y canales
+folder: ASO Prácticas
 description: "Practica la lectura de ficheros, los argumentos de entrada, los vectores y los descriptores de fichero en bash. Guarda los scripts ejecutables con shebang #!/bin/bash en /home/learner/aso/p22/ y envía los resultados a stdout y los errores a stderr. Usa el código 0 al terminar correctamente y los distintos códigos de error indicados en cada ejercicio."
 setup:
 - script: 'set -e

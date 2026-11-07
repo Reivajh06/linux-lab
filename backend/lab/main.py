@@ -34,6 +34,10 @@ class YAMLInput(BaseModel):
     yaml: str = Field(max_length=2_000_000)
 
 
+class CourseUpdate(BaseModel):
+    folder: str = Field(max_length=80)  # empty string removes the collection from its folder
+
+
 class EnvironmentInput(BaseModel):
     course_key: str | None = None
     name: str | None = Field(default=None, min_length=1, max_length=100)
@@ -98,7 +102,8 @@ def create_app(db=None, runtime=None):
     async def lifespan(app):
         for starter in sorted((ROOT / "courses").glob("*.yaml")):
             course = parse_course(starter.read_text(encoding="utf-8"))
-            db.execute("INSERT OR IGNORE INTO courses VALUES(?,?,?,?,?)", (uid(), course.id, course.version, course_yaml(course), now()))
+            # Refresh shipped collections in place so content fixes (and folders) reach existing libraries.
+            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?) ON CONFLICT(course_id,version) DO UPDATE SET yaml=excluded.yaml", (uid(), course.id, course.version, course_yaml(course), now()))
         yield
         if builder.task and not builder.task.done():
             builder.task.cancel()
@@ -208,7 +213,8 @@ def create_app(db=None, runtime=None):
             course = parse_course(row["yaml"])
             env = db.one("SELECT * FROM environments WHERE course_key=? AND is_default=1", (row["key"],))
             results = db.results(env["id"]) if env else {}
-            output.append({"key": row["key"], "id": course.id, "version": course.version, "title": course.title,
+            folder = course.folder if row["folder"] is None else row["folder"]
+            output.append({"key": row["key"], "id": course.id, "version": course.version, "title": course.title, "folder": folder or None,
                            "description": course.description, "exercise_count": len(course.exercises),
                            "points": sum(t.points for e in course.exercises for t in e.tasks),
                            "earned": sum(r["earned"] for r in results.values()),
@@ -226,7 +232,7 @@ def create_app(db=None, runtime=None):
         course = parse_course(body.yaml)
         key = uid()
         try:
-            db.execute("INSERT INTO courses VALUES(?,?,?,?,?)", (key, course.id, course.version, course_yaml(course), now()))
+            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?)", (key, course.id, course.version, course_yaml(course), now()))
         except sqlite3.IntegrityError as exc:
             raise HTTPException(409, "This course ID and version already exist. Change version before importing a revision.") from exc
         return {"key": key, "title": course.title}
@@ -239,6 +245,12 @@ def create_app(db=None, runtime=None):
         for exercise, original in zip(data["exercises"], course.exercises):
             exercise["sources"] = sources.resolve(original.sources)
         return {"key": key, "course": data, "environment": await asyncio.to_thread(runtime.refresh, env["id"]), "results": db.results(env["id"])}
+
+    @app.patch("/api/courses/{key}")
+    async def move_course(key: str, body: CourseUpdate):
+        db.course(key)
+        db.execute("UPDATE courses SET folder=? WHERE key=?", (body.folder.strip(), key))
+        return {"key": key, "folder": body.folder.strip() or None}
 
     @app.get("/api/courses/{key}/export")
     async def export(key: str):
