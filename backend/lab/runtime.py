@@ -48,9 +48,12 @@ class Runtime:
         try:
             self.client.ping()
             try:
-                self.client.images.get(os.getenv("LAB_IMAGE", "linux-lab-environment:local"))
+                image = self.client.images.get(os.getenv("LAB_IMAGE", "linux-lab-environment:local"))
             except NotFound:
                 return {"available": True, "image_ready": False, "message": "Build the lab image: docker compose build lab-image"}
+            # Images built before the move to Fedora (Ubuntu based) lack this label.
+            if ((image.attrs.get("Config") or {}).get("Labels") or {}).get("linux-lab.base") != "fedora":
+                return {"available": True, "image_ready": False, "message": "The lab image is out of date (it predates the Fedora lab). Click Build lab image to update it, then recreate environments to move them to Fedora."}
             return {"available": True, "image_ready": True, "message": "Docker is ready"}
         except (DockerException, LabError) as exc:
             return {"available": False, "image_ready": False, "message": str(exc)}

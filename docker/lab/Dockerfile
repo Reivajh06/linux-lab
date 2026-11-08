@@ -1,4 +1,5 @@
 FROM fedora:44
+LABEL linux-lab.base=fedora
 ENV LANG=en_US.UTF-8 DISPLAY=:1
 # Fedora's container image skips manuals (tsflags=nodocs); restore them before install.
 RUN sed -i '/^tsflags=nodocs/d' /etc/dnf/dnf.conf && \
