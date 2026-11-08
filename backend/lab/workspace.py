@@ -47,7 +47,7 @@ class WorkspaceService:
                 "install -m 755 /opt/linux-lab-workspace/lab-terminal /usr/local/bin/lab-terminal; "
                 "install -m 755 /opt/linux-lab-workspace/desktop.sh /usr/local/bin/lab-desktop; "
                 "install -d -o learner -g learner /home/learner/.config /home/learner/.config/openbox "
-                "/home/learner/.config/xfce4 /home/learner/.config/xfce4/terminal /home/learner/.config/gtk-3.0; "
+                "/home/learner/.config/gtk-3.0; "
                 "runuser -u learner -- env DISPLAY=:1 python3 /opt/linux-lab-workspace/workspace.py configure; "
                 f"printf %s {version} > /opt/linux-lab-workspace/version"
             )

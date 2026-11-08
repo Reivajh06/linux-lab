@@ -190,6 +190,7 @@ function readPanel(): { width: number; open: boolean } {
 
 function Workspace({ courseKey, environmentId, folder, folders, onBack, onError, onChanged, onSetup }: { courseKey: string | null; environmentId: string | null; folder?: string | null; folders: string[]; onBack: () => void; onError: (e: unknown) => void; onChanged: () => Promise<void>; onSetup: () => void }) {
   const grid = useRef<HTMLDivElement>(null);
+  const [focus, setFocus] = useState(false);
   const [layout, setLayout] = useState(readPanel);
   useEffect(() => { try { localStorage.setItem(PANEL_KEY, JSON.stringify(layout)); } catch { /* Not persisted. */ } }, [layout]);
   const resizeTo = (clientX: number) => {
@@ -244,7 +245,7 @@ function Workspace({ courseKey, environmentId, folder, folders, onBack, onError,
       </div>
     </div>
     {environment?.error && <div className="notice error-note"><CircleAlert size={17}/><span>{environment.error}</span><button className="text-button" onClick={onSetup}>Environment setup</button></div>}
-    <div ref={grid} className={'workspace-grid ' + (layout.open ? '' : 'panel-collapsed')} style={{ '--panel-width': layout.width + '%' } as React.CSSProperties}>
+    <div ref={grid} className={'workspace-grid ' + (layout.open ? '' : 'panel-collapsed') + (focus ? ' focus-mode' : '')} style={{ '--panel-width': layout.width + '%' } as React.CSSProperties}>
       {layout.open && <div className="workspace-divider" role="separator" aria-orientation="vertical" aria-label="Resize exercise panel" aria-valuemin={28} aria-valuemax={65} aria-valuenow={Math.round(layout.width)} tabIndex={0} title="Drag to resize · double-click to reset"
         onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); grid.current?.classList.add('resizing'); }}
         onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) resizeTo(e.clientX); }}
@@ -274,7 +275,7 @@ function Workspace({ courseKey, environmentId, folder, folders, onBack, onError,
         </div>}
         <div id="assistant-content" className="assistant-content" role="tabpanel" aria-labelledby="assistant-tab" hidden={!!detail && panel !== 'assistant'}>{environment && <EnvironmentAssistant key={environment.id} environmentId={environment.id} exerciseId={exercise?.id || null} active={!detail || panel === 'assistant'}/>}</div>
       </aside>
-      <div className="workspace-desktop"><Desktop key={desktopKey} id={environment?.id || ''} running={running}/></div>
+      <div className="workspace-desktop"><Desktop key={desktopKey} id={environment?.id || ''} running={running} fullscreenTarget={grid} fullscreen={focus} onFullscreen={setFocus}/></div>
     </div>
     {moving !== null && <Modal title="Move to folder" className="small" closeLabel="Close folder dialog" onClose={busy ? undefined : () => setMoving(null)} description="Folders group related collections in the Exercise Library. Leave the name empty to show this collection on its own.">
       <form onSubmit={e => { e.preventDefault(); move(); }}>

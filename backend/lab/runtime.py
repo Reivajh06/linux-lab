@@ -183,7 +183,7 @@ class Runtime:
             result = container.exec_run(["supervisorctl", "restart", "desktop"], user="root")
             if result.exit_code:
                 raise LabError("Could not restart the repaired desktop: " + result.output.decode(errors="replace"))
-        elif "lab-terminal" in repaired and container.exec_run(["pgrep", "-x", "xfce4-terminal"]).exit_code:
+        elif "lab-terminal" in repaired and container.exec_run(["pgrep", "-f", "gnome-terminal-server"]).exit_code:
             container.exec_run(["bash", "-c", "exec /usr/local/bin/lab-terminal >/tmp/linux-lab-terminal.log 2>&1"],
                                user="learner", detach=True, environment={"HOME": "/home/learner"})
 
@@ -227,7 +227,7 @@ class Runtime:
             container.reload()
             if container.status != "running":
                 raise LabError("Linux desktop exited. Inspect its Docker logs and recreate it.")
-            if container.exec_run(["bash", "-c", "test -f /tmp/lab-ready && pgrep -x 'Xvnc|Xtigervnc' >/dev/null && pgrep -x openbox >/dev/null && pgrep -x xfce4-terminal >/dev/null"]).exit_code == 0:
+            if container.exec_run(["bash", "-c", "test -f /tmp/lab-ready && pgrep -x 'Xvnc|Xtigervnc' >/dev/null && pgrep -x openbox >/dev/null && (pgrep -f gnome-terminal-server || pgrep -x xfce4-terminal) >/dev/null"]).exit_code == 0:
                 break
             time.sleep(0.5)
         else:

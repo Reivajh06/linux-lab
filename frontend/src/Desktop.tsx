@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import RFB from '@novnc/novnc';
 import { AppWindow, ClipboardPaste, Expand, FilePenLine, Globe, Loader2, Plus, RefreshCw, Shrink, Terminal, X } from 'lucide-react';
 import Modal from './Modal';
@@ -12,9 +12,8 @@ const icons = { terminal: Terminal, editor: FilePenLine, browser: Globe, app: Ap
 const launchNames: Record<AppKind, string> = { terminal: 'The terminal', editor: 'gedit', browser: 'Firefox', app: 'The application' };
 const launchCommands: Record<AppKind, string> = { terminal: 'lab-terminal &', editor: 'gedit &', browser: 'firefox &', app: 'it' };
 
-export default function Desktop({ id, running }: { id: string; running: boolean }) {
+export default function Desktop({ id, running, fullscreenTarget, fullscreen, onFullscreen }: { id: string; running: boolean; fullscreenTarget: RefObject<HTMLDivElement | null>; fullscreen: boolean; onFullscreen: (on: boolean) => void }) {
   const screen = useRef<HTMLDivElement>(null);
-  const frame = useRef<HTMLDivElement>(null);
   const connection = useRef<RFB | null>(null);
   const refresh = useRef<() => Promise<void>>(async () => {});
   const tabs = useRef(new Map<string, HTMLButtonElement>());
@@ -25,7 +24,6 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
   const [active, setActive] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
   const [paste, setPaste] = useState<string | null>(null);
   // A launch is only a request; the app counts as open once a new window of its kind appears.
   const [pending, setPending] = useState<{ kind: AppKind; before: number } | null>(null);
@@ -44,10 +42,13 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
   }, [pending]);
 
   useEffect(() => {
-    const changed = () => setFullscreen(document.fullscreenElement === frame.current);
-    document.addEventListener('fullscreenchange', changed);
-    return () => document.removeEventListener('fullscreenchange', changed);
-  }, []);
+    // Full screen is an app layout (tabs, Linux display, side panel) that works even where the
+    // browser refuses real full screen; real full screen is layered on top when it is allowed.
+    document.body.classList.toggle('workspace-focus', fullscreen);
+    const left = () => { if (!document.fullscreenElement) onFullscreen(false); };
+    document.addEventListener('fullscreenchange', left);
+    return () => { document.removeEventListener('fullscreenchange', left); document.body.classList.remove('workspace-focus'); };
+  }, [fullscreen, onFullscreen]);
 
   useEffect(() => {
     setPending(null);
@@ -75,7 +76,8 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
         if (disposed || !screen.current) return;
         accept(state); setPrepared(true); setStatus('Connecting');
         rfb = new RFB(screen.current, desktopURL(id));
-        rfb.scaleViewport = true; rfb.resizeSession = true;
+        // Resize the Fedora session at native size; noVNC observes layout/fullscreen changes.
+        rfb.scaleViewport = false; rfb.resizeSession = true;
         // noVNC defaults to JPEG quality 6, which smears terminal text; the lab is local, so favour fidelity.
         rfb.qualityLevel = 9; rfb.compressionLevel = 1;
         connection.current = rfb;
@@ -104,14 +106,16 @@ export default function Desktop({ id, running }: { id: string; running: boolean 
     setPending({ kind: app, before: windows.filter(w => w.kind === app).length });
     operate('launch', { app }).then(ok => { if (!ok) setPending(null); });
   };
-  const toggleFullscreen = async () => {
-    try { if (document.fullscreenElement) await document.exitFullscreen(); else await frame.current?.requestFullscreen(); }
-    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+  const toggleFullscreen = () => {
+    const entering = !fullscreen;
+    onFullscreen(entering);
+    if (entering) fullscreenTarget.current?.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   };
   const terminalCount = windows.filter(w => w.kind === 'terminal').length;
   const current = windows.find(w => w.id === active);
 
-  return <div className="desktop-frame tabbed-desktop" ref={frame}>
+  return <div className="desktop-frame tabbed-desktop">
     <div className="environment-tabbar">
       <div className="environment-tabs" role="tablist" aria-label="Linux applications">
         {!windows.length && <span className="environment-tab-placeholder"><Terminal size={16}/>Terminal</span>}

@@ -42,8 +42,9 @@ function protect(win) {
     }
     return { action: 'deny' };
   });
-  win.webContents.session.setPermissionRequestHandler((_contents, permission, callback) => {
-    callback(permission === 'clipboard-sanitized-write');
+  win.webContents.session.setPermissionRequestHandler((_contents, permission, callback, details) => {
+    callback(permission === 'clipboard-sanitized-write' ||
+      (permission === 'fullscreen' && URL.canParse(details.requestingUrl) && new URL(details.requestingUrl).origin === origin));
   });
 }
 
