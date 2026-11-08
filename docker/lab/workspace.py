@@ -31,40 +31,10 @@ OPENBOX = '''<?xml version="1.0" encoding="UTF-8"?>
   </applications>
 </openbox_config>
 '''
-TERMINAL = '''[Configuration]
-FontName=Adwaita Mono 12
-FontUseSystem=FALSE
-FontAllowBold=TRUE
-ColorForeground={foreground}
-ColorBackground={background}
-ColorCursor={cursor}
-ColorPalette={palette}
-ColorUseTheme=FALSE
-ColorBoldUseDefault=TRUE
-BackgroundMode=TERMINAL_BACKGROUND_SOLID
-MiscMenubarDefault=TRUE
-MiscToolbarDefault=FALSE
-MiscBordersDefault=FALSE
-ScrollingBar=TERMINAL_SCROLLBAR_RIGHT
-ScrollingLines=10000
-MiscCursorBlinks=TRUE
-MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
-MiscBellUrgent=FALSE
-MiscCopyOnSelect=FALSE
-MiscConfirmClose=TRUE
-'''
-# GNOME Terminal's defaults on Fedora: Adwaita-dark text colours with the Tango palette.
-COLORS = {
-    "foreground": "#eeeeec", "background": "#232729", "cursor": "#eeeeec",
-    "palette": ";".join(("#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf",
-                         "#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec")),
-}
-TERMINAL = TERMINAL.format(**COLORS)
-# xfce4-terminal migrates terminalrc into Xfconf on first run and ignores it afterwards,
-# so existing environments receive the colours through xfconf-query as well.
-XFCONF = {"/color-foreground": COLORS["foreground"], "/color-background": COLORS["background"],
-          "/color-cursor": COLORS["cursor"], "/color-palette": COLORS["palette"],
-          "/misc-menubar-default": "TRUE", "/scrolling-bar": "TERMINAL_SCROLLBAR_RIGHT"}
+# GNOME Terminal keeps Fedora's stock look (Adwaita theme colours, menu bar, scrollbar);
+# only the font is enlarged so the command line reads clearly through VNC.
+PROFILE = "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/"
+TERMINAL_PROFILE = {"use-system-font": "false", "font": "'Adwaita Mono 15'", "audible-bell": "false"}
 # Fedora's stock bash prompt, e.g. [learner@fedora ~]$
 FEDORA_PS1 = r"PS1='[\u@\h \W]\$ '"
 OLD_PS1 = r"PS1='\[\e[1;32m\]\u@\h\[\e[0m\]:\w\$ '"
@@ -80,13 +50,12 @@ def run(args, check=True):
 def configure():
     home = Path("/home/learner")
     config = home / ".config"
-    for directory in (config / "openbox", config / "xfce4/terminal", config / "gtk-3.0"):
+    for directory in (config / "openbox", config / "gtk-3.0"):
         directory.mkdir(parents=True, exist_ok=True)
     rc = config / "openbox/rc.xml"
     if rc.exists() and not (rc.parent / "rc.xml.before-tabs").exists():
         (rc.parent / "rc.xml.before-tabs").write_bytes(rc.read_bytes())
     rc.write_text(OPENBOX)
-    (config / "xfce4/terminal/terminalrc").write_text(TERMINAL)
     (config / "gtk-3.0/settings.ini").write_text("[Settings]\ngtk-theme-name=Adwaita-dark\ngtk-application-prefer-dark-theme=true\ngtk-font-name=Adwaita Sans 11\ngtk-decoration-layout=\n"
         # Grayscale antialiasing stays crisp through VNC; subpixel colour fringes do not.
         "gtk-xft-antialias=1\ngtk-xft-hinting=1\ngtk-xft-hintstyle=hintslight\ngtk-xft-rgba=none\n")
@@ -97,11 +66,9 @@ def configure():
         run(["gsettings", "set", "org.gnome.gedit.preferences.editor", key, value], check=False)
     run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], check=False)
     run(["gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", ""], check=False)
-    for prop, value in XFCONF.items():
-        try:
-            run(["xfconf-query", "-c", "xfce4-terminal", "-p", prop, "-n", "-t", "string", "-s", value], check=False)
-        except OSError:
-            break  # Older images without Xfconf still read terminalrc.
+    for key, value in TERMINAL_PROFILE.items():
+        run(["gsettings", "set", PROFILE, key, value], check=False)
+    run(["gsettings", "set", "org.gnome.Terminal.Legacy.Settings", "confirm-close", "false"], check=False)
     profile = home / ".bashrc"
     marker = "# Linux Lab tabbed terminal"
     if profile.exists():

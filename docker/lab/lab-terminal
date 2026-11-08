@@ -1,8 +1,11 @@
 #!/bin/bash
 export DISPLAY=:1
 export GTK_THEME=Adwaita:dark
+export LANG=${LANG:-en_US.UTF-8}
 export XDG_RUNTIME_DIR=/tmp/runtime-learner
 if [ -f /tmp/linux-lab-session-bus ]; then
     export DBUS_SESSION_BUS_ADDRESS="$(cat /tmp/linux-lab-session-bus)"
 fi
-exec xfce4-terminal --disable-server --show-menubar --hide-borders --show-scrollbar --title=Terminal --working-directory=/home/learner --command="bash -l"
+cd /home/learner
+# Fedora's GNOME Terminal; --wait keeps this launcher alive while the window is open.
+exec gnome-terminal --wait --window --working-directory=/home/learner

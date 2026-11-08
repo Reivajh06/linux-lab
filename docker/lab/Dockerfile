@@ -12,7 +12,7 @@ RUN sed -i '/^tsflags=nodocs/d' /etc/dnf/dnf.conf && \
     hostname cronie at net-tools traceroute plocate binutils strace tmux screen git-core jq \
     usbutils pciutils sysstat \
     python3 ca-certificates openssh-clients rsync acl \
-    openbox xfce4-terminal tigervnc-server-minimal python3-websockify \
+    openbox gnome-terminal tigervnc-server-minimal python3-websockify \
     dbus-x11 dbus-daemon xsetroot xprop xdpyinfo wmctrl supervisor \
     dejavu-sans-fonts dejavu-sans-mono-fonts adwaita-mono-fonts adwaita-sans-fonts \
     adwaita-icon-theme glib2 dconf gsettings-desktop-schemas \
@@ -32,6 +32,6 @@ COPY welcome.txt /etc/motd
 RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal /etc/supervisord.conf && \
     chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
     install -d -o learner -g learner /home/learner/.config /home/learner/.config/openbox \
-    /home/learner/.config/xfce4 /home/learner/.config/xfce4/terminal /home/learner/.config/gtk-3.0
+    /home/learner/.config/gtk-3.0
 EXPOSE 6080
 CMD ["supervisord", "-n", "-c", "/etc/supervisord.conf"]
