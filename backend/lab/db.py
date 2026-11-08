@@ -55,6 +55,11 @@ class Database:
                 CREATE TABLE IF NOT EXISTS jobs (
                     id TEXT PRIMARY KEY, chat_id TEXT NOT NULL, state TEXT NOT NULL,
                     progress TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS notes (
+                    id TEXT PRIMARY KEY, slug TEXT UNIQUE, title TEXT NOT NULL, folder TEXT,
+                    icon TEXT NOT NULL DEFAULT 'file', ord INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]',
+                    body TEXT NOT NULL, shipped_hash TEXT, edited INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 UPDATE jobs SET state='error', error='Application restarted; retry your request'
                     WHERE state IN ('queued', 'running');

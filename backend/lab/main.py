@@ -22,6 +22,7 @@ from .db import Database, now, uid
 from .build import ImageBuilder
 from .evaluation import evaluate
 from .generation import Generator
+from .notebook import Notebook
 from .runtime import LabError, Runtime
 from .schema import Course, course_yaml, parse_course
 from .sources import SourceService
@@ -36,6 +37,12 @@ class YAMLInput(BaseModel):
 
 class CourseUpdate(BaseModel):
     folder: str = Field(max_length=80)  # empty string removes the collection from its folder
+
+
+class NoteInput(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    folder: str | None = Field(default=None, max_length=80)
+    body: str = Field(default="", max_length=200_000)
 
 
 class EnvironmentInput(BaseModel):
@@ -96,6 +103,7 @@ def create_app(db=None, runtime=None):
     generator = Generator(db, sources)
     builder = ImageBuilder(ROOT)
     workspace = WorkspaceService(runtime, ROOT / "docker" / "lab")
+    notebook = Notebook(db, ROOT / "notebook")
     token = secrets.token_urlsafe(32)
 
     @asynccontextmanager
@@ -104,6 +112,7 @@ def create_app(db=None, runtime=None):
             course = parse_course(starter.read_text(encoding="utf-8"))
             # Refresh shipped collections in place so content fixes (and folders) reach existing libraries.
             db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?) ON CONFLICT(course_id,version) DO UPDATE SET yaml=excluded.yaml", (uid(), course.id, course.version, course_yaml(course), now()))
+        notebook.seed()
         yield
         if builder.task and not builder.task.done():
             builder.task.cancel()
@@ -492,6 +501,31 @@ def create_app(db=None, runtime=None):
             raise KeyError("Job not found")
         await generator.cancel(job_id)
         return db.one("SELECT * FROM jobs WHERE id=?", (job_id,))
+
+    @app.get("/api/notes")
+    async def notes(q: str = ""):
+        return notebook.list(q[:200])
+
+    @app.get("/api/notes/{note_id}")
+    async def note(note_id: str):
+        return notebook.get(note_id)
+
+    @app.post("/api/notes", status_code=201)
+    async def create_note(body: NoteInput):
+        return notebook.create(body.title.strip() or "Sin título", (body.folder or "").strip(), body.body)
+
+    @app.put("/api/notes/{note_id}")
+    async def update_note(note_id: str, body: NoteInput):
+        return notebook.update(note_id, body.title.strip() or "Sin título", (body.folder or "").strip(), body.body)
+
+    @app.delete("/api/notes/{note_id}")
+    async def delete_note(note_id: str):
+        notebook.delete(note_id)
+        return {"deleted": True}
+
+    @app.post("/api/notes/{note_id}/restore")
+    async def restore_note(note_id: str):
+        return notebook.restore(note_id)
 
     @app.get("/api/docs/exercise-format")
     async def format_doc():

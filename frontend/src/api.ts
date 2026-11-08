@@ -69,3 +69,5 @@ export function selectLocalModel(models: { name: string }[], saved: string): str
     || models.find(m => m.name === 'gemma3:12b-it-qat')?.name
     || models[0]?.name || '';
 }
+export type NoteSummary = { id: string; slug: string | null; title: string; folder: string | null; icon: string; order: number; tags: string[]; shipped: boolean; edited: boolean; created_at: string; updated_at: string };
+export type Note = NoteSummary & { body: string };

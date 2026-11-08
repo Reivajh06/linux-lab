@@ -22,6 +22,7 @@
       { "from": "backend-dist/linux-lab-server", "to": "backend" },
       { "from": "frontend/dist", "to": "frontend/dist" },
       { "from": "courses", "to": "courses" },
+      { "from": "notebook", "to": "notebook" },
       { "from": "docker/lab", "to": "docker/lab" },
       { "from": "EXERCISE_FORMAT.md", "to": "EXERCISE_FORMAT.md" }
     ],

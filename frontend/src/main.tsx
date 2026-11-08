@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Markdown from 'react-markdown';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderInput, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, Volume2, VolumeX, PanelRightOpen } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, ChevronRight, CircleAlert, FileText, FolderInput, NotebookPen, FolderOpen, GraduationCap, HardDrive, Layers3, Library, Loader2, Plus, Search, Send, Sparkles, Square, Terminal, Trash2, Upload, X, RefreshCw, Cpu, ExternalLink, Palette, Play, PanelRightClose, Volume2, VolumeX, PanelRightOpen } from 'lucide-react';
 import Desktop from './Desktop';
 import { plainText } from './text';
 import Environments from './Environments';
+import Notebook from './Notebook';
 import ExerciseBody from './ExerciseBody';
 import Modal from './Modal';
 import { CourseFolders, groupCourses } from './Library';
@@ -17,11 +18,12 @@ import { api, configure, download, post, progressPercent, selectLocalModel } fro
 import type { Chat, Config, CourseDetail, CourseSummary, Environment, Result, Source } from './api';
 import './styles.css';
 
-type Page = 'environments' | 'library' | 'practice' | 'sources' | 'chat';
+type Page = 'environments' | 'library' | 'practice' | 'notebook' | 'sources' | 'chat';
 const nav = [
   { id: 'environments', label: 'Environments', icon: HardDrive },
   { id: 'practice', label: 'Free Practice', icon: Terminal },
   { id: 'library', label: 'Exercise Library', icon: Library },
+  { id: 'notebook', label: 'Notebook', icon: NotebookPen },
   { id: 'sources', label: 'Sources', icon: FileText },
   { id: 'chat', label: 'Exercise Chat', icon: Sparkles },
 ] as const;
@@ -43,6 +45,7 @@ function App() {
   const [build, setBuild] = useState({ state: 'idle', log: '' });
   const [search, setSearch] = useState('');
   const [chatDirty, setChatDirty] = useState(false);
+  const [notebookDirty, setNotebookDirty] = useState(false);
   const [sound, setSound] = useState(readSoundSettings);
   const updateSound = (next: typeof sound) => { setSound(next); saveSoundSettings(next); };
   const fileInput = useRef<HTMLInputElement>(null);
@@ -67,6 +70,7 @@ function App() {
   };
   const navigate = (next: Page) => {
     if (page === 'chat' && next !== 'chat' && chatDirty && !window.confirm('Leave Exercise Chat and discard unsaved draft edits?')) return;
+    if (page === 'notebook' && next !== 'notebook' && notebookDirty && !window.confirm('Leave the Notebook and discard unsaved page edits?')) return;
     setPage(next); setCourseKey(null); setEnvironmentId(null); setError('');
   };
   const importCourse = async (text: string) => {
@@ -129,6 +133,7 @@ function App() {
             </button>}/></div>}
         </div>}
         {(page === 'practice' || (page === 'library' && courseKey) || (page === 'environments' && environmentId)) && <Workspace folder={openCourse?.folder} folders={[...new Set(courses.flatMap(c => c.folder ? [c.folder] : []))].sort()} environmentId={page === 'environments' ? environmentId : null} courseKey={page === 'practice' ? null : courseKey} onBack={() => { setCourseKey(null); setEnvironmentId(null); }} onError={fail} onChanged={refreshCourses} onSetup={() => setModal('setup')}/>}
+        {page === 'notebook' && <Notebook onError={fail} onDirtyChange={setNotebookDirty}/>}
         {page === 'sources' && <Sources sources={sources} refresh={refreshSources} onError={fail} onChat={() => navigate('chat')}/>}
         {page === 'chat' && <ExerciseChat sources={sources} onError={fail} onImport={importCourse} onDirtyChange={setChatDirty}/>}
       </main>
