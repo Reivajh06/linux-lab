@@ -42,10 +42,10 @@ ColorPalette={palette}
 ColorUseTheme=FALSE
 ColorBoldUseDefault=TRUE
 BackgroundMode=TERMINAL_BACKGROUND_SOLID
-MiscMenubarDefault=FALSE
+MiscMenubarDefault=TRUE
 MiscToolbarDefault=FALSE
 MiscBordersDefault=FALSE
-ScrollingBar=TERMINAL_SCROLLBAR_NONE
+ScrollingBar=TERMINAL_SCROLLBAR_RIGHT
 ScrollingLines=10000
 MiscCursorBlinks=TRUE
 MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
@@ -53,18 +53,21 @@ MiscBellUrgent=FALSE
 MiscCopyOnSelect=FALSE
 MiscConfirmClose=TRUE
 '''
-# Every colour except black (a background colour) reads at 4.4:1 or better on the
-# background; the GNOME defaults made black invisible and red errors 2.7:1.
+# GNOME Terminal's defaults on Fedora: Adwaita-dark text colours with the Tango palette.
 COLORS = {
-    "foreground": "#d8dadf", "background": "#1e1e1e", "cursor": "#d8dadf",
-    "palette": ";".join(("#4b5263", "#f07178", "#8bd49c", "#e6c07b", "#6cb6ff", "#c792ea", "#5ccfe6", "#c8ccd4",
-                         "#8b919c", "#ff8b92", "#a5e3b1", "#f2d58f", "#8ccaff", "#d7a8f4", "#89ddff", "#ffffff")),
+    "foreground": "#eeeeec", "background": "#232729", "cursor": "#eeeeec",
+    "palette": ";".join(("#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf",
+                         "#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec")),
 }
 TERMINAL = TERMINAL.format(**COLORS)
 # xfce4-terminal migrates terminalrc into Xfconf on first run and ignores it afterwards,
 # so existing environments receive the colours through xfconf-query as well.
 XFCONF = {"/color-foreground": COLORS["foreground"], "/color-background": COLORS["background"],
-          "/color-cursor": COLORS["cursor"], "/color-palette": COLORS["palette"]}
+          "/color-cursor": COLORS["cursor"], "/color-palette": COLORS["palette"],
+          "/misc-menubar-default": "TRUE", "/scrolling-bar": "TERMINAL_SCROLLBAR_RIGHT"}
+# Fedora's stock bash prompt, e.g. [learner@fedora ~]$
+FEDORA_PS1 = r"PS1='[\u@\h \W]\$ '"
+OLD_PS1 = r"PS1='\[\e[1;32m\]\u@\h\[\e[0m\]:\w\$ '"
 
 
 def run(args, check=True):
@@ -101,9 +104,13 @@ def configure():
             break  # Older images without Xfconf still read terminalrc.
     profile = home / ".bashrc"
     marker = "# Linux Lab tabbed terminal"
-    if profile.exists() and marker not in profile.read_text():
-        with profile.open("a") as handle:
-            handle.write("\n" + marker + "\nexport GTK_THEME=Adwaita:dark\nexport DISPLAY=:1\nPS1='\\[\\e[1;32m\\]\\u@\\h\\[\\e[0m\\]:\\w\\$ '\n")
+    if profile.exists():
+        text = profile.read_text()
+        if marker not in text:
+            with profile.open("a") as handle:
+                handle.write("\n" + marker + "\nexport GTK_THEME=Adwaita:dark\nexport DISPLAY=:1\n" + FEDORA_PS1 + "\n")
+        elif OLD_PS1 in text:
+            profile.write_text(text.replace(OLD_PS1, FEDORA_PS1))
     return {"configured": True}
 
 
