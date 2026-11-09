@@ -15,6 +15,21 @@ pytestmark = pytest.mark.skipif(os.getenv('RUN_DOCKER_TESTS') != '1', reason='Do
 COURSE_FILES = sorted((Path(__file__).resolve().parents[2] / 'courses').glob('*.yaml'))
 
 
+def apply_answer(runtime, environment_id, script, user):
+    """Run an answer the way the learner's terminal would.
+
+    Runtime.exec caps written files at 1 MB for grading probes; a terminal has no such
+    cap, and answers such as `dnf install` write larger files. Some answers also wait
+    for crond's next minute, hence the generous timeout.
+    """
+    result = runtime.container(environment_id).exec_run(
+        ['timeout', '300', 'bash', '-lc', 'set -e\n' + script], user=user, demux=True,
+        environment={'DISPLAY': ':1', 'HOME': '/home/learner' if user == 'learner' else '/root'},
+        workdir='/home/learner')
+    stdout, stderr = result.output or (b'', b'')
+    return result.exit_code, (stdout or b'').decode(errors='replace'), (stderr or b'').decode(errors='replace')
+
+
 @pytest.mark.parametrize('course_file', COURSE_FILES, ids=lambda path: path.stem)
 async def test_all_course_solutions_and_lifecycle(db, course_file):
     course = parse_course(course_file.read_text(encoding='utf-8'))
@@ -32,8 +47,8 @@ async def test_all_course_solutions_and_lifecycle(db, course_file):
             # Original foundations answers use the learner's home/session;
             # ASO answer scripts also create accounts and set ownership.
             user = 'learner' if course_key == 'foundations' else 'root'
-            result = runtime.exec(env['id'], 'set -e\n' + solutions[exercise.id], user, 30)
-            assert not result.timed_out and result.code == 0, (course_key, exercise.id, result.stdout, result.stderr)
+            code, stdout, stderr = apply_answer(runtime, env['id'], solutions[exercise.id], user)
+            assert code == 0, (course_key, exercise.id, stdout, stderr)
         grades = await evaluate(runtime, db, env['id'])
         for grade in grades['results']:
             assert grade['earned'] == grade['available'], (course_key, grade)

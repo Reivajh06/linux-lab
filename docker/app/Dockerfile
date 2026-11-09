@@ -15,6 +15,8 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY backend/ /app/backend/
 COPY courses/ /app/courses/
+COPY notebook/ /app/notebook/
+COPY docker/lab/ /app/docker/lab/
 COPY EXERCISE_FORMAT.md /app/EXERCISE_FORMAT.md
 COPY --from=frontend /build/frontend/dist /app/frontend/dist
 WORKDIR /app/backend

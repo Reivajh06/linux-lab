@@ -1,0 +1,11 @@
+{
+  "listar": "D=/home/learner/aso/f32\nsystemctl list-unit-files --type=service --no-pager > $D/servicios.txt\nsystemctl list-unit-files --type=service --state=enabled --no-pager > $D/habilitados.txt\nsystemctl is-enabled atd crond > $D/atd-crond.txt",
+  "habilitar": "systemctl disable sysstat.service\nsystemctl enable systemd-timesyncd.service",
+  "instalar-httpd": "dnf install -y -q httpd >/dev/null\nrpm -ql httpd > /home/learner/aso/f32/rpm-httpd.txt",
+  "unidad-httpd": "systemctl cat httpd | grep '^Exec' > /home/learner/aso/f32/exec.txt\ngrep '^WantedBy=' /usr/lib/systemd/system/httpd.service > /home/learner/aso/f32/wantedby.txt\nsystemctl enable httpd",
+  "httpd-vi": "sed -i 's/^Listen 80$/Listen 8080/' /etc/httpd/conf/httpd.conf\necho '<h1>ASO Fundamentos</h1>' > /var/www/html/index.html\nhttpd -t\nhttpd -k start >/dev/null 2>&1 </dev/null\nsleep 1",
+  "dropin-httpd": "mkdir -p /etc/systemd/system/httpd.service.d\nprintf '[Service]\\nMemoryMax=256M\\nCPUQuota=30%%\\nRestart=on-failure\\n' > /etc/systemd/system/httpd.service.d/limites.conf",
+  "unidad-propia": "cat > /etc/systemd/system/aso-hola.service <<'SOLUCION'\n[Unit]\nDescription=Saludo de ASO\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/logger hola desde ASO\n\n[Install]\nWantedBy=multi-user.target\nSOLUCION\nsystemctl enable aso-hola\nmkdir -p /etc/systemd/system/aso-hola.service.d\nprintf '[Service]\\nExecStart=\\nExecStart=/usr/bin/touch /tmp/aso-hola\\n' > /etc/systemd/system/aso-hola.service.d/override.conf",
+  "cgroups": "D=/home/learner/aso/f32\nprintf 'memoria: %s\\ncpu: %s\\nprocesos: %s\\n' \"$(cat /sys/fs/cgroup/memory.max)\" \"$(cat /sys/fs/cgroup/cpu.max)\" \"$(cat /sys/fs/cgroup/pids.max)\" > $D/limites.txt\nsystemd-cgls --no-pager > $D/cgls.txt\ncat /proc/$$/cgroup > $D/mi-cgroup.txt",
+  "ordenes-vm": "cat > /home/learner/aso/f32/ordenes.txt <<'SOLUCION'\nsudo systemctl start httpd\nsudo systemctl stop httpd\nsudo systemctl restart httpd\nsudo systemctl reload httpd\nsystemctl status httpd\nsudo systemctl daemon-reload\nsystemctl show httpd -p MemoryMax\nsudo systemctl set-property httpd CPUQuota=20%\nsudo systemd-run -p CPUQuota=10% sha1sum /dev/zero\nsudo systemd-cgtop\nSOLUCION"
+}

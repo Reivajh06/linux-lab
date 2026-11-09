@@ -1,0 +1,332 @@
+schema_version: 1
+id: aso-fund-3-1
+version: '1.0'
+title: ASO Fundamentos 3.1 · Procesos
+folder: ASO Fundamentos
+description: |
+  Fundamentos del bloque 3.1 del Tema 3: PID, padre e hijo, estados, señales, `top`, `ps`
+  combinado con filtros, `orden &`, Ctrl+Z, `jobs`, `bg`, `fg`, `pgrep`, `kill`, `killall`,
+  `nohup` y `disown`.
+
+  Se observan los procesos **reales** del contenedor y los que tú lances desde la
+  terminal. La evaluación comprueba el estado actual: deja vivos los procesos que pida cada
+  ejercicio hasta evaluar. Si paras el entorno, los procesos desaparecen y tendrás que
+  volver a lanzarlos.
+
+  Guarda los ficheros de respuesta en `/home/learner/aso/f31/`.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f31
+exercises:
+- id: ps-basico
+  title: 1 · Observar procesos con ps y pstree
+  description: |
+    Guarda en `/home/learner/aso/f31/`:
+
+    1. `ps-ef.txt`: la salida completa de `ps -ef` (formato estándar UNIX).
+    2. `ps-aux.txt`: la salida completa de `ps aux` (formato BSD, con `%CPU` y `%MEM`).
+    3. `pid1.txt`: la salida de `ps -o pid,ppid,user,stat,comm -p 1`, el primer proceso.
+    4. `supervisord.txt`: la salida de `ps -o pid,ppid,user,comm -C supervisord`.
+    5. `arbol.txt`: el árbol de procesos con PID de todo el sistema, `pstree -p`.
+
+    Compara las columnas de `ps -ef` y `ps aux` y localiza el padre (`PPID`) de supervisord.
+  evaluations:
+  - id: ef
+    description: ps -ef guardado
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f31/ps-ef.txt
+      value: '^UID\s+PID\s+PPID\s+C\s+STIME\s+TTY\s+TIME\s+CMD'
+      match: regex
+  - id: aux
+    description: ps aux guardado
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f31/ps-aux.txt
+      value: '^USER\s+PID\s+%CPU\s+%MEM\s+VSZ\s+RSS'
+      match: regex
+  - id: pid1
+    description: Información de PID 1
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ps -o pid,ppid,user,stat,comm -p 1) /home/learner/aso/f31/pid1.txt
+  - id: supervisord
+    description: Información de supervisord
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ps -o pid,ppid,user,comm -C supervisord) /home/learner/aso/f31/supervisord.txt
+  - id: arbol
+    description: Árbol de procesos con PID
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f31/arbol.txt
+      value: 'supervisord\(\d+\)'
+      match: regex
+  tips:
+  - '`ps -o` elige columnas; `man ps` lista todas en «STANDARD FORMAT SPECIFIERS».'
+  - '`-C NOMBRE` selecciona por nombre de orden; `-u USUARIO` por usuario.'
+
+- id: top
+  title: 2 · top en modo interactivo y por lotes
+  description: |
+    Abre `top` y practica: `P` ordena por CPU, `M` por memoria, `k` envía una señal,
+    `r` cambia la prioridad, `u` filtra por usuario y `q` sale.
+
+    Después guarda en `/home/learner/aso/f31/top.txt` **una** instantánea en modo por lotes
+    ordenada por memoria: `top -b -n 1 -o %MEM`.
+  evaluations:
+  - id: lotes
+    description: Instantánea de top ordenada por %MEM
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/f31/top.txt
+      value: '^top - '
+      match: regex
+    - type: content
+      path: /home/learner/aso/f31/top.txt
+      value: '(?m)^\s*PID\s+USER\s+PR\s+NI.*%MEM'
+      match: regex
+  tips:
+  - La cabecera de `top` resume carga, tareas por estado, CPU y memoria.
+
+- id: estado
+  title: 3 · Consultar un proceso desde un script
+  description: |
+    Crea `estado.sh PID` que, usando `ps -o` sin cabecera (`pid=`, `ppid=`, `stat=`, `comm=`),
+    imprima una línea:
+
+    `PID=N PPID=N ESTADO=XX ORDEN=nombre`
+  script:
+    path: /home/learner/aso/f31/estado.sh
+    usage: estado.sh PID
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: El argumento es un número.
+    error: numero
+  - description: Existe un proceso con ese PID.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Una línea con los cuatro datos.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: estado.sh PID'
+  - id: numero
+    description: El PID no es un número.
+    exit_code: 2
+    stream: stderr
+    message: 'error: el PID debe ser un número'
+  - id: noexiste
+    description: No existe el proceso.
+    exit_code: 3
+    stream: stderr
+    message: 'error: no existe el proceso PID'
+  examples:
+  - command: /home/learner/aso/f31/estado.sh 1
+    stdout: "PID=1 PPID=0 ESTADO=Ss ORDEN=docker-init\n"
+    exit_code: 0
+  evaluations:
+  - id: pid1
+    description: Datos del PID 1 real
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: ['1']
+      stdout: {from_command: "ps -o pid=,ppid=,stat=,comm= -p 1 | awk '{printf \"PID=%s PPID=%s ESTADO=%s ORDEN=%s\\n\", $1, $2, $3, $4}'"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: estado.sh PID'}}
+  - id: numero
+    description: PID no numérico
+    points: 1
+    checks:
+    - {type: run, requirement: numero, args: [uno], stderr: {value: 'error: el PID debe ser un número'}}
+  - id: noexiste
+    description: PID inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: ['999999'], stderr: {value: 'error: no existe el proceso 999999'}}
+  tips:
+  - '`ps -p PID` devuelve distinto de 0 si el proceso no existe.'
+  - Con `awk` o `read pid ppid stat comm` separas los campos.
+
+- id: trabajos
+  title: 4 · Segundo plano, Ctrl+Z, jobs, bg y fg
+  description: |
+    En **una misma** terminal, como `learner`:
+
+    1. Lanza `sleep 3101 &` en segundo plano.
+    2. Lanza `sleep 3102` en primer plano y suspéndelo con **Ctrl+Z**. Déjalo detenido.
+    3. Lanza `sleep 3103` en primer plano, suspéndelo con Ctrl+Z y reanúdalo **en segundo
+       plano** con `bg`.
+    4. Guarda la salida de `jobs -l` en `/home/learner/aso/f31/jobs.txt`.
+
+    Prueba también `fg %N` con un `sleep` corto para traerlo al primer plano.
+    No cierres la terminal hasta evaluar.
+  evaluations:
+  - id: fondo
+    description: sleep 3101 corre en segundo plano
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -u learner -fx 'sleep 3101' | head -1)
+        test -n "$p" && ps -o stat= -p "$p" | grep -q '^[RS]'
+  - id: detenido
+    description: sleep 3102 está detenido (estado T)
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -u learner -fx 'sleep 3102' | head -1)
+        test -n "$p" && ps -o stat= -p "$p" | grep -q '^T'
+  - id: bg
+    description: sleep 3103 sigue corriendo tras bg
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -u learner -fx 'sleep 3103' | head -1)
+        test -n "$p" && ps -o stat= -p "$p" | grep -q '^[RS]'
+  - id: jobs
+    description: jobs.txt muestra el trabajo detenido
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f31/jobs.txt
+      value: '(Stopped|Detenido).*sleep 3102'
+      match: regex
+  tips:
+  - '`jobs -l` añade el PID; `%1`, `%2`… son los números de trabajo.'
+
+- id: senales
+  title: 5 · Señales con kill
+  description: |
+    1. Guarda en `/home/learner/aso/f31/senales.txt` la salida de
+       `kill -l HUP INT KILL TERM STOP CONT` (el número de cada señal, uno por línea).
+    2. Lanza `sleep 3104 &` y **deténlo** enviándole la señal `STOP` con `kill`.
+    3. Lanza `sleep 3105 &`, deténlo con `STOP` y **reanúdalo** con `CONT`.
+    4. Lanza `sleep 3106 &` y termínalo de forma ordenada con `TERM` (la señal por defecto).
+  evaluations:
+  - id: numeros
+    description: Números de las señales
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(kill -l HUP INT KILL TERM STOP CONT) /home/learner/aso/f31/senales.txt
+  - id: stop
+    description: sleep 3104 detenido
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -fx 'sleep 3104' | head -1)
+        test -n "$p" && ps -o stat= -p "$p" | grep -q '^T'
+  - id: cont
+    description: sleep 3105 vuelve a estar en marcha
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -fx 'sleep 3105' | head -1)
+        test -n "$p" && ps -o stat= -p "$p" | grep -q '^[RS]'
+  - id: term
+    description: No queda ningún sleep 3106
+    points: 1
+    checks:
+    - type: command
+      script: |
+        ! pgrep -fx 'sleep 3106'
+    - type: content
+      path: /home/learner/aso/f31/senales.txt
+      value: '15'
+  tips:
+  - '`kill -STOP PID`, `kill -s CONT PID`, `kill PID` (envía TERM).'
+  - '`kill -l` sin argumentos lista todas las señales.'
+
+- id: pgrep-killall
+  title: 6 · pgrep y killall
+  description: |
+    1. Copia `/usr/bin/sleep` como `/home/learner/aso/f31/dormilon` (así tendrá un nombre
+       de proceso propio).
+    2. Lanza **tres** procesos `./dormilon 600 &`.
+    3. Guarda sus PID, uno por línea, con `pgrep -x dormilon > pids.txt` (en el mismo directorio).
+    4. Usa `pgrep -l` y `pgrep -a` para verlos con su nombre y su línea de órdenes.
+    5. Termínalos **todos a la vez** con `killall dormilon`.
+  evaluations:
+  - id: pids
+    description: pids.txt contiene tres PID
+    points: 2
+    checks:
+    - type: path
+      path: /home/learner/aso/f31/dormilon
+    - type: command
+      script: |
+        [ "$(grep -cxE '[0-9]+' /home/learner/aso/f31/pids.txt)" = 3 ] && [ "$(wc -l < /home/learner/aso/f31/pids.txt)" = 3 ]
+  - id: killall
+    description: Ya no queda ningún dormilon
+    points: 1
+    checks:
+    - type: command
+      script: |
+        test -s /home/learner/aso/f31/pids.txt && ! pgrep -x dormilon
+  tips:
+  - '`killall` busca por nombre de proceso; `kill` necesita el PID.'
+  - '`pkill` es el equivalente de `pgrep` que envía señales.'
+
+- id: nohup
+  title: 7 · nohup
+  description: |
+    Lanza `nohup sleep 3301 &`. El proceso ignorará `SIGHUP`, la señal que recibe al
+    cerrarse su terminal. Comprueba en `/proc/PID/status` la línea `SigIgn`: el bit más bajo
+    corresponde a `SIGHUP`. Después puedes cerrar la terminal y comprobar que sigue vivo.
+  evaluations:
+  - id: ignora-hup
+    description: sleep 3301 ignora SIGHUP
+    points: 2
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -fx 'sleep 3301' | head -1)
+        test -n "$p" && awk '/^SigIgn:/ {d=substr($2, length($2), 1); exit !index("13579bdf", d)}' /proc/"$p"/status
+  tips:
+  - Si la salida es la terminal, `nohup` la redirige a `nohup.out`.
+
+- id: disown
+  title: 8 · disown
+  description: |
+    1. En una terminal, lanza `sleep 3302 &` y ejecuta `disown` para quitarlo de la tabla
+       de trabajos de la shell (compruébalo con `jobs`).
+    2. **Cierra esa terminal** (por ejemplo con `exit`) y abre otra.
+    3. Comprueba con `ps -o pid,ppid,comm -p $(pgrep -fx 'sleep 3302')` que sigue vivo y que
+       ya no es hijo de aquella shell.
+  evaluations:
+  - id: sobrevive
+    description: sleep 3302 sigue vivo y su padre no es una shell bash
+    points: 2
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -fx 'sleep 3302' | head -1)
+        test -n "$p" && padre=$(ps -o ppid= -p "$p" | tr -d ' ') && [ "$(ps -o comm= -p "$padre")" != bash ]
+  tips:
+  - A diferencia de `nohup`, `disown` actúa sobre un proceso que ya está en marcha.
+  - Un proceso huérfano lo adopta otro proceso (normalmente el PID 1).

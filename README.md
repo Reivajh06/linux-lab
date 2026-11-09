@@ -1,10 +1,30 @@
 # Linux Lab
 
-A Windows desktop app for learning Linux in real Docker containers. Includes a
-browser-rendered Linux desktop inside the app, 30 guided foundation exercises,
-bundled ASO courses, YAML course imports, PDF sources with local OCR, text/HTML
+A local web app for learning Linux in real Docker containers, with a Windows
+desktop option. Includes a browser-rendered Linux desktop, 30 guided foundation
+exercises, bundled ASO courses, YAML course imports, PDF sources with local OCR, text/HTML
 practice sheets, and natural-language exercise generation using
 your existing Ollama models.
+
+## Web app (recommended)
+
+Install and start Docker (Docker Desktop on Windows/macOS, or Docker Engine with
+the Compose plugin on Linux). From the repository folder:
+
+- **Windows:** double-click `start-lab.cmd`, or run `.\start-lab.ps1` in PowerShell.
+- **Linux/macOS:** run `bash start-lab.sh` (requires `curl`).
+
+The launcher creates `.env` from `.env.example`, builds the Fedora lab image if
+missing, builds the app using Docker's cache, and starts or refreshes it. The first
+run downloads several GB. It opens [Linux Lab](http://localhost:8080) in your
+browser; use `-NoBrowser` (PowerShell) or `--no-browser` (Bash) to only print the URL.
+Set `LAB_PORT` in `.env` to change the port.
+
+Stop the app with `.\start-lab.ps1 -Stop` or `bash start-lab.sh --stop`.
+Learner containers keep their files and continue running until stopped through
+the app. After editing `courses/` or `notebook/`, just re-run the launcher to load
+the changes; no manual image rebuild is needed. Notebook pages edited inside the
+app keep those edits until restored.
 
 ## Windows application
 
@@ -123,20 +143,29 @@ If Ollama is unavailable, refresh the model list and verify that
 the desktop app if you use another local address. The app does not change your
 Ollama configuration or enable cloud inference.
 
-## Optional Docker Compose web deployment
+## Docker Compose web deployment
 
-The same app can also run without Electron:
+The launchers above use Docker Compose. To run the same steps manually, first copy
+`.env.example` to `.env` if it does not exist, then run from the repository root:
 
 ```powershell
-docker compose up --build -d
+docker compose build lab-image  # Only if linux-lab-environment:local is missing
+docker compose build app
+docker compose up -d --no-build app
+docker compose restart app
 ```
 
 Open [Linux Lab](http://localhost:8080). The app is bound to `127.0.0.1`; learner
 desktops are proxied through its backend. The app container owns Docker control;
-learner containers never receive the Docker socket. Compose builds the lab image
-before starting the app. Rebuild it with `docker compose build lab-image`.
+learner containers never receive the Docker socket. Compose waits for the lab-image
+service to finish before starting the app. Rebuild the Fedora image explicitly
+with `docker compose build lab-image` when its definition changes.
 
-Copy `.env.example` to `.env` to override port, resources, Ollama, or OCR settings.
+Use `.env` to override port, resources, Ollama, or OCR settings.
+The read-only `courses/`, `notebook/`, and `docker/lab/` mounts match the repository
+paths. Course and notebook edits only need `docker compose restart app`; backend
+or frontend code changes need `docker compose build app` followed by
+`docker compose up -d --no-build app`.
 Compose's default Ollama URL is `http://host.docker.internal:11434`. Host Ollama
 must listen on an interface reachable from Docker; its default loopback binding
 may not be reachable from a container. Configure `OLLAMA_HOST` for your Docker
@@ -144,9 +173,9 @@ network and restrict access with the host firewall, or use the Windows desktop
 app, which can use Ollama's existing loopback listener directly. See the
 [Ollama FAQ](https://docs.ollama.com/faq) for environment configuration.
 
-`docker compose down` stops the app, not dynamically created learner containers.
-Stop those through the app before shutting down Compose. Do not remove the
-`linux-lab-net` network while learner containers use it.
+`docker compose stop app` stops the app while keeping its data and network.
+Stop learner containers through the app before shutting down Compose. Do not
+remove the `linux-lab-net` network while learner containers use it.
 
 ## Development and Windows packaging
 

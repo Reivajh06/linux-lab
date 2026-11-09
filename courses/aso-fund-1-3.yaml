@@ -1,0 +1,536 @@
+schema_version: 1
+id: aso-fund-1-3
+version: '1.0'
+title: ASO Fundamentos 1.3 · Usuarios y permisos
+folder: ASO Fundamentos
+description: |
+  Fundamentos del Bloque 1.3 del Tema 1: ficheros de cuentas (`/etc/passwd`, `group`,
+  `shadow`, `gshadow`), `useradd`, `usermod`, `groupadd`, `groupmod`, `gpasswd`, `chage`,
+  `id`, `getent`, `su`, `sudo`, `newgrp`, permisos RWX, `chmod`, `chown`, `chgrp`, `umask`,
+  sticky bit y bits SUID/SGID.
+
+  Se trabaja con las cuentas y ficheros **reales** del contenedor: tú creas las cuentas y
+  grupos con las órdenes de administración (usa `sudo`) y la evaluación lee los propios
+  `/etc/passwd`, `/etc/shadow`, `/etc/group` y `/etc/gshadow`. Haz los ejercicios en orden:
+  los últimos usan las cuentas creadas en los primeros.
+
+  Guarda los ficheros de respuesta en `/home/learner/aso/f13/`.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f13
+exercises:
+- id: consultar-cuentas
+  title: 1 · Consultar cuentas con getent e id
+  description: |
+    Antes de administrar, aprende a leer las bases de datos de cuentas. En
+    `/home/learner/aso/f13/`:
+
+    1. `root-passwd.txt`: la entrada de `root` obtenida con `getent passwd root`.
+    2. `mail.txt`: la entrada del grupo `mail` con `getent group mail`.
+    3. `id-root.txt`: la salida de `id root`.
+    4. `home-shell.txt`: dos líneas, el directorio personal y el intérprete de `learner`,
+       extraídos de `getent passwd learner` con `cut`.
+    5. `shadow-learner.txt`: los campos 3 a 8 de la línea de `learner` en `/etc/shadow`
+       (necesitas `sudo`; separados por `:` tal como los deja `cut -d: -f3-8`).
+
+    Repasa con `man 5 passwd` y `man 5 shadow` qué significa cada campo.
+  evaluations:
+  - id: passwd
+    description: Entrada de root
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(getent passwd root) /home/learner/aso/f13/root-passwd.txt
+  - id: mail
+    description: Entrada de mail
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(getent group mail) /home/learner/aso/f13/mail.txt
+  - id: id
+    description: id root
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(id root) /home/learner/aso/f13/id-root.txt
+  - id: campos
+    description: Home y shell de learner
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(getent passwd learner | cut -d: -f6; getent passwd learner | cut -d: -f7) /home/learner/aso/f13/home-shell.txt
+  - id: shadow
+    description: Campos de caducidad de learner en /etc/shadow
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep '^learner:' /etc/shadow | cut -d: -f3-8) /home/learner/aso/f13/shadow-learner.txt
+  tips:
+  - '`getent` consulta las mismas bases de datos que usa el sistema (ficheros, LDAP…).'
+  - '`/etc/shadow` solo lo puede leer root: `sudo cut -d: -f3-8 /etc/shadow`.'
+
+- id: useradd
+  title: 2 · Crear cuentas con useradd
+  description: |
+    Crea estas cuentas con `useradd` (con `sudo`):
+
+    | Cuenta | Requisitos |
+    | --- | --- |
+    | `ana` | UID 2001, directorio `/home/ana` creado, intérprete `/bin/bash`, comentario `Ana Admin` |
+    | `luis` | directorio `/home/luis` creado, intérprete `/bin/bash` |
+    | `copias` | cuenta **de sistema** (`-r`, UID < 1000), sin directorio personal, intérprete `/sbin/nologin` |
+
+    Asigna una contraseña a `ana` y a `luis` con `passwd` (o `chpasswd`).
+  evaluations:
+  - id: ana
+    description: Cuenta ana completa
+    points: 2
+    checks:
+    - type: user
+      name: ana
+      home: /home/ana
+      shell: /bin/bash
+    - type: path
+      path: /home/ana
+      kind: directory
+    - type: command
+      script: |
+        [ "$(id -u ana)" = 2001 ] && [ "$(getent passwd ana | cut -d: -f5)" = "Ana Admin" ]
+  - id: luis
+    description: Cuenta luis
+    points: 1
+    checks:
+    - type: user
+      name: luis
+      home: /home/luis
+      shell: /bin/bash
+    - type: path
+      path: /home/luis
+      kind: directory
+  - id: copias
+    description: Cuenta de sistema copias
+    points: 2
+    checks:
+    - type: user
+      name: copias
+      shell: /sbin/nologin
+    - type: command
+      script: |
+        test "$(id -u copias)" -lt 1000 && test ! -e "$(getent passwd copias | cut -d: -f6)"
+  - id: passwords
+    description: ana y luis tienen contraseña
+    points: 1
+    checks:
+    - type: command
+      script: |
+        awk -F: '($1=="ana" || $1=="luis") && $2 ~ /^!?\$/ {n++} END {exit n!=2}' /etc/shadow
+  tips:
+  - 'Opciones útiles: `-m`, `-u`, `-s`, `-c`, `-r`, `-M`. Consulta `man useradd`.'
+  - '`sudo passwd ana` pide la contraseña dos veces.'
+
+- id: groupadd-groupmod
+  title: 3 · Crear y modificar grupos
+  description: |
+    1. Crea el grupo `desarrollo` con GID 3000.
+    2. Crea el grupo `pruebas` y después, con `groupmod`, cámbiale el nombre a `calidad`
+       y el GID a 3100.
+  evaluations:
+  - id: desarrollo
+    description: desarrollo con GID 3000
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(getent group desarrollo | cut -d: -f3)" = 3000 ]
+  - id: calidad
+    description: pruebas renombrado a calidad con GID 3100
+    points: 2
+    checks:
+    - type: group
+      name: pruebas
+      exists: false
+    - type: command
+      script: |
+        [ "$(getent group calidad | cut -d: -f3)" = 3100 ]
+  tips:
+  - '`groupmod -n NUEVO VIEJO` cambia el nombre; `-g` cambia el GID.'
+
+- id: usermod
+  title: 4 · Modificar cuentas con usermod
+  description: |
+    1. Añade a `ana` como miembro **secundario** de `desarrollo` y de `wheel` sin quitarle
+       otros grupos.
+    2. Cambia el grupo **principal** de `luis` a `desarrollo` y su comentario a `Luis Lopez`.
+    3. **Bloquea** la contraseña de `luis` con `usermod` (sin borrarla).
+  evaluations:
+  - id: ana-grupos
+    description: ana en desarrollo y wheel (secundarios)
+    points: 2
+    checks:
+    - type: command
+      script: |
+        getent group desarrollo | cut -d: -f4 | tr ',' '\n' | grep -qx ana && getent group wheel | cut -d: -f4 | tr ',' '\n' | grep -qx ana
+  - id: luis-principal
+    description: Grupo principal y comentario de luis
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(id -gn luis)" = desarrollo ] && [ "$(getent passwd luis | cut -d: -f5)" = "Luis Lopez" ]
+  - id: luis-bloqueado
+    description: Contraseña de luis bloqueada (empieza por ! seguida del hash)
+    points: 1
+    checks:
+    - type: command
+      script: |
+        grep -q '^luis:!\$' /etc/shadow
+  tips:
+  - Sin `-a`, `usermod -G` **sustituye** la lista de grupos secundarios.
+  - '`usermod -L` antepone `!` al hash; `-U` lo quita.'
+
+- id: gpasswd
+  title: 5 · Administrar grupos con gpasswd
+  description: |
+    1. Con `gpasswd -M`, establece como miembros de `calidad` a `ana` y `luis`.
+    2. Nombra a `ana` administradora de `calidad` con `gpasswd -A`.
+    3. Quita a `luis` de `calidad` con `gpasswd -d`.
+
+    Comprueba el resultado en `/etc/group` y `/etc/gshadow`.
+  evaluations:
+  - id: miembros
+    description: calidad tiene solo a ana como miembro
+    points: 2
+    checks:
+    - type: command
+      script: |
+        [ "$(getent group calidad | cut -d: -f4)" = ana ]
+  - id: admin
+    description: ana administra calidad en /etc/gshadow
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(grep '^calidad:' /etc/gshadow | cut -d: -f3)" = ana ]
+  tips:
+  - 'Formato de `/etc/gshadow`: `grupo:contraseña:administradores:miembros`.'
+
+- id: chage
+  title: 6 · Caducidad de contraseñas con chage
+  description: |
+    1. Para `ana`: vigencia máxima 90 días, mínima 1 día, aviso 7 días, inactividad 5 días y
+       caducidad de la cuenta el **30 de junio de 2027**.
+    2. Obliga a `luis` a cambiar la contraseña en su próximo inicio de sesión.
+
+    Comprueba con `sudo chage -l ana` y mira los campos en `/etc/shadow`.
+  evaluations:
+  - id: ana
+    description: Política completa de ana
+    points: 3
+    checks:
+    - type: command
+      script: |
+        dias=$(expr "$(date -u -d 2027-06-30 +%s)" / 86400)
+        awk -F: -v d="$dias" '$1=="ana" {ok=($4==1 && $5==90 && $6==7 && $7==5 && $8==d)} END {exit !ok}' /etc/shadow
+  - id: luis
+    description: luis debe cambiar la contraseña (último cambio = 0)
+    points: 1
+    checks:
+    - type: command
+      script: |
+        awk -F: '$1=="luis" {ok=($3=="0")} END {exit !ok}' /etc/shadow
+  tips:
+  - 'Opciones: `-M` máx, `-m` mín, `-W` aviso, `-I` inactividad, `-E AAAA-MM-DD`, `-d 0`.'
+  - Las fechas de `/etc/shadow` se guardan en días desde el 1-1-1970.
+
+- id: chmod
+  title: 7 · Permisos RWX con chmod
+  description: |
+    Copia ficheros reales y ajusta sus permisos en `/home/learner/aso/f13/permisos/`:
+
+    1. Copia `/etc/hosts` como `hosts` y déjalo en `rw-------` usando **notación octal**.
+    2. Copia `/etc/services` como `services` y déjalo en `rw-r-----` usando **notación
+       simbólica** (`u=`, `g=`, `o=`).
+    3. Copia el programa `/usr/bin/id` como `mi-id` y déjalo en `rwxr-x---`.
+    4. Crea el directorio `privado` con permisos `rwx--x--x` (se puede atravesar, pero no listar).
+  evaluations:
+  - id: hosts
+    description: hosts en 600
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/permisos/hosts
+      mode: '600'
+    - type: command
+      script: |
+        cmp /etc/hosts /home/learner/aso/f13/permisos/hosts
+  - id: services
+    description: services en 640
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/permisos/services
+      mode: '640'
+  - id: mi-id
+    description: mi-id en 750 y ejecutable
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/permisos/mi-id
+      mode: '750'
+    - type: command
+      user: learner
+      script: |
+        /home/learner/aso/f13/permisos/mi-id -un
+  - id: privado
+    description: privado en 711
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/permisos/privado
+      mode: '711'
+  tips:
+  - r=4, w=2, x=1. `rw-r-----` = 640.
+  - En un directorio, `r` permite listar y `x` permite entrar o atravesarlo.
+
+- id: leer-permisos
+  title: 8 · Leer permisos de ficheros del sistema
+  description: |
+    Usa `ls -l` y `stat` para leer los permisos de ficheros reales. Guarda en
+    `/home/learner/aso/f13/modos.txt` la salida de:
+
+    ```
+    stat -c '%a %U %G %n' /etc/passwd /etc/shadow /usr/bin/passwd /tmp /usr/bin/crontab
+    ```
+
+    Después, mirando ese resultado, escribe en `especiales.txt` tres líneas con la ruta de:
+
+    1. el fichero que tiene el bit **SUID**,
+    2. el directorio con el **sticky bit**,
+    3. el fichero que **nadie** puede leer salvo root (permisos `000`).
+
+    Si hay más de uno con SUID, escribe `/usr/bin/passwd` en la línea 1.
+  evaluations:
+  - id: modos
+    description: modos.txt coincide con stat
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(stat -c '%a %U %G %n' /etc/passwd /etc/shadow /usr/bin/passwd /tmp /usr/bin/crontab) /home/learner/aso/f13/modos.txt
+  - id: especiales
+    description: SUID, sticky y sin permisos identificados
+    points: 2
+    checks:
+    - type: command
+      script: |
+        diff -b <(printf '%s\n' /usr/bin/passwd /tmp /etc/shadow) /home/learner/aso/f13/especiales.txt
+  tips:
+  - El primer dígito de un modo de 4 cifras es 4=SUID, 2=SGID, 1=sticky.
+  - En `ls -l`, SUID se ve como `s` en lugar de la `x` del usuario; sticky como `t` al final.
+
+- id: chown-chgrp
+  title: 9 · Propietarios con chown y chgrp
+  description: |
+    En `/home/learner/aso/f13/compartido/` (créalo):
+
+    1. Copia `/etc/protocols` como `protocolos` y haz que su propietario sea `ana` y su
+       grupo `desarrollo` en **una sola** orden `chown`.
+    2. Copia `/etc/login.defs` como `login.defs` y cambia **solo su grupo** a `calidad` con `chgrp`.
+    3. Cambia el grupo del propio directorio `compartido` a `desarrollo`.
+  evaluations:
+  - id: protocolos
+    description: protocolos es de ana:desarrollo
+    points: 1
+    checks:
+    - type: ownership
+      path: /home/learner/aso/f13/compartido/protocolos
+      owner: ana
+      group: desarrollo
+    - type: command
+      script: |
+        cmp /etc/protocols /home/learner/aso/f13/compartido/protocolos
+  - id: logindefs
+    description: login.defs con grupo calidad
+    points: 1
+    checks:
+    - type: ownership
+      path: /home/learner/aso/f13/compartido/login.defs
+      group: calidad
+  - id: directorio
+    description: compartido con grupo desarrollo
+    points: 1
+    checks:
+    - type: ownership
+      path: /home/learner/aso/f13/compartido
+      group: desarrollo
+  tips:
+  - '`chown USUARIO:GRUPO fichero`. Solo root puede regalar ficheros: usa `sudo`.'
+
+- id: directorios-especiales
+  title: 10 · Sticky bit y SGID en directorios
+  description: |
+    Crea con `sudo` estos directorios:
+
+    1. `/srv/publico`: cualquiera puede crear ficheros, pero solo el dueño de cada fichero
+       puede borrarlo (como `/tmp`). Propietario `root`.
+    2. `/srv/equipo`: propietario `root`, grupo `desarrollo`; solo root y los miembros de
+       `desarrollo` pueden entrar, leer y escribir; los ficheros nuevos **heredan el grupo**
+       `desarrollo` (SGID). Los demás no tienen ningún permiso.
+
+    Comprueba la herencia: crea un fichero en `/srv/equipo` con `sudo -u ana touch` y mira su grupo.
+  evaluations:
+  - id: publico
+    description: /srv/publico en 1777
+    points: 2
+    checks:
+    - type: permissions
+      path: /srv/publico
+      mode: '1777'
+    - type: ownership
+      path: /srv/publico
+      owner: root
+  - id: equipo
+    description: /srv/equipo root:desarrollo en 2770
+    points: 2
+    checks:
+    - type: permissions
+      path: /srv/equipo
+      mode: '2770'
+    - type: ownership
+      path: /srv/equipo
+      owner: root
+      group: desarrollo
+  tips:
+  - '`chmod 1777` activa el sticky bit; `chmod 2770` activa SGID.'
+  - Simbólicamente, `chmod +t` y `chmod g+s`.
+
+- id: umask
+  title: 11 · Permisos por defecto con umask
+  description: |
+    1. Añade `umask 027` al final de `/home/learner/.bashrc` para que tus sesiones creen
+       ficheros sin permisos para «otros».
+    2. Abre una terminal nueva (o ejecuta `umask 027`) y crea en
+       `/home/learner/aso/f13/umask/` el fichero `nuevo.txt` con `touch` y el directorio
+       `nuevo-dir` con `mkdir`. **No** uses `chmod` sobre ellos.
+
+    Antes de crearlos, predice sus permisos: fichero 666 − máscara, directorio 777 − máscara.
+  evaluations:
+  - id: bashrc
+    description: Las sesiones interactivas de learner tienen umask 0027
+    points: 1
+    checks:
+    - type: command
+      user: learner
+      script: |
+        bash -ic umask 2>/dev/null | grep -qx 0027
+  - id: fichero
+    description: nuevo.txt nació con 640
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/umask/nuevo.txt
+      mode: '640'
+  - id: directorio
+    description: nuevo-dir nació con 750
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/umask/nuevo-dir
+      mode: '750'
+  tips:
+  - '`umask` sin argumentos muestra la máscara actual; `umask -S` en simbólico.'
+
+- id: suid-sgid
+  title: 12 · SUID, SGID y usuario efectivo
+  description: |
+    1. Guarda en `/home/learner/aso/f13/suid.txt` la lista ordenada de ficheros de `/usr/bin`
+       con el bit **SUID** (`find /usr/bin -perm -4000 | sort`).
+    2. Guarda en `sgid.txt` la lista ordenada de los que tienen **SGID**.
+    3. Copia `/usr/bin/id` como `/home/learner/aso/f13/id-suid`, haz que su propietario sea
+       `root` y actívale el SUID (`4755`).
+    4. **Como learner** (sin sudo), ejecuta `./id-suid > euid.txt` y observa la diferencia
+       entre usuario real (`uid`) y efectivo (`euid`).
+  evaluations:
+  - id: suid
+    description: Lista de SUID en /usr/bin
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(find /usr/bin -perm -4000 | sort) /home/learner/aso/f13/suid.txt
+  - id: sgid
+    description: Lista de SGID en /usr/bin
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(find /usr/bin -perm -2000 | sort) /home/learner/aso/f13/sgid.txt
+  - id: copia-suid
+    description: id-suid es de root con modo 4755
+    points: 1
+    checks:
+    - type: permissions
+      path: /home/learner/aso/f13/id-suid
+      mode: '4755'
+    - type: ownership
+      path: /home/learner/aso/f13/id-suid
+      owner: root
+  - id: euid
+    description: euid.txt muestra uid learner y euid root
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f13/euid.txt
+      value: '^uid=1000\(learner\) gid=1000\(learner\) euid=0\(root\)'
+      match: regex
+  tips:
+  - '`find -perm -4000` = «al menos el bit SUID activo».'
+  - '`passwd` necesita SUID para poder escribir `/etc/shadow` siendo un usuario normal.'
+
+- id: otra-identidad
+  title: 13 · su, sudo y newgrp
+  description: |
+    Ejecuta procesos con otra identidad:
+
+    1. Con `sudo -u luis`, crea `/tmp/de-luis.txt` con `touch`.
+    2. Con `su` (desde root: `sudo su - ana -c '…'`), guarda en `/tmp/id-ana.txt` la
+       salida de `id` **ejecutada como ana**. (Con luis, `su` te exigiría primero cambiar
+       la contraseña: se lo impusiste con `chage -d 0`.)
+    3. Inicia una sesión como `ana` (`sudo -iu ana`), ejecuta `newgrp desarrollo` y, dentro de
+       esa shell, crea `/tmp/de-desarrollo.txt`. Su grupo debe ser `desarrollo`, no `ana`.
+  evaluations:
+  - id: sudo
+    description: /tmp/de-luis.txt pertenece a luis
+    points: 1
+    checks:
+    - type: ownership
+      path: /tmp/de-luis.txt
+      owner: luis
+  - id: su
+    description: /tmp/id-ana.txt creado por ana con su id
+    points: 1
+    checks:
+    - type: ownership
+      path: /tmp/id-ana.txt
+      owner: ana
+    - type: content
+      path: /tmp/id-ana.txt
+      value: '^uid=2001\(ana\)'
+      match: regex
+  - id: newgrp
+    description: /tmp/de-desarrollo.txt es de ana:desarrollo
+    points: 2
+    checks:
+    - type: ownership
+      path: /tmp/de-desarrollo.txt
+      owner: ana
+      group: desarrollo
+  tips:
+  - '`newgrp` abre una shell nueva con otro grupo principal; sal con `exit`.'
+  - '`sudo -u` cambia de usuario para una sola orden; `sudo -i` abre una sesión de login.'

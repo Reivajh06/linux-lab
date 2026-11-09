@@ -1,0 +1,691 @@
+schema_version: 1
+id: aso-fund-2-2
+version: '1.0'
+title: ASO Fundamentos 2.2 · Scripts en bash II
+folder: ASO Fundamentos
+description: |
+  Fundamentos de la segunda mitad del Tema 2: `read var1 var2`, el patrón
+  `while read … done < fichero`, la variable `IFS`, *here documents* (`<<PALABRA`),
+  `exec N<fichero` y `read -uN`, `[[ texto =~ regex ]]` y `BASH_REMATCH`, patrones
+  extendidos (`@( )`, `*( )`, `+( )`…), longitud y subcadenas (`${#var}`, `${var:1:5}`),
+  recortes con `#`, `##`, `%`, `%%` y vectores (`read -a`, `${v[N]}`, `${v[@]}`, `${#v[@]}`).
+
+  Los scripts leen ficheros **reales**: `/etc/passwd`, `/etc/group`, `/etc/services`,
+  `/etc/shells`, `/etc/hosts`… La salida esperada se calcula en vivo al evaluar.
+
+  Mismas buenas prácticas que en 2.1: scripts en `/home/learner/aso/f22/` con
+  `#!/bin/bash` y permiso de ejecución, validación de argumentos, errores por stderr,
+  códigos de salida y variables entre comillas.
+
+  Nota: `set -A var` es sintaxis de ksh; en bash se usa `var=(a b c)` o `read -a var`.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f22
+exercises:
+- id: consulta
+  title: 1 · read con varias variables
+  description: |
+    Crea `consulta.sh` (sin argumentos) que lea **una línea** de la entrada estándar con
+    `read usuario campo` y muestre el dato pedido de esa cuenta, sacado de `getent passwd`.
+    `campo` es `uid`, `home` o `shell`. No muestres ningún mensaje de petición.
+  script:
+    path: /home/learner/aso/f22/consulta.sh
+    usage: echo 'USUARIO CAMPO' | consulta.sh
+  input_requirements:
+  - description: La línea leída contiene un usuario y un campo.
+    error: vacia
+  - description: El usuario existe.
+    error: noexiste
+  - description: El campo es uid, home o shell.
+    error: campo
+  output_requirements:
+  - id: correcto
+    description: El valor pedido.
+    exit_code: 0
+  - id: vacia
+    description: No hay línea, o le falta el usuario o el campo.
+    exit_code: 1
+    stream: stderr
+    message: 'error: escribe USUARIO CAMPO'
+  - id: noexiste
+    description: El usuario no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: USUARIO no existe'
+  - id: campo
+    description: Campo desconocido.
+    exit_code: 3
+    stream: stderr
+    message: 'error: campo no válido'
+  examples:
+  - command: echo 'root home' | /home/learner/aso/f22/consulta.sh
+    stdout: "/root\n"
+    exit_code: 0
+  - command: echo 'root edad' | /home/learner/aso/f22/consulta.sh
+    stderr: "error: campo no válido\n"
+    exit_code: 3
+  evaluations:
+  - id: campos
+    description: Lee usuario y campo de stdin
+    points: 3
+    checks:
+    - {type: run, requirement: correcto, stdin: "root home\n", stdout: {from_command: 'getent passwd root | cut -d: -f6'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, stdin: "learner shell\n", stdout: {from_command: 'getent passwd learner | cut -d: -f7'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, stdin: "nobody uid\n", stdout: {from_command: 'id -u nobody'}, stderr: {match: empty}}
+  - id: vacia
+    description: Entrada incompleta
+    points: 1
+    checks:
+    - {type: run, requirement: vacia, stdin: "", stderr: {value: 'error: escribe USUARIO CAMPO'}}
+    - {type: run, requirement: vacia, stdin: "root\n", stderr: {value: 'error: escribe USUARIO CAMPO'}}
+  - id: noexiste
+    description: Usuario inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, stdin: "fantasma uid\n", stderr: {value: 'error: fantasma no existe'}}
+  - id: campo
+    description: Campo desconocido
+    points: 1
+    checks:
+    - {type: run, requirement: campo, stdin: "root edad\n", stderr: {value: 'error: campo no válido'}}
+  tips:
+  - Con `read a b`, la primera palabra va a `a` y el resto de la línea a `b`.
+  - '`read` devuelve distinto de 0 si no hay nada que leer.'
+
+- id: por-shell
+  title: 2 · while read con IFS
+  description: |
+    Crea `por-shell.sh INTÉRPRETE` que recorra `/etc/passwd` con
+    `while IFS=: read login x uid gid gecos home shell; do … done < /etc/passwd` y muestre,
+    en el orden del fichero, los logins que usan ese intérprete. Termina con `Total: N`.
+  script:
+    path: /home/learner/aso/f22/por-shell.sh
+    usage: por-shell.sh INTÉRPRETE
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: Al menos una cuenta usa ese intérprete.
+    error: ninguno
+  output_requirements:
+  - id: correcto
+    description: Un login por línea y la línea Total.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: por-shell.sh INTÉRPRETE'
+  - id: ninguno
+    description: Ninguna cuenta usa ese intérprete.
+    exit_code: 2
+    stream: stderr
+    message: 'error: ningún usuario usa INTÉRPRETE'
+  examples:
+  - command: /home/learner/aso/f22/por-shell.sh /bin/bash
+    stdout: "root\nlearner\nTotal: 2\n"
+    exit_code: 0
+    description: Depende de las cuentas del sistema.
+  evaluations:
+  - id: listar
+    description: Recorre /etc/passwd real
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [/bin/bash]
+      stdout: {match: lines, from_command: "awk -F: '$7==\"/bin/bash\" {print $1; n++} END {print \"Total: \" n}' /etc/passwd"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [/usr/sbin/nologin]
+      stdout: {match: lines, from_command: "awk -F: '$7==\"/usr/sbin/nologin\" {print $1; n++} END {print \"Total: \" n}' /etc/passwd"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: por-shell.sh INTÉRPRETE'}}
+  - id: ninguno
+    description: Intérprete que nadie usa
+    points: 1
+    checks:
+    - {type: run, requirement: ninguno, args: [/bin/zsh], stderr: {value: 'error: ningún usuario usa /bin/zsh'}}
+  tips:
+  - Poner `IFS=:` delante de `read` solo lo cambia para esa orden.
+
+- id: miembros
+  title: 3 · IFS y read -a con los grupos
+  description: |
+    Crea `miembros.sh GRUPO` que muestre quién pertenece a un grupo real:
+
+    ```
+    Principales: login1 login2 …
+    Secundarios: login3 login4 …
+    ```
+
+    - **Principales**: cuentas de `/etc/passwd` cuyo GID (campo 4) es el del grupo, en el
+      orden del fichero.
+    - **Secundarios**: la lista del campo 4 de `/etc/group`; pártela por comas con
+      `IFS=, read -a vector` y muéstrala separada por espacios.
+    - Si una lista está vacía, escribe `(ninguno)`.
+  script:
+    path: /home/learner/aso/f22/miembros.sh
+    usage: miembros.sh GRUPO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: El grupo existe.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas indicadas.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: miembros.sh GRUPO'
+  - id: noexiste
+    description: El grupo no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: GRUPO no existe'
+  examples:
+  - command: /home/learner/aso/f22/miembros.sh wheel
+    stdout: "Principales: (ninguno)\nSecundarios: (ninguno)\n"
+    exit_code: 0
+    description: Depende de las cuentas y grupos del sistema.
+  evaluations:
+  - id: grupos-reales
+    description: Miembros de root, learner y wheel
+    points: 4
+    checks:
+    - type: run
+      requirement: correcto
+      args: [root]
+      stdout: {match: lines, from_command: "gid=$(getent group root | cut -d: -f3); p=$(awk -F: -v g=\"$gid\" '$4==g {printf \"%s%s\", s, $1; s=\" \"}' /etc/passwd); m=$(getent group root | cut -d: -f4 | tr , ' '); printf 'Principales: %s\\nSecundarios: %s\\n' \"${p:-(ninguno)}\" \"${m:-(ninguno)}\""}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [learner]
+      stdout: {match: lines, from_command: "gid=$(getent group learner | cut -d: -f3); p=$(awk -F: -v g=\"$gid\" '$4==g {printf \"%s%s\", s, $1; s=\" \"}' /etc/passwd); m=$(getent group learner | cut -d: -f4 | tr , ' '); printf 'Principales: %s\\nSecundarios: %s\\n' \"${p:-(ninguno)}\" \"${m:-(ninguno)}\""}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [wheel]
+      stdout: {match: lines, from_command: "gid=$(getent group wheel | cut -d: -f3); p=$(awk -F: -v g=\"$gid\" '$4==g {printf \"%s%s\", s, $1; s=\" \"}' /etc/passwd); m=$(getent group wheel | cut -d: -f4 | tr , ' '); printf 'Principales: %s\\nSecundarios: %s\\n' \"${p:-(ninguno)}\" \"${m:-(ninguno)}\""}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: miembros.sh GRUPO'}}
+  - id: noexiste
+    description: Grupo inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: [fantasmas], stderr: {value: 'error: fantasmas no existe'}}
+  tips:
+  - '`IFS=, read -a v <<< "$lista"` parte la lista; `"${v[*]}"` la une con el primer carácter de IFS.'
+  - '`${#v[@]}` es el número de elementos del vector.'
+
+- id: ficha
+  title: 4 · Here documents
+  description: |
+    Crea `ficha.sh USUARIO` que imprima con **un único** `cat <<FIN … FIN` esta ficha de
+    una cuenta real (los valores salen de `getent passwd` e `id`):
+
+    ```
+    === Ficha de USUARIO ===
+    UID: N
+    Grupo: NOMBRE_GRUPO_PRINCIPAL
+    Home: DIRECTORIO
+    Shell: INTÉRPRETE
+    ```
+
+    Dentro de un *here document* sin comillas, `$variable` y `$(orden)` se expanden.
+    Prueba también `cat <<'FIN'` para ver la diferencia.
+  script:
+    path: /home/learner/aso/f22/ficha.sh
+    usage: ficha.sh USUARIO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: La cuenta existe.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Las cinco líneas de la ficha.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: ficha.sh USUARIO'
+  - id: noexiste
+    description: La cuenta no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: USUARIO no existe'
+  examples:
+  - command: /home/learner/aso/f22/ficha.sh root
+    stdout: "=== Ficha de root ===\nUID: 0\nGrupo: root\nHome: /root\nShell: /bin/bash\n"
+    exit_code: 0
+  evaluations:
+  - id: fichas
+    description: Fichas de cuentas reales
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [root]
+      stdout: {match: lines, from_command: "getent passwd root | awk -F: -v g=\"$(id -gn root)\" '{print \"=== Ficha de \" $1 \" ===\"; print \"UID: \" $3; print \"Grupo: \" g; print \"Home: \" $6; print \"Shell: \" $7}'"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [nobody]
+      stdout: {match: lines, from_command: "getent passwd nobody | awk -F: -v g=\"$(id -gn nobody)\" '{print \"=== Ficha de \" $1 \" ===\"; print \"UID: \" $3; print \"Grupo: \" g; print \"Home: \" $6; print \"Shell: \" $7}'"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: ficha.sh USUARIO'}}
+  - id: noexiste
+    description: Cuenta inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: [fantasma], stderr: {value: 'error: fantasma no existe'}}
+  tips:
+  - El delimitador de cierre debe ir solo en su línea, sin espacios delante (salvo con `<<-` y tabuladores).
+
+- id: parejas
+  title: 5 · exec N< y read -uN
+  description: |
+    Crea `parejas.sh F1 F2` que abra los dos ficheros con `exec 3<"$1"` y `exec 4<"$2"`,
+    y lea **a la vez** una línea de cada uno con `read -u3` y `read -u4`, imprimiendo
+    `LÍNEA_F1 | LÍNEA_F2`. Para en cuanto uno de los dos se acabe. Cierra los descriptores
+    al final (`exec 3<&-`).
+
+    Pruébalo con `/etc/shells` y `/etc/hosts`.
+  script:
+    path: /home/learner/aso/f22/parejas.sh
+    usage: parejas.sh F1 F2
+  input_requirements:
+  - description: Exactamente dos argumentos.
+    error: uso
+  - description: Los dos ficheros existen y se pueden leer.
+    error: lectura
+  output_requirements:
+  - id: correcto
+    description: Una línea por pareja.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: parejas.sh F1 F2'
+  - id: lectura
+    description: Algún fichero no se puede leer.
+    exit_code: 2
+    stream: stderr
+    message: 'error: no se puede leer FICHERO'
+  examples:
+  - command: /home/learner/aso/f22/parejas.sh /etc/shells /etc/hosts | head -2
+    stdout: "/bin/sh | # Loopback entries; do not change.\n/bin/bash | # For historical reasons, localhost precedes localhost.localdomain:\n"
+    exit_code: 0
+    description: Depende del contenido real de los ficheros.
+  evaluations:
+  - id: intercalar
+    description: Intercala ficheros reales y para en el más corto
+    points: 4
+    checks:
+    - type: run
+      requirement: correcto
+      args: [/etc/shells, /etc/hosts]
+      stdout: {match: lines, from_command: "awk 'NR==FNR {a[FNR]=$0; n=FNR; next} FNR<=n {print a[FNR] \" | \" $0}' /etc/shells /etc/hosts"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [/etc/passwd, /etc/shells]
+      stdout: {match: lines, from_command: "awk 'NR==FNR {a[FNR]=$0; n=FNR; next} FNR<=n {print a[FNR] \" | \" $0}' /etc/passwd /etc/shells"}
+      stderr: {match: empty}
+  - id: uso
+    description: Un solo argumento
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [/etc/shells], stderr: {value: 'uso: parejas.sh F1 F2'}}
+  - id: lectura
+    description: Fichero ilegible
+    points: 1
+    checks:
+    - {type: run, requirement: lectura, args: [/etc/shells, /etc/shadow], stderr: {value: 'error: no se puede leer /etc/shadow'}}
+  tips:
+  - '`while read -r -u3 a && read -r -u4 b; do ...; done`'
+  - '`-r` evita que `read` interprete las barras invertidas.'
+
+- id: servicio
+  title: 6 · [[ =~ ]] y BASH_REMATCH
+  description: |
+    Crea `servicio.sh PUERTO/PROTOCOLO` que valide el argumento con
+    `[[ $1 =~ ^([0-9]+)/(tcp|udp)$ ]]`, saque el puerto y el protocolo de `BASH_REMATCH` y
+    busque en `/etc/services` los servicios cuya segunda columna es exactamente ese
+    `PUERTO/PROTOCOLO`. Imprime, en el orden del fichero:
+
+    `Puerto P (PROTOCOLO): nombre1 nombre2 …`
+  script:
+    path: /home/learner/aso/f22/servicio.sh
+    usage: servicio.sh PUERTO/PROTOCOLO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: Tiene la forma NÚMERO/tcp o NÚMERO/udp.
+    error: formato
+  - description: Algún servicio usa ese puerto y protocolo.
+    error: ninguno
+  output_requirements:
+  - id: correcto
+    description: Una línea con los nombres separados por espacios.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: servicio.sh PUERTO/PROTOCOLO'
+  - id: formato
+    description: Formato no válido.
+    exit_code: 2
+    stream: stderr
+    message: 'error: formato PUERTO/tcp o PUERTO/udp'
+  - id: ninguno
+    description: Ningún servicio en ese puerto.
+    exit_code: 3
+    stream: stderr
+    message: 'error: ningún servicio en PUERTO/PROTOCOLO'
+  examples:
+  - command: /home/learner/aso/f22/servicio.sh 22/tcp
+    stdout: "Puerto 22 (tcp): ssh\n"
+    exit_code: 0
+  - command: /home/learner/aso/f22/servicio.sh 22-tcp
+    stderr: "error: formato PUERTO/tcp o PUERTO/udp\n"
+    exit_code: 2
+  evaluations:
+  - id: buscar
+    description: Busca en /etc/services real
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [22/tcp]
+      stdout: {from_command: "awk '$2==\"22/tcp\" {printf \"%s%s\", s, $1; s=\" \"} END {print \"\"}' /etc/services | sed 's/^/Puerto 22 (tcp): /'"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [53/udp]
+      stdout: {from_command: "awk '$2==\"53/udp\" {printf \"%s%s\", s, $1; s=\" \"} END {print \"\"}' /etc/services | sed 's/^/Puerto 53 (udp): /'"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [80/tcp]
+      stdout: {from_command: "awk '$2==\"80/tcp\" {printf \"%s%s\", s, $1; s=\" \"} END {print \"\"}' /etc/services | sed 's/^/Puerto 80 (tcp): /'"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: servicio.sh PUERTO/PROTOCOLO'}}
+  - id: formato
+    description: Formatos no válidos
+    points: 1
+    checks:
+    - {type: run, requirement: formato, args: [22-tcp], stderr: {value: 'error: formato PUERTO/tcp o PUERTO/udp'}}
+    - {type: run, requirement: formato, args: [ssh/tcp], stderr: {value: 'error: formato PUERTO/tcp o PUERTO/udp'}}
+  - id: ninguno
+    description: Puerto sin servicios
+    points: 1
+    checks:
+    - {type: run, requirement: ninguno, args: [65000/udp], stderr: {value: 'error: ningún servicio en 65000/udp'}}
+  tips:
+  - '`${BASH_REMATCH[1]}` es el primer grupo entre paréntesis.'
+  - No entrecomilles la expresión regular a la derecha de `=~`; guárdala en una variable si tiene espacios.
+
+- id: clasifica
+  title: 7 · Patrones extendidos (extglob)
+  description: |
+    Crea `clasifica.sh RUTA...` que active `shopt -s extglob` y clasifique el **nombre**
+    de cada ruta (lo que va tras la última `/`) con `case`, en este orden:
+
+    | Patrón | Tipo |
+    | --- | --- |
+    | `@(*.conf\|*.cfg)` | `configuración` |
+    | `*.@(gz\|xz\|bz2\|zip)` | `comprimido` |
+    | `lib*.so*(.+([0-9]))` | `biblioteca` |
+    | `+([0-9])` | `número` |
+    | cualquier otro | `otro` |
+
+    Imprime una línea `RUTA: TIPO` por argumento. Pruébalo con rutas reales como
+    `/etc/dnf/dnf.conf`, `/usr/share/man/man1/ls.1.gz` o `/usr/lib64/libc.so.6`.
+  script:
+    path: /home/learner/aso/f22/clasifica.sh
+    usage: clasifica.sh RUTA...
+  input_requirements:
+  - description: Al menos un argumento.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: Una línea por argumento.
+    exit_code: 0
+  - id: uso
+    description: Sin argumentos.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: clasifica.sh RUTA...'
+  examples:
+  - command: /home/learner/aso/f22/clasifica.sh /etc/dnf/dnf.conf 2026
+    stdout: "/etc/dnf/dnf.conf: configuración\n2026: número\n"
+    exit_code: 0
+  evaluations:
+  - id: clasificar
+    description: Clasifica nombres reales del sistema
+    points: 4
+    checks:
+    - type: run
+      requirement: correcto
+      args: [/etc/dnf/dnf.conf, /usr/share/man/man1/ls.1.gz, /usr/lib64/libc.so.6, /usr/lib64/libz.so, '12345', /etc/passwd, 12a]
+      stdout: {value: "/etc/dnf/dnf.conf: configuración\n/usr/share/man/man1/ls.1.gz: comprimido\n/usr/lib64/libc.so.6: biblioteca\n/usr/lib64/libz.so: biblioteca\n12345: número\n/etc/passwd: otro\n12a: otro"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: clasifica.sh RUTA...'}}
+  tips:
+  - '`@(a|b)` uno de, `*(p)` cero o más, `+(p)` uno o más, `?(p)` cero o uno, `!(p)` cualquier cosa menos.'
+  - '`shopt -s extglob` debe ejecutarse antes de que bash lea el `case` que lo usa.'
+
+- id: cadena
+  title: 8 · Longitud y subcadenas
+  description: |
+    Crea `cadena.sh TEXTO` que use `${#var}` y `${var:inicio:longitud}` para imprimir:
+
+    ```
+    Longitud: N
+    Primeros 3: …
+    Últimos 3: …
+    Sin extremos: …   (sin el primer ni el último carácter)
+    ```
+  script:
+    path: /home/learner/aso/f22/cadena.sh
+    usage: cadena.sh TEXTO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: El texto tiene al menos 3 caracteres.
+    error: corto
+  output_requirements:
+  - id: correcto
+    description: Las cuatro líneas indicadas.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: cadena.sh TEXTO'
+  - id: corto
+    description: Texto de menos de 3 caracteres.
+    exit_code: 2
+    stream: stderr
+    message: 'error: el texto debe tener al menos 3 caracteres'
+  examples:
+  - command: /home/learner/aso/f22/cadena.sh /etc/passwd
+    stdout: "Longitud: 11\nPrimeros 3: /et\nÚltimos 3: swd\nSin extremos: etc/passw\n"
+    exit_code: 0
+  evaluations:
+  - id: subcadenas
+    description: Longitud y subcadenas
+    points: 3
+    checks:
+    - {type: run, requirement: correcto, args: [/etc/passwd], stdout: {value: "Longitud: 11\nPrimeros 3: /et\nÚltimos 3: swd\nSin extremos: etc/passw"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [learner], stdout: {value: "Longitud: 7\nPrimeros 3: lea\nÚltimos 3: ner\nSin extremos: earne"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [abc], stdout: {value: "Longitud: 3\nPrimeros 3: abc\nÚltimos 3: abc\nSin extremos: b"}, stderr: {match: empty}}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: cadena.sh TEXTO'}}
+  - id: corto
+    description: Texto corto
+    points: 1
+    checks:
+    - {type: run, requirement: corto, args: [ab], stderr: {value: 'error: el texto debe tener al menos 3 caracteres'}}
+  tips:
+  - '`${v: -3}` (con espacio) toma los 3 últimos; sin espacio sería otra expansión.'
+  - '`${v:1:${#v}-2}` quita el primero y el último.'
+
+- id: ruta
+  title: 9 · Recortes con # ## % %%
+  description: |
+    Crea `ruta.sh RUTA` que, **sin** usar `dirname`, `basename` ni `sed`, imprima:
+
+    ```
+    Directorio: …   ${ruta%/*}
+    Nombre: …       ${ruta##*/}
+    Extensión: …    lo que va tras el último punto del nombre, o (ninguna)
+    Base: …         el nombre hasta el primer punto
+    ```
+  script:
+    path: /home/learner/aso/f22/ruta.sh
+    usage: ruta.sh RUTA
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: Es una ruta absoluta (empieza por /).
+    error: absoluta
+  output_requirements:
+  - id: correcto
+    description: Las cuatro líneas indicadas.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: ruta.sh RUTA'
+  - id: absoluta
+    description: La ruta no es absoluta.
+    exit_code: 2
+    stream: stderr
+    message: 'error: RUTA debe ser absoluta'
+  examples:
+  - command: /home/learner/aso/f22/ruta.sh /usr/share/man/man1/ls.1.gz
+    stdout: "Directorio: /usr/share/man/man1\nNombre: ls.1.gz\nExtensión: gz\nBase: ls\n"
+    exit_code: 0
+  evaluations:
+  - id: recortes
+    description: Recorta rutas reales
+    points: 3
+    checks:
+    - {type: run, requirement: correcto, args: [/usr/share/man/man1/ls.1.gz], stdout: {value: "Directorio: /usr/share/man/man1\nNombre: ls.1.gz\nExtensión: gz\nBase: ls"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/etc/passwd], stdout: {value: "Directorio: /etc\nNombre: passwd\nExtensión: (ninguna)\nBase: passwd"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/etc/dnf/dnf.conf], stdout: {value: "Directorio: /etc/dnf\nNombre: dnf.conf\nExtensión: conf\nBase: dnf"}, stderr: {match: empty}}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: ruta.sh RUTA'}}
+  - id: absoluta
+    description: Ruta relativa
+    points: 1
+    checks:
+    - {type: run, requirement: absoluta, args: [etc/passwd], stderr: {value: 'error: etc/passwd debe ser absoluta'}}
+  tips:
+  - '`#` y `%` quitan la coincidencia más corta; `##` y `%%`, la más larga.'
+  - '`#` recorta por la izquierda, `%` por la derecha.'
+
+- id: campos
+  title: 10 · Vectores con read -a
+  description: |
+    Crea `campos.sh USUARIO` que guarde la línea de la cuenta (de `getent passwd`) en un
+    vector con `IFS=: read -a campos` y muestre:
+
+    ```
+    Campos: N               ${#campos[@]}
+    [0] login
+    [1] x
+    …                       una línea por elemento, con su índice
+    Al revés: shell:home:…:login   los elementos en orden inverso unidos con ':'
+    ```
+  script:
+    path: /home/learner/aso/f22/campos.sh
+    usage: campos.sh USUARIO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: La cuenta existe.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: El recuento, un elemento por línea y la línea Al revés.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: campos.sh USUARIO'
+  - id: noexiste
+    description: La cuenta no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: USUARIO no existe'
+  examples:
+  - command: /home/learner/aso/f22/campos.sh root
+    stdout: "Campos: 7\n[0] root\n[1] x\n[2] 0\n[3] 0\n[4] Super User\n[5] /root\n[6] /bin/bash\nAl revés: /bin/bash:/root:Super User:0:0:x:root\n"
+    exit_code: 0
+  evaluations:
+  - id: vector
+    description: Recorre el vector en los dos sentidos
+    points: 4
+    checks:
+    - type: run
+      requirement: correcto
+      args: [root]
+      stdout: {match: lines, from_command: "getent passwd root | awk -F: '{print \"Campos: \" NF; for (i=1; i<=NF; i++) print \"[\" i-1 \"] \" $i; r=$NF; for (i=NF-1; i>=1; i--) r=r \":\" $i; print \"Al revés: \" r}'"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [learner]
+      stdout: {match: lines, from_command: "getent passwd learner | awk -F: '{print \"Campos: \" NF; for (i=1; i<=NF; i++) print \"[\" i-1 \"] \" $i; r=$NF; for (i=NF-1; i>=1; i--) r=r \":\" $i; print \"Al revés: \" r}'"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: campos.sh USUARIO'}}
+  - id: noexiste
+    description: Cuenta inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: [fantasma], stderr: {value: 'error: fantasma no existe'}}
+  tips:
+  - '`IFS=: read -r -a campos <<< "$linea"` usa una *here string*.'
+  - '`for (( i = ${#campos[@]} - 1; i >= 0; i-- ))` recorre al revés.'

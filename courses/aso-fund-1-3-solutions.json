@@ -1,0 +1,15 @@
+{
+  "consultar-cuentas": "D=/home/learner/aso/f13\ngetent passwd root > $D/root-passwd.txt\ngetent group mail > $D/mail.txt\nid root > $D/id-root.txt\ngetent passwd learner | cut -d: -f6 > $D/home-shell.txt\ngetent passwd learner | cut -d: -f7 >> $D/home-shell.txt\ngrep '^learner:' /etc/shadow | cut -d: -f3-8 > $D/shadow-learner.txt",
+  "useradd": "useradd -m -u 2001 -s /bin/bash -c 'Ana Admin' ana\nuseradd -m -s /bin/bash luis\nuseradd -r -M -s /sbin/nologin copias\nprintf 'ana:Ana-ASO-2026!\\nluis:Luis-ASO-2026!\\n' | chpasswd",
+  "groupadd-groupmod": "groupadd -g 3000 desarrollo\ngroupadd pruebas\ngroupmod -n calidad pruebas\ngroupmod -g 3100 calidad",
+  "usermod": "usermod -aG desarrollo,wheel ana\nusermod -g desarrollo -c 'Luis Lopez' luis\nusermod -L luis",
+  "gpasswd": "gpasswd -M ana,luis calidad\ngpasswd -A ana calidad\ngpasswd -d luis calidad",
+  "chage": "chage -M 90 -m 1 -W 7 -I 5 -E 2027-06-30 ana\nchage -d 0 luis",
+  "chmod": "P=/home/learner/aso/f13/permisos\nmkdir -p $P\ncp /etc/hosts $P/hosts && chmod 600 $P/hosts\ncp /etc/services $P/services && chmod u=rw,g=r,o= $P/services\ncp /usr/bin/id $P/mi-id && chmod 750 $P/mi-id\nmkdir $P/privado && chmod 711 $P/privado\nchown -R learner:learner $P",
+  "leer-permisos": "stat -c '%a %U %G %n' /etc/passwd /etc/shadow /usr/bin/passwd /tmp /usr/bin/crontab > /home/learner/aso/f13/modos.txt\nprintf '%s\\n' /usr/bin/passwd /tmp /etc/shadow > /home/learner/aso/f13/especiales.txt",
+  "chown-chgrp": "C=/home/learner/aso/f13/compartido\nmkdir -p $C\ncp /etc/protocols $C/protocolos && chown ana:desarrollo $C/protocolos\ncp /etc/login.defs $C/login.defs && chgrp calidad $C/login.defs\nchgrp desarrollo $C",
+  "directorios-especiales": "mkdir -p /srv/publico /srv/equipo\nchmod 1777 /srv/publico\nchown root:desarrollo /srv/equipo\nchmod 2770 /srv/equipo\nsudo -u ana touch /srv/equipo/prueba",
+  "umask": "echo 'umask 027' >> /home/learner/.bashrc\nrunuser -u learner -- bash -c 'umask 027; mkdir -p /home/learner/aso/f13/umask; touch /home/learner/aso/f13/umask/nuevo.txt; mkdir /home/learner/aso/f13/umask/nuevo-dir'",
+  "suid-sgid": "find /usr/bin -perm -4000 | sort > /home/learner/aso/f13/suid.txt\nfind /usr/bin -perm -2000 | sort > /home/learner/aso/f13/sgid.txt\ncp /usr/bin/id /home/learner/aso/f13/id-suid\nchown root:root /home/learner/aso/f13/id-suid\nchmod 4755 /home/learner/aso/f13/id-suid\nchown learner:learner /home/learner/aso/f13\nrunuser -u learner -- bash -c 'cd /home/learner/aso/f13 && ./id-suid > euid.txt'",
+  "otra-identidad": "sudo -u luis touch /tmp/de-luis.txt\nsu - ana -c 'id > /tmp/id-ana.txt'\nrunuser -u ana -- sg desarrollo -c 'touch /tmp/de-desarrollo.txt'"
+}
