@@ -6,6 +6,8 @@ bundled ASO courses, YAML course imports, PDF sources with local OCR, text/HTML
 practice sheets, and natural-language exercise generation using
 your existing Ollama models.
 
+NOTE: this is an entirely vibecoded application for EDUCATION PURPOSES ONLY.
+
 ## Windows application
 
 Install **Linux-Lab-Setup-1.3.6.exe** from `release/1.3.6/`, then launch **Linux Lab** from
