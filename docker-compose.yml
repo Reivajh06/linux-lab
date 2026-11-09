@@ -18,6 +18,11 @@ services:
     volumes:
       - lab-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+      # Content is read from the repository, so course and notebook edits only need
+      # `docker compose restart app`; rebuild only for backend or frontend code.
+      - ./courses:/app/courses:ro
+      - ./notebook:/app/notebook:ro
+      - ./docker/lab:/app/docker/lab:ro
     environment:
       LAB_DATA_DIR: /data
       LAB_IMAGE: linux-lab-environment:local

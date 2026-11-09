@@ -1,0 +1,742 @@
+schema_version: 1
+id: aso-fund-2-1
+version: '1.0'
+title: ASO Fundamentos 2.1 · Scripts en bash I
+folder: ASO Fundamentos
+description: |
+  Fundamentos de la primera mitad del Tema 2: scripts ejecutables, variables,
+  `${variable}`, comillas, `export`/`set`/`unset`, `$(orden)`, aritmética con `let`,
+  `(( ))` y `$(( ))`, operadores de test (`-f`, `-d`, `-gt`…), `$?`, `[[ ]]`, `if`,
+  `&&`, `||`, `case`, `while`, `for`, `break`, `continue`, argumentos (`$1`, `$#`,
+  `$@`, `$*`, `shift`) y funciones con `return` y `exit`.
+
+  Cada script trabaja con datos **reales** del sistema (`/etc/passwd`, `/etc/services`,
+  `/usr/bin`, `/dev/null`…) y la salida esperada se calcula en vivo al evaluar.
+
+  Buenas prácticas que se evalúan en todos los scripts:
+
+  - Guárdalos en `/home/learner/aso/f21/`, con `#!/bin/bash` y permiso de ejecución.
+  - Valida el número y el tipo de los argumentos.
+  - Escribe los errores en **stderr** (`>&2`) y deja stdout vacío en caso de error.
+  - Oculta la salida de las órdenes internas que no forman parte del resultado.
+  - Termina con 0 si todo va bien y con el código de error indicado si no.
+  - Entrecomilla las variables (`"$1"`) para no romper argumentos con espacios.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f21
+exercises:
+- id: saludo
+  title: 1 · Primer script, variables y comillas
+  description: |
+    Crea `saludo.sh NOMBRE`. Usa una variable para el nombre, `${variable}` para pegarle
+    texto detrás y `$PWD` para el directorio actual. Añade comentarios con `#`.
+  script:
+    path: /home/learner/aso/f21/saludo.sh
+    usage: saludo.sh NOMBRE
+  input_requirements:
+  - description: Exactamente un argumento (puede contener espacios).
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: |
+      Tres líneas: `Hola, NOMBRE`, `Copia: NOMBRE_2026.tar` y `Directorio: DIR_ACTUAL`.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: saludo.sh NOMBRE'
+  examples:
+  - command: cd /etc && /home/learner/aso/f21/saludo.sh 'Ana María'
+    stdout: "Hola, Ana María\nCopia: Ana María_2026.tar\nDirectorio: /etc\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/saludo.sh
+    stderr: "uso: saludo.sh NOMBRE\n"
+    exit_code: 1
+  evaluations:
+  - id: saludo
+    description: Saluda respetando espacios y usa ${nombre}_2026
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [Ana María]
+      stdout: {match: exact, value: "Hola, Ana María\nCopia: Ana María_2026.tar\nDirectorio: /home/learner\n"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [root]
+      cwd: /etc
+      stdout: {match: exact, value: "Hola, root\nCopia: root_2026.tar\nDirectorio: /etc\n"}
+      stderr: {match: empty}
+  - id: uso
+    description: Rechaza 0 o 2 argumentos
+    points: 1
+    checks:
+    - type: run
+      requirement: uso
+      args: []
+      stderr: {match: exact, value: 'uso: saludo.sh NOMBRE'}
+    - type: run
+      requirement: uso
+      args: [a, b]
+      stderr: {match: exact, value: 'uso: saludo.sh NOMBRE'}
+  tips:
+  - '`"${nombre}_2026.tar"`: sin llaves, bash buscaría la variable `nombre_2026`.'
+  - '`echo "uso: ..." >&2; exit 1` envía el error a stderr.'
+
+- id: entorno
+  title: 2 · Variables de entorno, export y set
+  description: |
+    Prepara tu `~/.bashrc` (añade las líneas al final):
+
+    1. `ASO_CURSO` con valor `2026`, **exportada**, para que la vean los procesos hijos.
+    2. `LOCAL_ASO` con valor `1`, **sin exportar**: la ve tu shell, pero no sus hijos.
+    3. Añade `$HOME/bin` al final de `PATH`.
+
+    Crea después `~/bin/hola` (ejecutable) que imprima `hola desde mi PATH`, de forma que
+    baste con escribir `hola` en una terminal nueva.
+
+    Explora: `set | grep ASO`, `env | grep ASO`, `unset LOCAL_ASO`, `bash -c 'echo $ASO_CURSO'`.
+  evaluations:
+  - id: exportada
+    description: Un proceso hijo ve ASO_CURSO=2026
+    points: 1
+    checks:
+    - type: command
+      user: learner
+      script: |
+        bash -ic 'bash -c "echo \$ASO_CURSO"' 2>/dev/null | tail -1 | grep -qx 2026
+  - id: local
+    description: LOCAL_ASO existe en la shell pero no en sus hijos
+    points: 1
+    checks:
+    - type: command
+      user: learner
+      script: |
+        out=$(bash -ic 'echo "shell=$LOCAL_ASO"; bash -c "echo hijo=\$LOCAL_ASO"' 2>/dev/null | tail -2 | tr '\n' ' ')
+        [ "$out" = "shell=1 hijo= " ]
+  - id: path
+    description: hola se encuentra en el PATH
+    points: 2
+    checks:
+    - type: command
+      user: learner
+      script: |
+        bash -ic hola 2>/dev/null | tail -1 | grep -qx 'hola desde mi PATH'
+  tips:
+  - 'PATH="$PATH:$HOME/bin" añade al final sin perder lo que había.'
+  - Una variable sin `export` es local a la shell que la define.
+
+- id: calc
+  title: 3 · Aritmética con let, (( )) y $(( ))
+  description: |
+    Crea `calc.sh A OP B` que opere dos enteros (pueden ser negativos). `OP` es `+`, `-`,
+    `x` (multiplicación), `/` (división entera) o `%` (resto). Imprime solo el resultado.
+    Valida en este orden: número de argumentos, que A y B sean enteros, el operador y la
+    división o resto entre cero.
+  script:
+    path: /home/learner/aso/f21/calc.sh
+    usage: calc.sh A OP B
+  input_requirements:
+  - description: Exactamente tres argumentos.
+    error: uso
+  - description: A y B son enteros, con signo opcional.
+    error: entero
+  - description: OP es uno de + - x / %.
+    error: operador
+  - description: B no es 0 si OP es / o %.
+    error: cero
+  output_requirements:
+  - id: correcto
+    description: El resultado entero y un salto de línea.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: calc.sh A OP B'
+  - id: entero
+    description: Algún operando no es entero.
+    exit_code: 2
+    stream: stderr
+    message: 'error: los operandos deben ser enteros'
+  - id: operador
+    description: Operador desconocido.
+    exit_code: 3
+    stream: stderr
+    message: 'error: operador no válido'
+  - id: cero
+    description: División o resto entre cero.
+    exit_code: 4
+    stream: stderr
+    message: 'error: división por cero'
+  examples:
+  - command: /home/learner/aso/f21/calc.sh 17 / 5
+    stdout: "3\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/calc.sh -3 x 4
+    stdout: "-12\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/calc.sh 4 '^' 2
+    stderr: "error: operador no válido\n"
+    exit_code: 3
+  evaluations:
+  - id: operaciones
+    description: Las cinco operaciones con positivos y negativos
+    points: 4
+    checks:
+    - {type: run, requirement: correcto, args: ['7', '+', '5'], stdout: {value: '12'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['10', '-', '25'], stdout: {value: '-15'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['-3', 'x', '4'], stdout: {value: '-12'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['17', '/', '5'], stdout: {value: '3'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['17', '%', '5'], stdout: {value: '2'}, stderr: {match: empty}}
+  - id: uso
+    description: Argumentos de menos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: ['1', '+'], stderr: {value: 'uso: calc.sh A OP B'}}
+  - id: entero
+    description: Operandos no enteros
+    points: 1
+    checks:
+    - {type: run, requirement: entero, args: ['a', '+', '1'], stderr: {value: 'error: los operandos deben ser enteros'}}
+    - {type: run, requirement: entero, args: ['1', '+', '2.5'], stderr: {value: 'error: los operandos deben ser enteros'}}
+  - id: operador
+    description: Operador desconocido
+    points: 1
+    checks:
+    - {type: run, requirement: operador, args: ['4', '^', '2'], stderr: {value: 'error: operador no válido'}}
+  - id: cero
+    description: División y resto entre cero
+    points: 1
+    checks:
+    - {type: run, requirement: cero, args: ['4', '/', '0'], stderr: {value: 'error: división por cero'}}
+    - {type: run, requirement: cero, args: ['4', '%', '0'], stderr: {value: 'error: división por cero'}}
+  tips:
+  - 'Tres formas: `let r=a+b`, `(( r = a + b ))`, `r=$(( a + b ))`.'
+  - '`[[ $a =~ ^-?[0-9]+$ ]]` comprueba que es un entero.'
+  - Usa `x` y no `*`, porque el shell expandiría `*` a los ficheros del directorio.
+
+- id: recuento
+  title: 4 · Órdenes empotradas $(…)
+  description: |
+    Crea `recuento.sh FICHERO` que imprima una línea con las líneas, palabras y bytes del
+    fichero, obtenidas con `wc` y `$(…)`:
+
+    `FICHERO: L líneas, P palabras, B bytes`
+
+    Pruébalo con `/etc/passwd`, `/etc/services` o `/etc/login.defs`.
+  script:
+    path: /home/learner/aso/f21/recuento.sh
+    usage: recuento.sh FICHERO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: El fichero existe, es regular y se puede leer.
+    error: lectura
+  output_requirements:
+  - id: correcto
+    description: Una línea con el formato indicado.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: recuento.sh FICHERO'
+  - id: lectura
+    description: El fichero no existe o no se puede leer.
+    exit_code: 2
+    stream: stderr
+    message: 'error: no se puede leer FICHERO'
+  examples:
+  - command: /home/learner/aso/f21/recuento.sh /etc/shells
+    stdout: "/etc/shells: 6 líneas, 6 palabras, 76 bytes\n"
+    exit_code: 0
+    description: Los números dependen del sistema.
+  - command: /home/learner/aso/f21/recuento.sh /etc/shadow
+    stderr: "error: no se puede leer /etc/shadow\n"
+    exit_code: 2
+  evaluations:
+  - id: ficheros-reales
+    description: Recuento de ficheros reales del sistema
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [/etc/passwd]
+      stdout: {from_command: 'printf "%s: %s líneas, %s palabras, %s bytes\n" /etc/passwd "$(wc -l < /etc/passwd)" "$(wc -w < /etc/passwd)" "$(wc -c < /etc/passwd)"'}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [/etc/services]
+      stdout: {from_command: 'printf "%s: %s líneas, %s palabras, %s bytes\n" /etc/services "$(wc -l < /etc/services)" "$(wc -w < /etc/services)" "$(wc -c < /etc/services)"'}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: recuento.sh FICHERO'}}
+  - id: lectura
+    description: Fichero ilegible o inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: lectura, args: [/etc/shadow], stderr: {value: 'error: no se puede leer /etc/shadow'}}
+    - {type: run, requirement: lectura, args: [/no/existe], stderr: {value: 'error: no se puede leer /no/existe'}}
+  tips:
+  - '`wc -l < fichero` da el número sin el nombre.'
+  - '`[ -f "$1" ] && [ -r "$1" ]` comprueba que es regular y legible.'
+
+- id: tipo
+  title: 5 · Operadores de test sobre ficheros
+  description: |
+    Crea `tipo.sh RUTA` que imprima dos líneas:
+
+    1. `tipo: X`, donde X es `enlace simbólico`, `directorio`, `fichero regular`,
+       `dispositivo de caracteres` u `otro` (comprueba el enlace **primero**).
+    2. `permisos: rwx` para el usuario que ejecuta el script, con `-` donde falte el permiso
+       (según `-r`, `-w` y `-x`).
+
+    Pruébalo con rutas reales: `/etc/passwd`, `/etc/shadow`, `/usr/bin`, `/bin`, `/dev/null`, `/tmp`.
+  script:
+    path: /home/learner/aso/f21/tipo.sh
+    usage: tipo.sh RUTA
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: La ruta existe (un enlace roto también cuenta como existente).
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Las dos líneas indicadas.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: tipo.sh RUTA'
+  - id: noexiste
+    description: La ruta no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: RUTA no existe'
+  examples:
+  - command: /home/learner/aso/f21/tipo.sh /usr/bin
+    stdout: "tipo: directorio\npermisos: r-x\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/tipo.sh /nada
+    stderr: "error: /nada no existe\n"
+    exit_code: 2
+  evaluations:
+  - id: tipos
+    description: Distingue fichero, directorio, enlace y dispositivo
+    points: 4
+    checks:
+    - {type: run, requirement: correcto, args: [/etc/passwd], stdout: {value: "tipo: fichero regular\npermisos: r--"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/usr/bin], stdout: {value: "tipo: directorio\npermisos: r-x"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/bin], stdout: {value: "tipo: enlace simbólico\npermisos: r-x"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/dev/null], stdout: {value: "tipo: dispositivo de caracteres\npermisos: rw-"}, stderr: {match: empty}}
+  - id: permisos
+    description: Permisos reales del usuario
+    points: 2
+    checks:
+    - {type: run, requirement: correcto, args: [/etc/shadow], stdout: {value: "tipo: fichero regular\npermisos: ---"}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [/tmp], stdout: {value: "tipo: directorio\npermisos: rwx"}, stderr: {match: empty}}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: tipo.sh RUTA'}}
+  - id: noexiste
+    description: Ruta inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: [/no/existe], stderr: {value: 'error: /no/existe no existe'}}
+  tips:
+  - '`-L` enlace, `-d` directorio, `-f` regular, `-c` dispositivo de caracteres.'
+  - '`-f` y `-d` siguen los enlaces: por eso `-L` va primero.'
+
+- id: existe
+  title: 6 · $?, && y || con id
+  description: |
+    Crea `existe.sh USUARIO` que diga si la cuenta existe consultando el sistema real:
+
+    `USUARIO existe: UID=N, grupo principal=GRUPO`
+
+    Usa el código de salida de `id` (o `getent`) mediante `$?`, `&&` o `||`, y **oculta**
+    cualquier mensaje que imprima esa orden.
+  script:
+    path: /home/learner/aso/f21/existe.sh
+    usage: existe.sh USUARIO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: La cuenta existe en el sistema.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Una línea con UID y grupo principal.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: existe.sh USUARIO'
+  - id: noexiste
+    description: La cuenta no existe; solo este mensaje en stderr.
+    exit_code: 2
+    stream: stderr
+    message: 'error: USUARIO no existe'
+  examples:
+  - command: /home/learner/aso/f21/existe.sh root
+    stdout: "root existe: UID=0, grupo principal=root\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/existe.sh fantasma
+    stderr: "error: fantasma no existe\n"
+    exit_code: 2
+  evaluations:
+  - id: cuentas-reales
+    description: Cuentas reales del sistema
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [root]
+      stdout: {from_command: 'printf "root existe: UID=%s, grupo principal=%s\n" "$(id -u root)" "$(id -gn root)"'}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [nobody]
+      stdout: {from_command: 'printf "nobody existe: UID=%s, grupo principal=%s\n" "$(id -u nobody)" "$(id -gn nobody)"'}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [learner]
+      stdout: {from_command: 'printf "learner existe: UID=%s, grupo principal=%s\n" "$(id -u learner)" "$(id -gn learner)"'}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: existe.sh USUARIO'}}
+  - id: noexiste
+    description: Cuenta inexistente sin mensajes de id
+    points: 2
+    checks:
+    - {type: run, requirement: noexiste, args: [fantasma], stderr: {value: 'error: fantasma no existe'}}
+  tips:
+  - '`id "$1" &>/dev/null || { echo "..." >&2; exit 2; }`'
+  - '`id -u` da el UID; `id -gn` el nombre del grupo principal.'
+
+- id: shell-de
+  title: 7 · case con patrones
+  description: |
+    Crea `shell-de.sh USUARIO` que lea el intérprete de la cuenta en `/etc/passwd` (con
+    `getent`) y lo clasifique con `case`:
+
+    | Intérprete | Salida |
+    | --- | --- |
+    | termina en `/bash` | `USUARIO: bash` |
+    | termina en `/sh` | `USUARIO: sh` |
+    | termina en `nologin` o `/false` | `USUARIO: sin acceso interactivo` |
+    | cualquier otro | `USUARIO: otro (INTÉRPRETE)` |
+  script:
+    path: /home/learner/aso/f21/shell-de.sh
+    usage: shell-de.sh USUARIO
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: La cuenta existe.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Una línea con la clasificación.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: shell-de.sh USUARIO'
+  - id: noexiste
+    description: La cuenta no existe.
+    exit_code: 2
+    stream: stderr
+    message: 'error: USUARIO no existe'
+  examples:
+  - command: /home/learner/aso/f21/shell-de.sh bin
+    stdout: "bin: sin acceso interactivo\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/shell-de.sh sync
+    stdout: "sync: otro (/bin/sync)\n"
+    exit_code: 0
+  evaluations:
+  - id: clasificar
+    description: Clasifica cuentas reales
+    points: 4
+    checks:
+    - {type: run, requirement: correcto, args: [root], stdout: {value: 'root: bash'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [bin], stdout: {value: 'bin: sin acceso interactivo'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: [nobody], stdout: {value: 'nobody: sin acceso interactivo'}, stderr: {match: empty}}
+    - type: run
+      requirement: correcto
+      args: [sync]
+      stdout: {from_command: 'printf "sync: otro (%s)\n" "$(getent passwd sync | cut -d: -f7)"'}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: shell-de.sh USUARIO'}}
+  - id: noexiste
+    description: Cuenta inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: [fantasma], stderr: {value: 'error: fantasma no existe'}}
+  tips:
+  - 'En `case`, los patrones se separan con `|`: `*nologin|*/false) ...;;`'
+
+- id: tabla
+  title: 8 · Bucles while y for
+  description: |
+    Crea `tabla.sh N` que imprima la tabla de multiplicar de N del 1 al 10, una línea por
+    producto: `N x I = R`. Escríbela con un bucle `for` o `while`.
+  script:
+    path: /home/learner/aso/f21/tabla.sh
+    usage: tabla.sh N
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: N es un entero positivo.
+    error: entero
+  output_requirements:
+  - id: correcto
+    description: Diez líneas de la tabla.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: tabla.sh N'
+  - id: entero
+    description: N no es un entero positivo.
+    exit_code: 2
+    stream: stderr
+    message: 'error: N debe ser un entero positivo'
+  examples:
+  - command: /home/learner/aso/f21/tabla.sh 7 | head -3
+    stdout: "7 x 1 = 7\n7 x 2 = 14\n7 x 3 = 21\n"
+    exit_code: 0
+  evaluations:
+  - id: tablas
+    description: Tablas del 7 y del 12
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: ['7']
+      stdout: {match: lines, from_command: 'seq 10 | awk "{print 7 \" x \" \$1 \" = \" 7*\$1}"'}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: ['12']
+      stdout: {match: lines, from_command: 'seq 10 | awk "{print 12 \" x \" \$1 \" = \" 12*\$1}"'}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: tabla.sh N'}}
+  - id: entero
+    description: Valores no válidos
+    points: 1
+    checks:
+    - {type: run, requirement: entero, args: ['0'], stderr: {value: 'error: N debe ser un entero positivo'}}
+    - {type: run, requirement: entero, args: ['siete'], stderr: {value: 'error: N debe ser un entero positivo'}}
+  tips:
+  - '`for (( i = 1; i <= 10; i++ ))` o `for i in {1..10}`.'
+
+- id: interactivos
+  title: 9 · break y continue
+  description: |
+    Crea `interactivos.sh N` que recorra con `for` las cuentas de `/etc/passwd` en orden y
+    muestre los logins de las **N primeras** cuyo intérprete **no** termina en `nologin`.
+    Usa `continue` para saltar las que no interesan y `break` al llegar a N.
+    Si hay menos de N, muestra todas las que haya.
+  script:
+    path: /home/learner/aso/f21/interactivos.sh
+    usage: interactivos.sh N
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: N es un entero positivo.
+    error: entero
+  output_requirements:
+  - id: correcto
+    description: Un login por línea.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: interactivos.sh N'
+  - id: entero
+    description: N no es un entero positivo.
+    exit_code: 2
+    stream: stderr
+    message: 'error: N debe ser un entero positivo'
+  examples:
+  - command: /home/learner/aso/f21/interactivos.sh 2
+    stdout: "root\nsync\n"
+    exit_code: 0
+    description: Depende de las cuentas del sistema.
+  evaluations:
+  - id: primeros
+    description: Corta en N y salta los nologin
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: ['1']
+      stdout: {match: lines, from_command: "awk -F: '$7 !~ /nologin$/ {print $1}' /etc/passwd | head -n 1"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: ['3']
+      stdout: {match: lines, from_command: "awk -F: '$7 !~ /nologin$/ {print $1}' /etc/passwd | head -n 3"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: ['500']
+      stdout: {match: lines, from_command: "awk -F: '$7 !~ /nologin$/ {print $1}' /etc/passwd"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: interactivos.sh N'}}
+  - id: entero
+    description: N no válido
+    points: 1
+    checks:
+    - {type: run, requirement: entero, args: ['-2'], stderr: {value: 'error: N debe ser un entero positivo'}}
+  tips:
+  - '`for linea in $(cut -d: -f1,7 /etc/passwd)` funciona porque esos campos no tienen espacios.'
+  - '`${linea%%:*}` y `${linea##*:}` separan login e intérprete.'
+
+- id: args
+  title: 10 · $#, $@, $* y shift
+  description: |
+    Crea `args.sh ARG...` que imprima:
+
+    1. `Argumentos: N` (el número de argumentos),
+    2. una línea `I: ARGUMENTO` por cada uno, recorriéndolos con `while` y `shift`,
+    3. `Todos: …` con todos los argumentos en una línea, separados por un espacio.
+
+    Ten en cuenta que en el paso 2 `shift` va consumiendo los argumentos: guárdalos antes.
+  script:
+    path: /home/learner/aso/f21/args.sh
+    usage: args.sh ARG...
+  input_requirements:
+  - description: Al menos un argumento.
+    error: uso
+  output_requirements:
+  - id: correcto
+    description: El recuento, una línea por argumento y la línea Todos.
+    exit_code: 0
+  - id: uso
+    description: Sin argumentos.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: args.sh ARG...'
+  examples:
+  - command: /home/learner/aso/f21/args.sh uno 'dos tres'
+    stdout: "Argumentos: 2\n1: uno\n2: dos tres\nTodos: uno dos tres\n"
+    exit_code: 0
+  evaluations:
+  - id: recorrer
+    description: Respeta argumentos con espacios
+    points: 3
+    checks:
+    - type: run
+      requirement: correcto
+      args: [uno, dos tres, cuatro]
+      stdout: {value: "Argumentos: 3\n1: uno\n2: dos tres\n3: cuatro\nTodos: uno dos tres cuatro"}
+      stderr: {match: empty}
+    - type: run
+      requirement: correcto
+      args: [/etc/passwd]
+      stdout: {value: "Argumentos: 1\n1: /etc/passwd\nTodos: /etc/passwd"}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: args.sh ARG...'}}
+  tips:
+  - '`"$@"` conserva cada argumento por separado; `"$*"` los une en una sola cadena.'
+
+- id: maximo
+  title: 11 · Funciones, return y exit
+  description: |
+    Crea `maximo.sh N...` con dos funciones:
+
+    - `es_entero VALOR`: no imprime nada; **retorna** 0 si es un entero (con signo
+      opcional) y 1 si no.
+    - `maximo N...`: imprime el mayor de sus argumentos.
+
+    El programa principal valida cada argumento con `es_entero` (y termina con `exit 2` en
+    cuanto uno no lo sea) y después llama a `maximo "$@"`.
+
+    Pruébalo con datos reales: `./maximo.sh $(cut -d: -f3 /etc/passwd)` da el UID más alto.
+  script:
+    path: /home/learner/aso/f21/maximo.sh
+    usage: maximo.sh N...
+  input_requirements:
+  - description: Al menos un argumento.
+    error: uso
+  - description: Todos los argumentos son enteros.
+    error: entero
+  output_requirements:
+  - id: correcto
+    description: El máximo y un salto de línea.
+    exit_code: 0
+  - id: uso
+    description: Sin argumentos.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: maximo.sh N...'
+  - id: entero
+    description: Un argumento no es entero.
+    exit_code: 2
+    stream: stderr
+    message: 'error: VALOR no es un entero'
+  examples:
+  - command: /home/learner/aso/f21/maximo.sh 3 9 -2
+    stdout: "9\n"
+    exit_code: 0
+  - command: /home/learner/aso/f21/maximo.sh 3 x 5
+    stderr: "error: x no es un entero\n"
+    exit_code: 2
+  evaluations:
+  - id: maximo
+    description: Máximo con positivos, negativos y un solo valor
+    points: 3
+    checks:
+    - {type: run, requirement: correcto, args: ['3', '9', '-2'], stdout: {value: '9'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['-5', '-1', '-9'], stdout: {value: '-1'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['42'], stdout: {value: '42'}, stderr: {match: empty}}
+    - {type: run, requirement: correcto, args: ['0', '65534', '1000', '81'], stdout: {value: '65534'}, stderr: {match: empty}}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: maximo.sh N...'}}
+  - id: entero
+    description: Argumento no entero
+    points: 1
+    checks:
+    - {type: run, requirement: entero, args: ['3', 'x', '5'], stderr: {value: 'error: x no es un entero'}}
+  tips:
+  - '`return` termina la función con un código; `exit` termina todo el script.'
+  - 'Usa la función como condición: `if ! es_entero "$v"; then ...`.'

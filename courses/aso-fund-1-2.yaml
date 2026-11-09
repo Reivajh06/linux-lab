@@ -1,0 +1,703 @@
+schema_version: 1
+id: aso-fund-1-2
+version: '1.0'
+title: ASO Fundamentos 1.2 · La consola y el shell
+folder: ASO Fundamentos
+description: |
+  Fundamentos del Bloque 1.2 del Tema 1: órdenes básicas, ayuda en línea, rutas,
+  comodines, llaves, comillas, editores, redirecciones, filtros, tuberías, `grep` y `sed`.
+
+  Todos los ejercicios trabajan sobre **ficheros reales del sistema** (`/etc/passwd`,
+  `/etc/group`, `/etc/services`, `/etc/login.defs`, `/usr/share/dict/words`, `/usr/bin`…).
+  La respuesta correcta se calcula en vivo al evaluar, con la orden de referencia aplicada
+  a esos mismos ficheros, así que no hay datos inventados.
+
+  Guarda cada resultado en `/home/learner/aso/f12/`. Salvo que se indique otra cosa, guarda
+  la salida tal cual la imprime la orden (un elemento por línea), sin cabeceras añadidas.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f12
+exercises:
+- id: ordenes-generales
+  title: 1 · Órdenes de uso general
+  description: |
+    Practica `date`, `date +formato`, `id`, `echo`, `who`, `clear` y `exit`.
+
+    En `/home/learner/aso/f12/`:
+
+    1. `fecha.txt`: la fecha de hoy con el formato `DD/MM/AAAA` (por ejemplo `09/11/2026`),
+       generada con `date +…`.
+    2. `identidad.txt`: la salida de `id` ejecutada como `learner`.
+    3. `mensaje.txt`: una única línea con el texto `Practicando ASO`, escrita con `echo`.
+
+    Prueba también `who`, `clear` y `date` sin formato (no se evalúan).
+  evaluations:
+  - id: fecha
+    description: '`fecha.txt` contiene la fecha de hoy como DD/MM/AAAA'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(date +%d/%m/%Y) /home/learner/aso/f12/fecha.txt
+  - id: identidad
+    description: '`identidad.txt` contiene la salida de `id` de learner'
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/identidad.txt
+      value: '^uid=1000\(learner\) gid=1000\(learner\) groups='
+      match: regex
+  - id: mensaje
+    description: '`mensaje.txt` contiene exactamente «Practicando ASO»'
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/mensaje.txt
+      value: "Practicando ASO\n"
+      match: exact
+  tips:
+  - '`man date` lista los códigos de formato: `%d`, `%m`, `%Y`, `%H`…'
+  - Para guardar la salida de una orden en un fichero usa `orden > fichero`.
+
+- id: ficheros-basicos
+  title: 2 · Crear, copiar, mover y borrar
+  description: |
+    Practica `mkdir`, `touch`, `cp`, `mv`, `rm`, `rmdir`, `cd` y `pwd` con ficheros reales.
+
+    Dentro de `/home/learner/aso/f12/proyecto/`:
+
+    1. Crea los directorios `conf`, `docs` y `tmp` (una sola orden `mkdir`).
+    2. Copia **en una sola orden** `/etc/hosts`, `/etc/shells` y `/etc/os-release` al
+       directorio `conf`.
+    3. Renombra `conf/os-release` a `conf/sistema.txt`.
+    4. Crea el fichero vacío `docs/LEEME` con `touch`.
+    5. Copia el directorio `/etc/skel` entero (con `cp -r`) como `proyecto/skel`.
+    6. Elimina el directorio vacío `tmp` con `rmdir`, y borra `skel/.bash_logout` con `rm`.
+  evaluations:
+  - id: directorios
+    description: Existen `conf` y `docs`; `tmp` ya no existe
+    points: 1
+    checks:
+    - type: path
+      path: /home/learner/aso/f12/proyecto/conf
+      kind: directory
+    - type: path
+      path: /home/learner/aso/f12/proyecto/docs
+      kind: directory
+    - type: path
+      path: /home/learner/aso/f12/proyecto/tmp
+      kind: absent
+  - id: copias
+    description: Copias idénticas de hosts y shells, y os-release renombrado
+    points: 2
+    checks:
+    - type: command
+      script: |
+        cmp /etc/hosts /home/learner/aso/f12/proyecto/conf/hosts
+    - type: command
+      script: |
+        cmp /etc/shells /home/learner/aso/f12/proyecto/conf/shells
+    - type: command
+      script: |
+        cmp /etc/os-release /home/learner/aso/f12/proyecto/conf/sistema.txt
+    - type: path
+      path: /home/learner/aso/f12/proyecto/conf/os-release
+      kind: absent
+  - id: leeme
+    description: '`docs/LEEME` existe y está vacío'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        f=/home/learner/aso/f12/proyecto/docs/LEEME
+        [ -f "$f" ] && [ ! -s "$f" ]
+  - id: skel
+    description: Copia recursiva de `/etc/skel` sin `.bash_logout`
+    points: 1
+    checks:
+    - type: command
+      script: |
+        cmp /etc/skel/.bashrc /home/learner/aso/f12/proyecto/skel/.bashrc
+    - type: path
+      path: /home/learner/aso/f12/proyecto/skel/.bash_logout
+      kind: absent
+  tips:
+  - '`mkdir -p proyecto/{conf,docs,tmp}` crea varios directorios a la vez.'
+  - Con `cp` puedes dar varios orígenes; el último argumento es el destino.
+  - Los ficheros que empiezan por punto no salen en `ls`; usa `ls -a`.
+
+- id: rutas
+  title: 3 · Rutas absolutas y relativas
+  description: |
+    Practica rutas absolutas, relativas, `.`, `..` y `~usuario`. Puedes comprobar tus
+    respuestas con `cd` y `pwd` o con `ls`.
+
+    Escribe en `/home/learner/aso/f12/rutas.txt` exactamente tres líneas:
+
+    1. Una ruta **relativa** (no empieza por `/`) que, estando en `/usr/share/man/man1`,
+       lleve al fichero `/usr/share/dict/words`.
+    2. Una ruta **relativa** que, estando en `/etc/systemd/system`, lleve a `/etc/passwd`.
+    3. La ruta **absoluta** a la que se expande `~root`.
+  evaluations:
+  - id: linea1
+    description: La línea 1 es relativa y lleva a /usr/share/dict/words
+    points: 1
+    checks:
+    - type: command
+      script: |
+        r=$(sed -n 1p /home/learner/aso/f12/rutas.txt)
+        [ -n "$r" ] && [ "${r#/}" = "$r" ] && cd /usr/share/man/man1 && [ "$(realpath -ms -- "$r")" = /usr/share/dict/words ]
+  - id: linea2
+    description: La línea 2 es relativa y lleva a /etc/passwd
+    points: 1
+    checks:
+    - type: command
+      script: |
+        r=$(sed -n 2p /home/learner/aso/f12/rutas.txt)
+        [ -n "$r" ] && [ "${r#/}" = "$r" ] && cd /etc/systemd/system && [ "$(realpath -ms -- "$r")" = /etc/passwd ]
+  - id: linea3
+    description: La línea 3 es el directorio personal de root
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(sed -n 3p /home/learner/aso/f12/rutas.txt)" = "$(getent passwd root | cut -d: -f6)" ]
+  tips:
+  - '`..` sube un nivel; puedes encadenarlo: `../../`.'
+  - Prueba `echo ~root` para ver a qué se expande.
+
+- id: ayuda
+  title: 4 · Ayuda en línea
+  description: |
+    Practica `man`, las secciones del manual, `which`, `whereis` y `--help`.
+
+    En `/home/learner/aso/f12/`:
+
+    1. `which.txt`: la salida de `which passwd chage crontab`.
+    2. `whereis.txt`: la salida de `whereis -b ls passwd` (solo binarios).
+    3. `secciones.txt`: la salida de `man -f crontab`, que muestra en qué secciones del
+       manual aparece `crontab`.
+    4. `seccion5.txt`: una línea con el número de sección que documenta el **formato del
+       fichero** `/etc/passwd`.
+
+    Abre también `man 5 passwd` y `ls --help` (no se evalúan).
+  evaluations:
+  - id: which
+    description: '`which.txt` coincide con `which passwd chage crontab`'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(which passwd chage crontab) /home/learner/aso/f12/which.txt
+  - id: whereis
+    description: '`whereis.txt` coincide con `whereis -b ls passwd`'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(whereis -b ls passwd) /home/learner/aso/f12/whereis.txt
+  - id: secciones
+    description: '`secciones.txt` coincide con `man -f crontab`'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(man -f crontab) /home/learner/aso/f12/secciones.txt
+  - id: seccion5
+    description: '`seccion5.txt` contiene 5'
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/seccion5.txt
+      value: '^\s*5\s*$'
+      match: regex
+  tips:
+  - 'Secciones típicas: 1 órdenes, 5 formatos de fichero, 8 administración.'
+  - '`man -f` equivale a `whatis`; `man -k` busca en las descripciones.'
+
+- id: comodines
+  title: 5 · Comodines * ? []
+  description: |
+    Practica los comodines del shell sobre directorios reales. Para cada patrón ejecuta
+    `ls -d PATRÓN > fichero` (una ruta por línea) en `/home/learner/aso/f12/`:
+
+    1. `conf.txt`: entradas de `/etc` cuyo nombre termina en `.conf`.
+    2. `dos.txt`: entradas de `/usr/bin` cuyo nombre tiene **exactamente dos** caracteres.
+    3. `xyz.txt`: entradas de `/usr/bin` que empiezan por `x`, `y` o `z`.
+    4. `digito.txt`: entradas de `/etc` cuyo nombre contiene al menos un dígito.
+  evaluations:
+  - id: conf
+    description: Entradas de /etc terminadas en .conf
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ls -d /etc/*.conf) /home/learner/aso/f12/conf.txt
+  - id: dos
+    description: Órdenes de /usr/bin de dos caracteres
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ls -d /usr/bin/??) /home/learner/aso/f12/dos.txt
+  - id: xyz
+    description: Órdenes de /usr/bin que empiezan por x, y o z
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ls -d /usr/bin/[xyz]*) /home/learner/aso/f12/xyz.txt
+  - id: digito
+    description: Entradas de /etc con un dígito en el nombre
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ls -d /etc/*[0-9]*) /home/learner/aso/f12/digito.txt
+  tips:
+  - '`*` = cualquier cadena, `?` = un carácter, `[abc]` = uno de esos caracteres.'
+  - Sin `-d`, `ls` mostraría el contenido de los directorios que encajen.
+
+- id: llaves-comillas
+  title: 6 · Expansión de llaves y comillas
+  description: |
+    Practica la expansión de llaves `{a,b}`, `{1..5}` y las comillas simples y dobles.
+
+    1. Con **una sola orden** `mkdir -p` y llaves, crea en `/home/learner/aso/f12/curso/`
+       los directorios `tema1`, `tema2` y `tema3`, cada uno con los subdirectorios
+       `teoria` y `practica` (9 directorios en total).
+    2. Con **una sola orden** `touch` y llaves, crea `log-01.txt` a `log-12.txt` en
+       `/home/learner/aso/f12/logs/` (crea antes el directorio).
+    3. Crea `/home/learner/aso/f12/comillas.txt` con dos líneas usando `echo`:
+       - con comillas **simples**: `El precio es $5 y mi casa es $HOME` (literal);
+       - con comillas **dobles**: `Mi casa es $HOME`, de modo que `$HOME` se expanda.
+  evaluations:
+  - id: arbol
+    description: Existen los 6 subdirectorios de tema1..tema3
+    points: 2
+    checks:
+    - type: command
+      script: |
+        cd /home/learner/aso/f12/curso
+        for d in tema1 tema2 tema3; do test -d $d/teoria && test -d $d/practica || exit 1; done
+  - id: logs
+    description: Existen log-01.txt … log-12.txt y nada más
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff <(printf '%s\n' log-{01..12}.txt) <(ls /home/learner/aso/f12/logs)
+  - id: comillas
+    description: Una línea literal y otra con $HOME expandido
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/comillas.txt
+      value: "El precio es $5 y mi casa es $HOME\nMi casa es /home/learner\n"
+      match: exact
+  tips:
+  - '`{01..12}` respeta los ceros a la izquierda.'
+  - 'Usa `echo` sin la llave para ver qué genera: `echo tema{1..3}/{a,b}`.'
+  - Dentro de comillas simples no se expande nada; dentro de dobles sí se expande `$`.
+
+- id: visores-editores
+  title: 7 · Visores y editores
+  description: |
+    Practica `more`, `less`, `nano`, `vim` (uso básico) y `gedit`.
+
+    1. Abre `/etc/services` con `less`, busca con `/` la línea del servicio `ssh` y escribe
+       en `/home/learner/aso/f12/puerto-ssh.txt` solo el número de puerto TCP de `ssh`.
+    2. Copia `/etc/hosts` a `/home/learner/aso/f12/hosts.txt` y, con `nano` o `vim`,
+       añade al final la línea `127.0.0.1 aso.local`. No modifiques el resto.
+    3. Recorre `/etc/login.defs` con `more` y anota en `/home/learner/aso/f12/pass-max.txt`
+       el valor numérico de `PASS_MAX_DAYS`.
+  evaluations:
+  - id: ssh
+    description: Puerto TCP de ssh según /etc/services
+    points: 1
+    checks:
+    - type: command
+      script: |
+        ref=$(awk '$1=="ssh" && $2 ~ /\/tcp$/ {split($2,a,"/"); print a[1]; exit}' /etc/services)
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/puerto-ssh.txt)" = "$ref" ]
+  - id: hosts
+    description: hosts.txt = /etc/hosts + la línea aso.local
+    points: 2
+    checks:
+    - type: command
+      script: |
+        diff -b <(cat /etc/hosts; echo '127.0.0.1 aso.local') /home/learner/aso/f12/hosts.txt
+  - id: passmax
+    description: Valor de PASS_MAX_DAYS
+    points: 1
+    checks:
+    - type: command
+      script: |
+        ref=$(awk '$1=="PASS_MAX_DAYS"{print $2}' /etc/login.defs)
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/pass-max.txt)" = "$ref" ]
+  tips:
+  - 'En `less`: `/texto` busca, `n` siguiente, `q` sale.'
+  - 'En `vim`: `G` va al final, `o` abre una línea nueva, `Esc` y `:wq` guarda y sale.'
+  - 'En `nano`: Ctrl+O guarda y Ctrl+X sale.'
+
+- id: redirecciones
+  title: 8 · Redirecciones y flujos estándar
+  description: |
+    Practica `<`, `>`, `>>`, `2>`, `2>&1`, `/dev/null` y `/dev/zero`. Trabaja en
+    `/home/learner/aso/f12/`.
+
+    1. Ejecuta `ls -l /etc/passwd /etc/no-existe` enviando la salida normal a `salida.txt`
+       y los errores a `errores.txt`.
+    2. Ejecuta la misma orden enviando **ambos** flujos a `todo.txt`.
+    3. Crea `acumulado.txt` con las 3 primeras líneas de `/etc/passwd` y **añade** después
+       las 2 últimas de `/etc/group`.
+    4. Crea `ordenado.txt` con `sort` leyendo `/etc/shells` mediante redirección de entrada (`<`).
+    5. Crea `ceros.bin` con exactamente 4096 bytes leídos de `/dev/zero`.
+    6. Ejecuta `find /etc -name '*.repo'` descartando los errores en `/dev/null` y guarda
+       la salida en `repos.txt`.
+  evaluations:
+  - id: separados
+    description: salida.txt y errores.txt separan stdout de stderr
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/salida.txt
+      value: /etc/passwd
+    - type: content
+      path: /home/learner/aso/f12/errores.txt
+      value: no-existe
+    - type: command
+      script: |
+        ! grep -q no-existe /home/learner/aso/f12/salida.txt
+  - id: juntos
+    description: todo.txt contiene ambos flujos
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f12/todo.txt
+      value: /etc/passwd
+    - type: content
+      path: /home/learner/aso/f12/todo.txt
+      value: no-existe
+  - id: acumulado
+    description: 3 primeras de passwd + 2 últimas de group
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -3 /etc/passwd; tail -2 /etc/group) /home/learner/aso/f12/acumulado.txt
+  - id: ordenado
+    description: /etc/shells ordenado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(sort /etc/shells) /home/learner/aso/f12/ordenado.txt
+  - id: ceros
+    description: ceros.bin tiene 4096 bytes a cero
+    points: 1
+    checks:
+    - type: command
+      script: |
+        cmp <(head -c 4096 /dev/zero) /home/learner/aso/f12/ceros.bin
+  - id: repos
+    description: repos.txt contiene los .repo de /etc
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(find /etc -name '*.repo' 2>/dev/null) /home/learner/aso/f12/repos.txt
+  tips:
+  - El orden de las redirecciones importa en `> f 2>&1` frente a `2>&1 > f`.
+  - '`head -c N` lee N bytes; `dd` también sirve: `dd if=/dev/zero bs=4096 count=1`.'
+
+- id: filtros-basicos
+  title: 9 · head, tail, nl y wc
+  description: |
+    Practica los filtros `head`, `tail`, `nl` y `wc`. En `/home/learner/aso/f12/`:
+
+    1. `primeras.txt`: las 5 primeras líneas de `/etc/passwd`.
+    2. `ultimas.txt`: las 3 últimas líneas de `/etc/group`.
+    3. `numeradas.txt`: `/etc/shells` con las líneas numeradas por `nl`.
+    4. `lineas-services.txt`: solo el número de líneas de `/etc/services` (sin el nombre).
+    5. `linea10.txt`: la línea 10 de `/etc/passwd`, combinando `head` y `tail` con una tubería.
+  evaluations:
+  - id: primeras
+    description: 5 primeras líneas de /etc/passwd
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -5 /etc/passwd) /home/learner/aso/f12/primeras.txt
+  - id: ultimas
+    description: 3 últimas líneas de /etc/group
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(tail -3 /etc/group) /home/learner/aso/f12/ultimas.txt
+  - id: numeradas
+    description: /etc/shells numerado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(nl /etc/shells) /home/learner/aso/f12/numeradas.txt
+  - id: contar
+    description: Número de líneas de /etc/services
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/lineas-services.txt)" = "$(wc -l < /etc/services)" ]
+  - id: linea10
+    description: Línea 10 de /etc/passwd
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -10 /etc/passwd | tail -1) /home/learner/aso/f12/linea10.txt
+  tips:
+  - '`wc -l < fichero` imprime el número sin el nombre del fichero.'
+
+- id: cut-sort-uniq
+  title: 10 · cut, sort y uniq
+  description: |
+    Practica `cut`, `sort` y `uniq` sobre `/etc/passwd` (campos separados por `:`).
+    En `/home/learner/aso/f12/`:
+
+    1. `logins.txt`: los nombres de usuario (campo 1) ordenados alfabéticamente.
+    2. `shells.txt`: cada intérprete (campo 7) con cuántas cuentas lo usan, tal como lo
+       imprime `uniq -c`, ordenado de **más a menos** usado (`sort -nr`).
+    3. `uid-altos.txt`: los logins de las 3 cuentas con UID (campo 3) más alto, del menor al
+       mayor de esos tres.
+    4. `gid-repetidos.txt`: los GID principales (campo 4) que comparten **varias** cuentas,
+       ordenados numéricamente, uno por línea.
+  evaluations:
+  - id: logins
+    description: Logins ordenados
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(cut -d: -f1 /etc/passwd | sort) /home/learner/aso/f12/logins.txt
+  - id: shells
+    description: Recuento de intérpretes ordenado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(cut -d: -f7 /etc/passwd | sort | uniq -c | sort -nr) /home/learner/aso/f12/shells.txt
+  - id: uids
+    description: Las 3 cuentas con UID más alto
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(sort -t: -k3,3n /etc/passwd | tail -3 | cut -d: -f1) /home/learner/aso/f12/uid-altos.txt
+  - id: repetidos
+    description: GID principales compartidos
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(cut -d: -f4 /etc/passwd | sort -n | uniq -d) /home/learner/aso/f12/gid-repetidos.txt
+  tips:
+  - '`uniq` solo detecta repeticiones **consecutivas**: ordena antes.'
+  - '`sort -t: -k3,3n` ordena numéricamente por el tercer campo.'
+
+- id: tr
+  title: 11 · tr
+  description: |
+    Practica `tr` (traducir y borrar caracteres). En `/home/learner/aso/f12/`:
+
+    1. `mayusculas.txt`: `/etc/shells` convertido a mayúsculas.
+    2. `campos-root.txt`: la primera línea de `/etc/passwd` con un campo por línea
+       (cambia cada `:` por un salto de línea).
+    3. `sin-digitos.txt`: las 5 primeras líneas de `/etc/group` sin ningún dígito.
+  evaluations:
+  - id: mayusculas
+    description: /etc/shells en mayúsculas
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(tr 'a-z' 'A-Z' < /etc/shells) /home/learner/aso/f12/mayusculas.txt
+  - id: campos
+    description: Campos de la primera línea de passwd, uno por línea
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -1 /etc/passwd | tr ':' '\n') /home/learner/aso/f12/campos-root.txt
+  - id: digitos
+    description: Primeras 5 líneas de /etc/group sin dígitos
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -5 /etc/group | tr -d '0-9') /home/learner/aso/f12/sin-digitos.txt
+  tips:
+  - '`tr` solo lee de la entrada estándar: usa `<` o una tubería.'
+  - 'Las clases `[:lower:]` y `[:upper:]` también funcionan.'
+
+- id: tuberias
+  title: 12 · Tuberías con utilidades comunes
+  description: |
+    Combina órdenes con tuberías para contestar. Escribe solo el número o la lista pedida
+    en cada fichero de `/home/learner/aso/f12/`:
+
+    1. `num-conf.txt`: cuántas entradas de `/etc` terminan en `.conf`.
+    2. `nologin.txt`: cuántas cuentas de `/etc/passwd` tienen un intérprete terminado en `nologin`.
+    3. `grandes.txt`: los nombres de los 5 ficheros más grandes de `/usr/bin`, del mayor al
+       menor (solo el nombre, uno por línea; `ls -S` ordena por tamaño).
+    4. `tcp.txt`: cuántas líneas de `/etc/services` contienen `/tcp`.
+    5. `bash-users.txt`: los logins que usan `/bin/bash`, ordenados.
+  evaluations:
+  - id: conf
+    description: Número de .conf en /etc
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/num-conf.txt)" = "$(ls -d /etc/*.conf | wc -l)" ]
+  - id: nologin
+    description: Cuentas con nologin
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/nologin.txt)" = "$(grep -c 'nologin$' /etc/passwd)" ]
+  - id: grandes
+    description: Los 5 ficheros más grandes de /usr/bin
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(ls -S /usr/bin | head -5) /home/learner/aso/f12/grandes.txt
+  - id: tcp
+    description: Líneas de /etc/services con /tcp
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/tcp.txt)" = "$(grep -c '/tcp' /etc/services)" ]
+  - id: bash
+    description: Usuarios con /bin/bash
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep ':/bin/bash$' /etc/passwd | cut -d: -f1 | sort) /home/learner/aso/f12/bash-users.txt
+  tips:
+  - '`wc -l` cuenta líneas; `grep -c` cuenta coincidencias directamente.'
+
+- id: grep-regex
+  title: 13 · grep y expresiones regulares
+  description: |
+    Practica `grep` con expresiones regulares básicas y extendidas (`-E`), y las opciones
+    `-c`, `-v`, `-i`, `-w`. El diccionario real está en `/usr/share/dict/words`.
+    En `/home/learner/aso/f12/`:
+
+    1. `q-sin-u.txt`: cuántas palabras empiezan por `q` minúscula **no** seguida de `u`.
+    2. `vocales.txt`: las palabras formadas **solo** por vocales minúsculas (`aeiou`) de 4 o
+       más letras.
+    3. `z5a.txt`: las palabras de exactamente 5 caracteres que empiezan por `z` y terminan en `a`.
+    4. `puerto80.txt`: las líneas de `/etc/services` cuyo puerto es exactamente `80/tcp`
+       (no `8080/tcp` ni `280/tcp`).
+    5. `login-defs.txt`: las líneas de `/etc/login.defs` que no son comentarios (`#` al inicio)
+       ni están vacías.
+    6. `learner-grupo.txt`: las líneas de `/etc/group` que contienen la **palabra completa** `learner`.
+  evaluations:
+  - id: q
+    description: Palabras con q no seguida de u
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(tr -d \'[:space:]\' < /home/learner/aso/f12/q-sin-u.txt)" = "$(grep -c '^q[^u]' /usr/share/dict/words)" ]
+  - id: vocales
+    description: Palabras solo de vocales
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -E '^[aeiou]{4,}$' /usr/share/dict/words) /home/learner/aso/f12/vocales.txt
+  - id: z5a
+    description: z...a
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep '^z...a$' /usr/share/dict/words) /home/learner/aso/f12/z5a.txt
+  - id: puerto80
+    description: Servicios en 80/tcp
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -E '[[:space:]]80/tcp' /etc/services) /home/learner/aso/f12/puerto80.txt
+  - id: defs
+    description: login.defs sin comentarios ni líneas vacías
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -Ev '^#|^$' /etc/login.defs) /home/learner/aso/f12/login-defs.txt
+  - id: palabra
+    description: Palabra completa learner en /etc/group
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -w learner /etc/group) /home/learner/aso/f12/learner-grupo.txt
+  tips:
+  - '`^` ancla al inicio, `$` al final, `.` es cualquier carácter.'
+  - '`[^u]` = cualquier carácter salvo u; `{4,}` = 4 o más repeticiones (con `-E`).'
+
+- id: sed
+  title: 14 · sed
+  description: |
+    Practica `sed` para sustituir, borrar e imprimir líneas. En `/home/learner/aso/f12/`:
+
+    1. `passwd-barras.txt`: las 5 primeras líneas de `/etc/passwd` con **cada** `:`
+       sustituido por ` | ` (espacio, barra, espacio).
+    2. `bashrc-limpio.txt`: `/etc/bashrc` sin las líneas de comentario (las que, tras
+       espacios opcionales, empiezan por `#`).
+    3. `nombres-shell.txt`: `/etc/shells` dejando solo el nombre del programa
+       (borra todo hasta la última `/`).
+    4. `group-3-6.txt`: las líneas 3 a 6 de `/etc/group`, usando `sed -n`.
+  evaluations:
+  - id: barras
+    description: 'Sustitución global de :'
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(head -5 /etc/passwd | sed 's/:/ | /g') /home/learner/aso/f12/passwd-barras.txt
+  - id: comentarios
+    description: bashrc sin comentarios
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(sed '/^[[:space:]]*#/d' /etc/bashrc) /home/learner/aso/f12/bashrc-limpio.txt
+  - id: nombres
+    description: Solo el nombre de cada shell
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(sed 's|.*/||' /etc/shells) /home/learner/aso/f12/nombres-shell.txt
+  - id: rango
+    description: Líneas 3–6 de /etc/group
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(sed -n '3,6p' /etc/group) /home/learner/aso/f12/group-3-6.txt
+  tips:
+  - '`s/a/b/g`: la `g` sustituye todas las apariciones de la línea.'
+  - 'Puedes usar otro delimitador cuando el patrón tiene `/`: `s|x|y|`.'
+  - '`/patrón/d` borra las líneas que encajan.'

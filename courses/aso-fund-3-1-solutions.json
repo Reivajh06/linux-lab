@@ -1,0 +1,10 @@
+{
+  "ps-basico": "D=/home/learner/aso/f31\nps -ef > $D/ps-ef.txt\nps aux > $D/ps-aux.txt\nps -o pid,ppid,user,stat,comm -p 1 > $D/pid1.txt\nps -o pid,ppid,user,comm -C supervisord > $D/supervisord.txt\npstree -p > $D/arbol.txt",
+  "top": "top -b -n 1 -o %MEM > /home/learner/aso/f31/top.txt",
+  "estado": "cat > /home/learner/aso/f31/estado.sh <<'SOLUCION'\n#!/bin/bash\n[ $# -eq 1 ] || { echo 'uso: estado.sh PID' >&2; exit 1; }\n[[ $1 =~ ^[0-9]+$ ]] || { echo 'error: el PID debe ser un número' >&2; exit 2; }\ndatos=$(ps -o pid=,ppid=,stat=,comm= -p \"$1\") || { echo \"error: no existe el proceso $1\" >&2; exit 3; }\nread -r pid ppid stat comm <<< \"$datos\"\necho \"PID=$pid PPID=$ppid ESTADO=$stat ORDEN=$comm\"\nSOLUCION\nchmod 755 /home/learner/aso/f31/estado.sh\nchown learner:learner /home/learner/aso/f31/estado.sh\n",
+  "trabajos": "bgl() { runuser -u learner -- setsid -f \"$@\" >/dev/null 2>&1 </dev/null; }\nbgl sleep 3101\nbgl sleep 3102\nbgl sleep 3103\nsleep 0.5\nkill -STOP $(pgrep -fx 'sleep 3102')\nprintf '[2]+ %s Stopped                 sleep 3102\\n' \"$(pgrep -fx 'sleep 3102')\" > /home/learner/aso/f31/jobs.txt",
+  "senales": "bgl() { runuser -u learner -- setsid -f \"$@\" >/dev/null 2>&1 </dev/null; }\nkill -l HUP INT KILL TERM STOP CONT > /home/learner/aso/f31/senales.txt\nbgl sleep 3104\nbgl sleep 3105\nbgl sleep 3106\nsleep 0.5\nkill -STOP $(pgrep -fx 'sleep 3104')\nkill -STOP $(pgrep -fx 'sleep 3105')\nkill -CONT $(pgrep -fx 'sleep 3105')\nkill $(pgrep -fx 'sleep 3106')\nsleep 0.5",
+  "pgrep-killall": "bgl() { runuser -u learner -- setsid -f \"$@\" >/dev/null 2>&1 </dev/null; }\ncp /usr/bin/sleep /home/learner/aso/f31/dormilon\nchown learner:learner /home/learner/aso/f31/dormilon\nfor i in 1 2 3; do bgl /home/learner/aso/f31/dormilon 600; done\nsleep 0.5\npgrep -x dormilon > /home/learner/aso/f31/pids.txt\nkillall dormilon\nsleep 0.5",
+  "nohup": "bgl() { runuser -u learner -- setsid -f \"$@\" >/dev/null 2>&1 </dev/null; }\nbgl nohup sleep 3301\nsleep 0.5",
+  "disown": "bgl() { runuser -u learner -- setsid -f \"$@\" >/dev/null 2>&1 </dev/null; }\nbgl sleep 3302\nsleep 0.5"
+}

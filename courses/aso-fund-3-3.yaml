@@ -1,0 +1,395 @@
+schema_version: 1
+id: aso-fund-3-3
+version: '1.0'
+title: ASO Fundamentos 3.3 · Monitorización y planificación
+folder: ASO Fundamentos
+description: |
+  Fundamentos del bloque 3.3 del Tema 3: información básica (`uname`, `hostname`, `lscpu`,
+  `free`), el sistema de ficheros `/proc` (del sistema y de cada proceso), `vmstat`,
+  `time`, `uptime`, planificación con `at`, `batch` y `crontab`, y prioridades con `nice` y
+  `renice`.
+
+  Toda la información sale del **sistema real** del contenedor y se compara en vivo al
+  evaluar. Como no hay systemd, los demonios `atd` y `crond` se arrancan a mano con
+  `sudo atd` y `sudo crond` cuando el ejercicio lo pide.
+
+  Guarda las respuestas en `/home/learner/aso/f33/`.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f33
+exercises:
+- id: info-basica
+  title: 1 · uname, hostname, lscpu y free
+  description: |
+    Guarda **solo el valor** pedido (una línea) en cada fichero de `/home/learner/aso/f33/`:
+
+    1. `kernel.txt`: la versión del núcleo (`uname -r`).
+    2. `arquitectura.txt`: la arquitectura de la máquina (`uname -m`).
+    3. `maquina.txt`: el nombre de la máquina (`hostname`).
+    4. `cpus.txt`: el número de CPU que indica la línea `CPU(s):` de `lscpu`.
+    5. `memoria.txt`: la memoria total en MiB, columna `total` de la fila `Mem:` de `free -m`.
+  evaluations:
+  - id: uname
+    description: Núcleo y arquitectura
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(uname -r) /home/learner/aso/f33/kernel.txt && diff -b <(uname -m) /home/learner/aso/f33/arquitectura.txt
+  - id: hostname
+    description: Nombre de la máquina
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(hostname) /home/learner/aso/f33/maquina.txt
+  - id: lscpu
+    description: Número de CPU
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(lscpu | awk '/^CPU\(s\):/ {print $2}') /home/learner/aso/f33/cpus.txt
+  - id: free
+    description: Memoria total en MiB
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(free -m | awk '/^Mem:/ {print $2}') /home/learner/aso/f33/memoria.txt
+  tips:
+  - '`awk ''/^Mem:/ {print $2}''` saca la segunda columna de la fila Mem.'
+
+- id: proc-sistema
+  title: 2 · /proc del sistema
+  description: |
+    Saca estos datos leyendo directamente ficheros de `/proc` (sin `lscpu` ni `free`):
+
+    1. `modelo-cpu.txt`: el valor del primer `model name` de `/proc/cpuinfo` (sin la etiqueta
+       ni los espacios iniciales).
+    2. `procesadores.txt`: cuántas líneas `processor` hay en `/proc/cpuinfo`.
+    3. `memtotal.txt`: el número de kB de `MemTotal` en `/proc/meminfo` (solo el número).
+    4. `version.txt`: el contenido de `/proc/version`.
+    5. `sistemas-ficheros.txt`: el contenido de `/proc/filesystems` sin las líneas que empiezan
+       por `nodev`.
+  evaluations:
+  - id: cpuinfo
+    description: Modelo y número de procesadores
+    points: 2
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -m1 '^model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//') /home/learner/aso/f33/modelo-cpu.txt
+    - type: command
+      script: |
+        diff -b <(grep -c '^processor' /proc/cpuinfo) /home/learner/aso/f33/procesadores.txt
+  - id: meminfo
+    description: MemTotal
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(awk '/^MemTotal:/ {print $2}' /proc/meminfo) /home/learner/aso/f33/memtotal.txt
+  - id: version
+    description: /proc/version
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b /proc/version /home/learner/aso/f33/version.txt
+  - id: filesystems
+    description: Sistemas de ficheros con dispositivo
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep -v '^nodev' /proc/filesystems) /home/learner/aso/f33/sistemas-ficheros.txt
+  tips:
+  - '`/proc` no está en disco: el núcleo genera su contenido al leerlo.'
+
+- id: proc-info
+  title: 3 · /proc de un proceso
+  description: |
+    Crea `proc-info.sh PID` que lea `/proc/PID/status` y `/proc/PID/cmdline` y muestre:
+
+    ```
+    Nombre: (campo Name)
+    Estado: (campo State, completo, p. ej. S (sleeping))
+    Padre: (campo PPid)
+    UID real: (primer número del campo Uid)
+    Orden: (cmdline con los argumentos separados por un espacio)
+    ```
+
+    En `cmdline` los argumentos van separados por bytes nulos: usa `tr '\0' ' '`.
+  script:
+    path: /home/learner/aso/f33/proc-info.sh
+    usage: proc-info.sh PID
+  input_requirements:
+  - description: Exactamente un argumento.
+    error: uso
+  - description: El argumento es un número.
+    error: numero
+  - description: Existe /proc/PID.
+    error: noexiste
+  output_requirements:
+  - id: correcto
+    description: Las cinco líneas indicadas.
+    exit_code: 0
+  - id: uso
+    description: Número de argumentos incorrecto.
+    exit_code: 1
+    stream: stderr
+    message: 'uso: proc-info.sh PID'
+  - id: numero
+    description: El PID no es un número.
+    exit_code: 2
+    stream: stderr
+    message: 'error: el PID debe ser un número'
+  - id: noexiste
+    description: No existe el proceso.
+    exit_code: 3
+    stream: stderr
+    message: 'error: no existe el proceso PID'
+  examples:
+  - command: /home/learner/aso/f33/proc-info.sh 1
+    stdout: "Nombre: docker-init\nEstado: S (sleeping)\nPadre: 0\nUID real: 0\nOrden: /sbin/docker-init -- supervisord -n -c /etc/supervisord.conf\n"
+    exit_code: 0
+  evaluations:
+  - id: pid1
+    description: Datos de PID 1 desde /proc
+    points: 4
+    checks:
+    - type: run
+      requirement: correcto
+      args: ['1']
+      stdout: {match: lines, from_command: "awk -F'\\t' '/^Name:/ {print \"Nombre: \" $2} /^State:/ {print \"Estado: \" $2} /^PPid:/ {print \"Padre: \" $2} /^Uid:/ {print \"UID real: \" $2}' /proc/1/status; printf 'Orden: %s\\n' \"$(tr '\\0' ' ' < /proc/1/cmdline | sed 's/ $//')\""}
+      stderr: {match: empty}
+  - id: uso
+    description: Sin argumentos
+    points: 1
+    checks:
+    - {type: run, requirement: uso, args: [], stderr: {value: 'uso: proc-info.sh PID'}}
+  - id: numero
+    description: PID no numérico
+    points: 1
+    checks:
+    - {type: run, requirement: numero, args: [self], stderr: {value: 'error: el PID debe ser un número'}}
+  - id: noexiste
+    description: PID inexistente
+    points: 1
+    checks:
+    - {type: run, requirement: noexiste, args: ['999999'], stderr: {value: 'error: no existe el proceso 999999'}}
+  tips:
+  - '`/proc/self` apunta al propio proceso que lo lee.'
+  - En `/proc/PID/status` los campos van separados por tabuladores.
+
+- id: vmstat
+  title: 4 · vmstat
+  description: |
+    1. Guarda en `/home/learner/aso/f33/vmstat.txt` **tres** muestras tomadas cada segundo:
+       `vmstat 1 3`.
+    2. Guarda en `vmstat-s.txt` el resumen de contadores de memoria y CPU (`vmstat -s`).
+    3. Guarda en `vmstat-mb.txt` una muestra con las cantidades en megabytes (`vmstat -S M`).
+
+    Identifica las columnas: `r`, `b` (procesos), `swpd`, `free`, `buff`, `cache`
+    (memoria), `si`, `so` (swap), `bi`, `bo` (E/S), `us`, `sy`, `id`, `wa` (CPU).
+  evaluations:
+  - id: muestras
+    description: Cabecera y tres muestras
+    points: 2
+    checks:
+    - type: command
+      script: |
+        f=/home/learner/aso/f33/vmstat.txt
+        [ "$(wc -l < "$f")" = 5 ] && head -1 "$f" | grep -q '^procs' && sed -n 2p "$f" | grep -q 'swpd'
+  - id: resumen
+    description: Resumen de vmstat -s
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f33/vmstat-s.txt
+      value: 'K total memory'
+  - id: megas
+    description: Muestra en megabytes
+    points: 1
+    checks:
+    - type: command
+      script: |
+        f=/home/learner/aso/f33/vmstat-mb.txt
+        [ "$(wc -l < "$f")" = 3 ] && sed -n 2p "$f" | grep -q 'swpd'
+  tips:
+  - La primera muestra de `vmstat` es la media desde el arranque; las siguientes, del intervalo.
+
+- id: time-uptime
+  title: 5 · time y uptime
+  description: |
+    1. Mide cuánto tarda `sleep 2` con la palabra reservada `time` de bash y guarda su
+       informe (que sale por stderr) en `/home/learner/aso/f33/tiempo.txt`.
+    2. Guarda la salida de `uptime` en `uptime.txt`.
+    3. Guarda en `activo.txt` el tiempo encendido en formato legible (`uptime -p`).
+
+    Relaciona la carga media de `uptime` con el número de CPU que encontraste antes.
+  evaluations:
+  - id: time
+    description: Informe de time con real, user y sys
+    points: 2
+    checks:
+    - type: content
+      path: /home/learner/aso/f33/tiempo.txt
+      value: 'real\s+0m2\.\d+s'
+      match: regex
+    - type: content
+      path: /home/learner/aso/f33/tiempo.txt
+      value: 'sys\s+0m'
+      match: regex
+  - id: uptime
+    description: Salida de uptime y uptime -p
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f33/uptime.txt
+      value: 'load average'
+    - type: content
+      path: /home/learner/aso/f33/activo.txt
+      value: '^up '
+      match: regex
+  tips:
+  - '`{ time sleep 2; } 2> tiempo.txt` redirige el informe de `time`, que va por stderr.'
+
+- id: at
+  title: 6 · Planificar una vez con at
+  description: |
+    Como `learner`:
+
+    1. Programa con `at` para **mañana a las 08:00** la orden
+       `echo aso-at > /home/learner/aso/f33/at.txt`.
+    2. Comprueba la cola con `atq` y lee el trabajo completo con `at -c NÚMERO`.
+    3. Programa otro trabajo cualquiera para dentro de una hora y **bórralo** con `atrm`.
+  evaluations:
+  - id: programado
+    description: learner tiene en cola un trabajo con aso-at
+    points: 2
+    checks:
+    - type: command
+      script: |
+        for j in $(atq | awk '$NF=="learner" {print $1}'); do at -c "$j" | grep -q 'aso-at' && exit 0; done; exit 1
+  tips:
+  - 'Formatos de hora: `at 08:00 tomorrow`, `at now + 1 hour`, `at 10:30 2026-12-24`.'
+  - '`at` lee las órdenes de la entrada estándar: termina con Ctrl+D o usa `echo ... | at ...`.'
+
+- id: batch
+  title: 7 · batch y el demonio atd
+  description: |
+    `batch` encola trabajos que `atd` ejecuta cuando la carga del sistema es baja.
+
+    1. Arranca el demonio: `sudo atd` (en la VM: `systemctl start atd`).
+    2. Como `learner`, encola con `batch` la orden
+       `date > /home/learner/aso/f33/batch.txt`.
+    3. Espera unos segundos y comprueba que se ha creado el fichero.
+
+    Si la carga del equipo es alta, `atd` puede tardar en lanzarlo: arráncalo con un umbral
+    mayor, `sudo atd -l 4`.
+  evaluations:
+  - id: atd
+    description: atd en marcha
+    points: 1
+    checks:
+    - type: process
+      name: atd
+  - id: ejecutado
+    description: batch.txt creado por learner
+    points: 2
+    checks:
+    - type: ownership
+      path: /home/learner/aso/f33/batch.txt
+      owner: learner
+    - type: command
+      script: |
+        test -s /home/learner/aso/f33/batch.txt
+  tips:
+  - '`atq` muestra los trabajos de `batch` en la cola `b`.'
+
+- id: crontab
+  title: 8 · Tareas periódicas con crontab
+  description: |
+    Edita tu tabla con `crontab -e` (como `learner`) y añade estas tres líneas:
+
+    1. Cada 10 minutos: `df -h > /home/learner/aso/f33/df.txt`
+    2. A las 02:30 de lunes a viernes: `tar czf /tmp/etc-copia.tgz /etc`
+    3. Cada minuto: `date >> /home/learner/aso/f33/cron.txt`
+
+    Arranca el demonio con `sudo crond` y espera un minuto: `cron.txt` debe empezar a crecer.
+    Revisa también `/etc/crontab` para ver el formato comentado.
+  evaluations:
+  - id: diez
+    description: Línea cada 10 minutos
+    points: 1
+    checks:
+    - type: command
+      script: |
+        crontab -l -u learner | grep -Eq '^\*/10 +\* +\* +\* +\* +.*df -h'
+  - id: laborables
+    description: Línea de las 02:30 de lunes a viernes
+    points: 1
+    checks:
+    - type: command
+      script: |
+        crontab -l -u learner | grep -Eq '^30 +0?2 +\* +\* +(1-5|mon-fri) +.*tar'
+  - id: minuto
+    description: crond ejecuta la tarea de cada minuto
+    points: 2
+    checks:
+    - type: command
+      script: |
+        crontab -l -u learner | grep -Eq '^\* +\* +\* +\* +\* +.*date'
+    - type: process
+      name: crond
+    - type: command
+      script: |
+        test -s /home/learner/aso/f33/cron.txt
+  tips:
+  - 'Campos: minuto, hora, día del mes, mes, día de la semana, orden.'
+  - '`crontab -l` muestra la tabla; `crontab -r` la borra entera (¡cuidado!).'
+
+- id: nice-renice
+  title: 9 · Prioridades con nice y renice
+  description: |
+    Como `learner`:
+
+    1. Lanza `sleep 3401` en segundo plano con un valor *nice* de **10** usando `nice`.
+    2. Lanza `sleep 3402 &` normal y súbele el *nice* a **15** con `renice`.
+    3. Guarda en `/home/learner/aso/f33/prioridades.txt` la salida de
+       `ps -o pid,ni,pri,comm -C sleep`.
+
+    Intenta bajar el *nice* de `sleep 3402` a 5 sin `sudo` y observa el error: un usuario
+    normal solo puede empeorar la prioridad de sus procesos.
+  evaluations:
+  - id: nice
+    description: sleep 3401 con nice 10
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -u learner -fx 'sleep 3401' | head -1)
+        test -n "$p" && [ "$(ps -o ni= -p "$p" | tr -d ' ')" = 10 ]
+  - id: renice
+    description: sleep 3402 con nice 15
+    points: 1
+    checks:
+    - type: command
+      script: |
+        p=$(pgrep -u learner -fx 'sleep 3402' | head -1)
+        test -n "$p" && [ "$(ps -o ni= -p "$p" | tr -d ' ')" = 15 ]
+  - id: ps
+    description: prioridades.txt muestra la columna NI
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f33/prioridades.txt
+      value: '^\s*PID\s+NI\s+PRI\s+COMMAND'
+      match: regex
+  tips:
+  - '`nice -n 10 orden &`, `renice -n 15 -p PID`.'
+  - El *nice* va de -20 (más prioridad) a 19 (menos).
+  - 'En este contenedor ni siquiera root puede cambiar la prioridad de procesos ajenos ni bajar el *nice* (falta la capacidad CAP_SYS_NICE): haz `renice` como learner sobre tus propios procesos.'

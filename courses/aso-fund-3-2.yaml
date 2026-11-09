@@ -1,0 +1,372 @@
+schema_version: 1
+id: aso-fund-3-2
+version: '1.0'
+title: ASO Fundamentos 3.2 · Servicios con systemd
+folder: ASO Fundamentos
+description: |
+  Fundamentos del bloque 3.2 del Tema 3: unidades de servicio, `systemctl`
+  (`list-unit-files`, `is-enabled`, `enable`, `disable`, `cat`), instalar un servicio desde
+  un paquete RPM (`httpd`), editar con `vi`, ficheros *drop-in*, `systemd-delta` y cgroups
+  (`/sys/fs/cgroup`, `systemd-cgls`).
+
+  **Limitación del laboratorio:** el contenedor no arranca con systemd como PID 1. Funcionan
+  todas las órdenes de `systemctl` que trabajan sobre ficheros (`enable`, `disable`,
+  `is-enabled`, `cat`, `list-unit-files`) y los ficheros de unidad y *drop-in* son los
+  reales de Fedora. Las que hablan con el demonio (`start`, `stop`, `status`, `show`,
+  `daemon-reload`, `set-property`, `systemd-run`, `systemd-cgtop`) fallan con «System has
+  not been booted with systemd». Aquí arrancarás `httpd` directamente y el último ejercicio
+  te pide escribir esas órdenes para usarlas en la máquina virtual Fedora.
+
+  Requiere red para instalar `httpd` con `dnf`. Guarda tus respuestas en `/home/learner/aso/f32/`.
+setup:
+- script: |
+    set -e
+    install -d -o learner -g learner /home/learner/aso/f32
+exercises:
+- id: listar
+  title: 1 · Listar servicios instalados
+  description: |
+    En `/home/learner/aso/f32/`:
+
+    1. `servicios.txt`: todos los ficheros de unidad de tipo servicio,
+       `systemctl list-unit-files --type=service --no-pager`.
+    2. `habilitados.txt`: solo los servicios **habilitados** (`--state=enabled`).
+    3. `atd-crond.txt`: la salida de `systemctl is-enabled atd crond`.
+
+    Localiza en qué directorios viven las unidades: `/usr/lib/systemd/system` (paquetes) y
+    `/etc/systemd/system` (administrador).
+  evaluations:
+  - id: todos
+    description: Listado completo de servicios
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/servicios.txt
+      value: '^UNIT FILE\s+STATE\s+PRESET'
+      match: regex
+    - type: content
+      path: /home/learner/aso/f32/servicios.txt
+      value: 'disabled'
+  - id: habilitados
+    description: Solo los habilitados
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/habilitados.txt
+      value: crond.service
+    - type: command
+      script: |
+        ! grep -E '^[^ ]+\.service +(disabled|static)' /home/learner/aso/f32/habilitados.txt
+  - id: is-enabled
+    description: Estado de atd y crond
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/atd-crond.txt
+      value: '^enabled\s+enabled\s*$'
+      match: regex
+  tips:
+  - 'Estados frecuentes: `enabled`, `disabled`, `static` (sin sección `[Install]`), `masked`.'
+
+- id: habilitar
+  title: 2 · enable y disable
+  description: |
+    Con `sudo systemctl`:
+
+    1. **Deshabilita** `sysstat.service`.
+    2. **Habilita** `systemd-timesyncd.service`.
+
+    Observa la salida: `enable` y `disable` crean y borran enlaces simbólicos en los
+    directorios `*.wants` de `/etc/systemd/system`. Míralos con `ls -l`.
+  evaluations:
+  - id: sysstat
+    description: sysstat deshabilitado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(systemctl is-enabled sysstat.service)" = disabled ]
+  - id: timesyncd
+    description: systemd-timesyncd habilitado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(systemctl is-enabled systemd-timesyncd.service)" = enabled ]
+  tips:
+  - '`enable` no arranca el servicio; `enable --now` además lo arrancaría (en una VM).'
+
+- id: instalar-httpd
+  title: 3 · Instalar un servicio desde un paquete RPM
+  description: |
+    1. Busca el paquete con `dnf search httpd` y míralo con `dnf info httpd`.
+    2. Instálalo: `sudo dnf install -y httpd`.
+    3. Guarda en `/home/learner/aso/f32/rpm-httpd.txt` la lista de ficheros del paquete
+       (`rpm -ql httpd`) y localiza en ella su fichero de unidad.
+  evaluations:
+  - id: paquete
+    description: httpd instalado
+    points: 2
+    checks:
+    - type: command
+      script: |
+        rpm -q httpd
+  - id: ficheros
+    description: Lista de ficheros del paquete con su unidad
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/rpm-httpd.txt
+      value: /usr/lib/systemd/system/httpd.service
+  tips:
+  - '`rpm -qf FICHERO` dice a qué paquete pertenece un fichero.'
+
+- id: unidad-httpd
+  title: 4 · Leer y habilitar la unidad httpd
+  description: |
+    1. Lee la unidad con `systemctl cat httpd`. Guarda sus líneas `ExecStart` y `ExecReload`
+       en `/home/learner/aso/f32/exec.txt` (`systemctl cat httpd | grep '^Exec'`).
+    2. Guarda en `wantedby.txt` la línea `WantedBy=` de su sección `[Install]`.
+    3. Habilita el servicio para el arranque con `sudo systemctl enable httpd` y comprueba
+       el enlace creado.
+  evaluations:
+  - id: exec
+    description: Líneas Exec de la unidad
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(systemctl cat httpd | grep '^Exec') /home/learner/aso/f32/exec.txt
+  - id: wantedby
+    description: Línea WantedBy
+    points: 1
+    checks:
+    - type: command
+      script: |
+        diff -b <(grep '^WantedBy=' /usr/lib/systemd/system/httpd.service) /home/learner/aso/f32/wantedby.txt
+  - id: enable
+    description: httpd habilitado
+    points: 1
+    checks:
+    - type: command
+      script: |
+        [ "$(systemctl is-enabled httpd)" = enabled ]
+    - type: path
+      path: /etc/systemd/system/multi-user.target.wants/httpd.service
+      kind: symlink
+  tips:
+  - '`WantedBy=multi-user.target` es lo que decide dónde se crea el enlace al habilitar.'
+
+- id: httpd-vi
+  title: 5 · Configurar httpd con vi y arrancarlo
+  description: |
+    Usa **`vi`/`vim`** (con `sudo`) para editar:
+
+    1. `/etc/httpd/conf/httpd.conf`: cambia la directiva `Listen 80` por `Listen 8080`.
+    2. `/var/www/html/index.html`: crea una página con el texto `ASO Fundamentos`.
+
+    Comprueba la sintaxis con `sudo httpd -t`. Como aquí no hay systemd, arranca el
+    servidor directamente con `sudo httpd -k start` (en la VM sería `systemctl start httpd`).
+    Comprueba la página con `curl http://localhost:8080/`. Si cambias algo después, recarga
+    con `sudo httpd -k graceful` (equivale a `systemctl reload`).
+  evaluations:
+  - id: configuracion
+    description: Escucha en 8080 y la sintaxis es correcta
+    points: 2
+    checks:
+    - type: command
+      script: |
+        grep -qx 'Listen 8080' /etc/httpd/conf/httpd.conf && ! grep -qx 'Listen 80' /etc/httpd/conf/httpd.conf
+    - type: command
+      script: |
+        httpd -t
+  - id: pagina
+    description: El servidor responde con la página
+    points: 2
+    checks:
+    - type: process
+      name: httpd
+    - type: command
+      script: |
+        curl -s --max-time 5 http://127.0.0.1:8080/ | grep -q 'ASO Fundamentos'
+  tips:
+  - 'En vi: `/Listen` busca, `cw` cambia una palabra, `Esc` y `:wq` guarda.'
+  - 'Sustitución directa: `:%s/^Listen 80$/Listen 8080/`.'
+
+- id: dropin-httpd
+  title: 6 · Un drop-in con límites para httpd
+  description: |
+    Sin tocar `/usr/lib/systemd/system/httpd.service`, crea el *drop-in*
+    `/etc/systemd/system/httpd.service.d/limites.conf` con esta sección `[Service]`:
+
+    - `MemoryMax=256M`
+    - `CPUQuota=30%`
+    - `Restart=on-failure`
+
+    Comprueba que `systemctl cat httpd` muestra el fichero original **y** tu drop-in, y que
+    `systemd-delta` lo lista como `[EXTENDED]`. En la VM harías después
+    `systemctl daemon-reload` y `systemctl restart httpd`.
+  evaluations:
+  - id: fichero
+    description: El drop-in contiene las tres propiedades en [Service]
+    points: 2
+    checks:
+    - type: command
+      script: |
+        f=/etc/systemd/system/httpd.service.d/limites.conf
+        grep -qx '\[Service\]' "$f" && grep -qx 'MemoryMax=256M' "$f" && grep -qx 'CPUQuota=30%' "$f" && grep -qx 'Restart=on-failure' "$f"
+  - id: delta
+    description: systemd ve la unidad extendida
+    points: 1
+    checks:
+    - type: command
+      script: |
+        systemctl cat httpd | grep -q '^# /etc/systemd/system/httpd.service.d/limites.conf'
+    - type: command
+      script: |
+        systemd-delta --no-pager --type=extended | grep -q 'httpd.service.d/limites.conf'
+  tips:
+  - '`systemctl edit httpd` crea el drop-in por ti en una VM con systemd.'
+
+- id: unidad-propia
+  title: 7 · Unidad propia y sustituir ExecStart
+  description: |
+    1. Crea `/etc/systemd/system/aso-hola.service` con:
+       - `[Unit]` → `Description=Saludo de ASO`
+       - `[Service]` → `Type=oneshot` y `ExecStart=/usr/bin/logger hola desde ASO`
+       - `[Install]` → `WantedBy=multi-user.target`
+    2. Habilítala con `systemctl enable aso-hola`.
+    3. Crea el drop-in `/etc/systemd/system/aso-hola.service.d/override.conf` que **sustituya**
+       la orden por `/usr/bin/touch /tmp/aso-hola`. Recuerda: `ExecStart` se acumula, así que
+       primero hay que vaciarlo con una línea `ExecStart=` y después poner la nueva.
+  evaluations:
+  - id: unidad
+    description: La unidad existe y está habilitada
+    points: 2
+    checks:
+    - type: command
+      script: |
+        f=/etc/systemd/system/aso-hola.service
+        grep -qx 'Type=oneshot' "$f" && grep -qx 'WantedBy=multi-user.target' "$f" && grep -q '^ExecStart=/usr/bin/logger' "$f"
+    - type: command
+      script: |
+        [ "$(systemctl is-enabled aso-hola)" = enabled ]
+  - id: override
+    description: El drop-in vacía ExecStart antes de redefinirlo
+    points: 2
+    checks:
+    - type: command
+      script: |
+        awk '/^\[Service\]$/ {s=NR} /^ExecStart=$/ {r=NR} /^ExecStart=\/usr\/bin\/touch \/tmp\/aso-hola$/ {t=NR} END {exit !(s && r > s && t > r)}' /etc/systemd/system/aso-hola.service.d/override.conf
+  tips:
+  - '`man 5 systemd.service` y `man 5 systemd.unit` documentan cada directiva.'
+
+- id: cgroups
+  title: 8 · Observar cgroups
+  description: |
+    Linux Lab aplica límites de CPU, memoria y procesos a este contenedor mediante cgroups v2.
+    En `/home/learner/aso/f32/`:
+
+    1. `limites.txt`: tres líneas con el contenido de los ficheros de `/sys/fs/cgroup`:
+
+       ```
+       memoria: (contenido de memory.max)
+       cpu: (contenido de cpu.max)
+       procesos: (contenido de pids.max)
+       ```
+    2. `cgls.txt`: la jerarquía de cgroups con `systemd-cgls --no-pager`.
+    3. `mi-cgroup.txt`: el cgroup de tu shell, `cat /proc/$$/cgroup`.
+
+    `max` significa sin límite. `cpu.max` es `CUOTA PERIODO`: `200000 100000` = 2 CPU.
+  evaluations:
+  - id: limites
+    description: Valores reales de memory.max, cpu.max y pids.max
+    points: 2
+    checks:
+    - type: command
+      script: |
+        diff -b <(printf 'memoria: %s\ncpu: %s\nprocesos: %s\n' "$(cat /sys/fs/cgroup/memory.max)" "$(cat /sys/fs/cgroup/cpu.max)" "$(cat /sys/fs/cgroup/pids.max)") /home/learner/aso/f32/limites.txt
+  - id: cgls
+    description: Jerarquía guardada
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/cgls.txt
+      value: '^CGroup /'
+      match: regex
+  - id: propio
+    description: cgroup de la shell
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/mi-cgroup.txt
+      value: '^0::/'
+      match: regex
+  tips:
+  - '`MemoryMax=` y `CPUQuota=` de systemd escriben precisamente en `memory.max` y `cpu.max`.'
+
+- id: ordenes-vm
+  title: 9 · Las órdenes de systemctl para la VM
+  description: |
+    Escribe en `/home/learner/aso/f32/ordenes.txt` las órdenes (una por línea, puedes
+    anteponer `sudo`) que usarías en tu máquina virtual Fedora con systemd para:
+
+    1. arrancar, detener, reiniciar, recargar y ver el estado de `httpd` (5 líneas);
+    2. que systemd relea los ficheros de unidad tras crear un drop-in;
+    3. consultar la propiedad `MemoryMax` de `httpd` con `systemctl show`;
+    4. limitar en caliente `httpd` a `CPUQuota=20%` con `set-property`;
+    5. lanzar `sha1sum /dev/zero` como unidad transitoria limitada a `CPUQuota=10%` con `systemd-run`;
+    6. ver en tiempo real el consumo de cada cgroup.
+
+    Ponlas a prueba en la VM de la Práctica 1.1.
+  evaluations:
+  - id: ciclo
+    description: start, stop, restart, reload y status
+    points: 2
+    checks:
+    - type: command
+      script: |
+        for a in start stop restart reload status; do grep -Eq "^(sudo )?systemctl $a httpd(\.service)?$" /home/learner/aso/f32/ordenes.txt || exit 1; done
+  - id: daemon-reload
+    description: daemon-reload
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/ordenes.txt
+      value: '(?m)^(sudo )?systemctl daemon-reload$'
+      match: regex
+  - id: show
+    description: systemctl show con la propiedad MemoryMax
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/ordenes.txt
+      value: '(?m)^(sudo )?systemctl show (httpd(\.service)? +(-p *|--property=)MemoryMax|(-p *|--property=)MemoryMax +httpd(\.service)?)$'
+      match: regex
+  - id: set-property
+    description: set-property CPUQuota=20%
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/ordenes.txt
+      value: '(?m)^(sudo )?systemctl set-property (--runtime )?httpd(\.service)? CPUQuota=20%$'
+      match: regex
+  - id: systemd-run
+    description: systemd-run con CPUQuota=10%
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/ordenes.txt
+      value: '(?m)^(sudo )?systemd-run .*(-p *|--property=)CPUQuota=10%.* sha1sum /dev/zero$'
+      match: regex
+  - id: cgtop
+    description: systemd-cgtop
+    points: 1
+    checks:
+    - type: content
+      path: /home/learner/aso/f32/ordenes.txt
+      value: '(?m)^(sudo )?systemd-cgtop'
+      match: regex
+  tips:
+  - '`reload` pide al servicio que relea su configuración sin parar; `restart` lo para y lo arranca.'
+  - '`systemd-cgls` muestra la jerarquía; `systemd-cgtop` el consumo en vivo.'
