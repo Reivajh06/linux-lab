@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import sqlite3
@@ -18,6 +19,7 @@ def uid():
 class Database:
     def __init__(self, directory: str | Path | None = None):
         self.directory = Path(directory or os.getenv("LAB_DATA_DIR", "data"))
+        self._courses = {}  # sha256(yaml) -> parsed Course; see parsed_course()
         self.directory.mkdir(parents=True, exist_ok=True)
         (self.directory / "sources").mkdir(exist_ok=True)
         with self.connect() as con:
@@ -114,12 +116,30 @@ class Database:
     def message(self, chat_id, role, content):
         self.execute("INSERT INTO messages(chat_id,role,content,created_at) VALUES(?,?,?,?)", (chat_id, role, content, now()))
 
-    def course(self, key):
+    def parsed_course(self, text):
+        """Parse stored course YAML once; the cache is keyed by content, so edits can't serve stale data.
+
+        Parsing (YAML + validation) costs ~70 ms per course, far too much to repeat on every request.
+        Callers must treat the returned Course as read-only: it is shared between requests.
+        """
         from .schema import parse_course
-        row = self.one("SELECT * FROM courses WHERE key=?", (key,))
+        digest = hashlib.sha256(text.encode()).digest()
+        course = self._courses.get(digest)
+        if course is None:
+            course = self.remember_course(text, parse_course(text))
+        return course
+
+    def remember_course(self, text, course):
+        if len(self._courses) >= 512:  # Bound memory; stale entries (old revisions) only cost a re-parse.
+            self._courses.clear()
+        self._courses[hashlib.sha256(text.encode()).digest()] = course
+        return course
+
+    def course(self, key):
+        row = self.one("SELECT yaml FROM courses WHERE key=?", (key,))
         if not row:
             raise KeyError("Course not found")
-        return parse_course(row["yaml"])
+        return self.parsed_course(row["yaml"])
 
     def results(self, environment_id):
         return {r["exercise_id"]: json.loads(r["result"]) for r in self.all("SELECT * FROM results WHERE environment_id=?", (environment_id,))}

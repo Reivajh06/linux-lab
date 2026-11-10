@@ -133,3 +133,11 @@ def test_markdown_style_values_are_repaired_without_touching_blocks():
 def test_unrepairable_yaml_reports_line_and_column():
     with pytest.raises(ValueError, match=r'line 2, column 6'):
         parse_course('id: x\n  bad: [\n')
+
+
+def test_parsed_course_cache_is_keyed_by_content(db, course_data):
+    text = course_yaml(Course.model_validate(course_data))
+    first = db.parsed_course(text)
+    assert db.parsed_course(text) is first  # same YAML: no re-parse
+    edited = text.replace("Sample course", "Renamed course")
+    assert db.parsed_course(edited).title == "Renamed course"  # new content: fresh parse, never stale
