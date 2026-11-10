@@ -110,8 +110,10 @@ def create_app(db=None, runtime=None):
     async def lifespan(app):
         for starter in sorted((ROOT / "courses").glob("*.yaml")):
             course = parse_course(starter.read_text(encoding="utf-8"))
+            stored = course_yaml(course)
+            db.remember_course(stored, course)  # warm the parse cache so the first page load is fast
             # Refresh shipped collections in place so content fixes (and folders) reach existing libraries.
-            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?) ON CONFLICT(course_id,version) DO UPDATE SET yaml=excluded.yaml", (uid(), course.id, course.version, course_yaml(course), now()))
+            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?) ON CONFLICT(course_id,version) DO UPDATE SET yaml=excluded.yaml", (uid(), course.id, course.version, stored, now()))
         notebook.seed()
         yield
         if builder.task and not builder.task.done():
@@ -215,11 +217,10 @@ def create_app(db=None, runtime=None):
             db.execute("INSERT OR REPLACE INTO preferences VALUES(?,?)", (key, json.dumps(value)))
         return saved_preferences()
 
-    @app.get("/api/courses")
-    async def courses():
+    def course_summaries():
         output = []
         for row in db.all("SELECT * FROM courses ORDER BY created_at DESC"):
-            course = parse_course(row["yaml"])
+            course = db.parsed_course(row["yaml"])
             env = db.one("SELECT * FROM environments WHERE course_key=? AND is_default=1", (row["key"],))
             results = db.results(env["id"]) if env else {}
             folder = course.folder if row["folder"] is None else row["folder"]
@@ -231,6 +232,11 @@ def create_app(db=None, runtime=None):
                            "environment": env, "created_at": row["created_at"]})
         return output
 
+    @app.get("/api/courses")
+    async def courses():
+        # A cold cache still parses every course; do it off the event loop so other requests keep flowing.
+        return await asyncio.to_thread(course_summaries)
+
     @app.post("/api/courses/validate")
     async def validate(body: YAMLInput):
         course = parse_course(body.yaml)
@@ -239,9 +245,10 @@ def create_app(db=None, runtime=None):
     @app.post("/api/courses/import", status_code=201)
     async def import_course(body: YAMLInput):
         course = parse_course(body.yaml)
-        key = uid()
+        key, stored = uid(), course_yaml(course)
+        db.remember_course(stored, course)
         try:
-            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?)", (key, course.id, course.version, course_yaml(course), now()))
+            db.execute("INSERT INTO courses(key,course_id,version,yaml,created_at) VALUES(?,?,?,?,?)", (key, course.id, course.version, stored, now()))
         except sqlite3.IntegrityError as exc:
             raise HTTPException(409, "This course ID and version already exist. Change version before importing a revision.") from exc
         return {"key": key, "title": course.title}
