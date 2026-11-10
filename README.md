@@ -11,6 +11,8 @@ Notebook of study notes, and can **generate new exercises** from your own PDFs o
 notes using a local [Ollama](https://ollama.com/) model. Everything runs on your
 machine: no account, no hosted service, no cloud inference.
 
+NOTE: this is an entirely vibecoded application for EDUCATION PURPOSES ONLY.
+
 - [Quick start](#quick-start)
 - [First steps in the app](#first-steps-in-the-app)
 - [Features](#features)
