@@ -25,14 +25,32 @@ RUN sed -i '/^tsflags=nodocs/d' /etc/dnf/dnf.conf && \
     printf '\nexport DISPLAY=:1\nexport LANG=en_US.UTF-8\n' >> /home/learner/.bashrc
 COPY install-browser.sh /opt/linux-lab-workspace/install-browser.sh
 RUN sed -i 's/\r$//' /opt/linux-lab-workspace/install-browser.sh && bash /opt/linux-lab-workspace/install-browser.sh
+# Services practised with systemctl (crond and atd come from the base list above).
+RUN dnf install -y --setopt=install_weak_deps=False httpd firewalld && \
+    dnf clean all && rm -rf /var/cache/dnf /var/cache/libdnf5
 COPY workspace.py /opt/linux-lab-workspace/workspace.py
 COPY lab-terminal /usr/local/bin/lab-terminal
 COPY desktop.sh /usr/local/bin/lab-desktop
 COPY supervisord.conf /etc/supervisord.conf
 COPY welcome.txt /etc/motd
-RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal /etc/supervisord.conf && \
-    chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal && \
+COPY lab-init /usr/local/sbin/lab-init
+COPY linux-lab-desktop.service /etc/systemd/system/linux-lab-desktop.service
+# systemd boots as PID 1 and starts the desktop as a service. httpd and firewalld start
+# stopped; exercises enable them. The WSL2/Docker kernel has no nftables fib expression,
+# so firewalld's IPv6 reverse-path filter must be off, and the public zone keeps the
+# desktop's noVNC port open once firewalld runs.
+RUN sed -i 's/\r$//' /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal /etc/supervisord.conf \
+    /usr/local/sbin/lab-init /etc/systemd/system/linux-lab-desktop.service && \
+    chmod +x /usr/local/bin/lab-desktop /usr/local/bin/lab-terminal /usr/local/sbin/lab-init && \
     install -d -o learner -g learner /home/learner/.config /home/learner/.config/openbox \
-    /home/learner/.config/gtk-3.0
+    /home/learner/.config/gtk-3.0 && \
+    systemctl enable linux-lab-desktop.service && \
+    systemctl disable firewalld.service && \
+    sed -i 's/^IPv6_rpfilter=.*/IPv6_rpfilter=no/' /etc/firewalld/firewalld.conf && \
+    firewall-offline-cmd --zone=public --add-port=6080/tcp
 EXPOSE 6080
-CMD ["supervisord", "-n", "-c", "/etc/supervisord.conf"]
+ENV container=docker LAB_LOG=/dev/stdout
+STOPSIGNAL SIGRTMIN+3
+# Tells the backend to start containers with the options systemd needs.
+LABEL linux-lab.init=systemd
+CMD ["/usr/local/sbin/lab-init"]

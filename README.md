@@ -139,8 +139,11 @@ The ASO Bash courses are generated: edit them in `scripts/aso_bash/`, verify wit
 solutions score everything, and captures examples), then rebuild with
 `scripts/build_aso_bash.py`.
 
-> The systemd and Apache parts of ASO Práctica 3.2 need a real VM with systemd.
-> The practice container cannot boot systemd.
+> Lab containers boot **systemd as PID 1**, so `systemctl start/stop/status`,
+> `journalctl`, `crond`, `atd`, Apache (`httpd`) and `firewalld`/`firewall-cmd` work.
+> Rebuild the lab image and recreate older environments to get this. To allow it,
+> containers get `CAP_SYS_ADMIN` and `CAP_NET_ADMIN`, scoped to their own cgroup and
+> network namespaces. Environments created from older images keep running without systemd.
 
 ## Configuration
 
@@ -318,7 +321,8 @@ Electron provides a sandboxed Chromium UI. The installer is unsigned by default.
   scores. Learner files live in the containers. Export one with
   `docker export CONTAINER -o lab.tar` (without metadata; re-attaching it is manual).
 - **What it can't do:** containers share the host kernel, so bootloaders, drivers,
-  disk partitioning, kernel modules and full systemd/boot exercises need a VM.
+  disk partitioning, kernel modules and boot/GRUB exercises need a VM. systemd
+  services work, but switching to `rescue.target` or `poweroff` stops the lab desktop.
 - **Security model:** learners have `sudo` in their own container, and evaluation is
   a learning aid rather than a secure exam system. Imported setup and grading scripts are
   trusted course code and only execute inside the lab.

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Container entrypoint: boot systemd as PID 1 so learners can practise systemctl,
+# journalctl, crond, httpd and firewalld like on a real Fedora machine.
+# Docker mounts the container's private cgroup tree read-only; systemd needs it
+# writable (the container must be started with --cgroupns=private and CAP_SYS_ADMIN).
+if mount -o remount,rw /sys/fs/cgroup 2>/dev/null; then
+    exec /usr/lib/systemd/systemd
+fi
+# Started without those options: run only the desktop, as images before systemd did.
+echo "linux-lab: cannot boot systemd (read-only cgroups); starting the desktop only" >&2
+exec supervisord -n -c /etc/supervisord.conf

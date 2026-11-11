@@ -11,6 +11,9 @@ from docker.errors import DockerException, NotFound
 
 from .db import now, uid
 
+# Minimum seconds for each one-time course setup step (enough for a dnf install).
+SETUP_TIMEOUT = 300
+
 
 class LabError(Exception):
     pass
@@ -167,6 +170,13 @@ class Runtime:
                 pass
         return self.get(environment_id)
 
+    def _boots_systemd(self, image):
+        try:
+            labels = self.client.images.get(image).labels or {}
+        except DockerException:
+            return False
+        return labels.get("linux-lab.init") == "systemd"
+
     def _repair_desktop_launchers(self, container):
         # Older Windows builds copied the extensionless launcher with CRLF,
         # making its shebang refer to a nonexistent /bin/bash\r interpreter.
@@ -214,6 +224,12 @@ class Runtime:
                 shm_size="256m", cap_drop=["NET_RAW"],
                 restart_policy={"Name": "no"},
             )
+            if self._boots_systemd(kwargs["image"]):
+                # systemd is PID 1 (no tini). It needs its private cgroup tree writable
+                # (lab-init remounts it with SYS_ADMIN) and tmpfs /run; firewalld needs
+                # NET_ADMIN, which only reaches the container's own network namespace.
+                kwargs.update(init=False, cgroupns="private", cap_add=["SYS_ADMIN", "NET_ADMIN"],
+                              tmpfs={"/run": "", "/run/lock": ""})
             if os.getenv("LAB_HOST_RUNTIME") == "1":
                 kwargs["ports"] = {"6080/tcp": ("127.0.0.1", None)}
             network = os.getenv("LAB_NETWORK")
@@ -241,7 +257,10 @@ class Runtime:
             for exercise in course.exercises:
                 steps.extend(exercise.setup)
             for index, step in enumerate(steps):
-                result = self.exec(environment_id, step.script, step.user, step.timeout)
+                # Setup runs once and may install packages: dnf downloads tens of MB of
+                # repository metadata, which neither the 1 MiB file cap nor a 15 s timeout allows.
+                result = self.exec(environment_id, step.script, step.user,
+                                   max(step.timeout, SETUP_TIMEOUT), limit_files=False)
                 if result.code != 0 or result.timed_out:
                     raise LabError(f"Setup step {index + 1} failed: {result.stderr or result.stdout or 'timeout'}")
         self.db.execute("UPDATE environments SET state='running',setup_done=1,error=NULL WHERE id=?", (environment_id,))
@@ -281,12 +300,13 @@ class Runtime:
                 self.db.execute("UPDATE environments SET state='error',error=? WHERE id=?", (str(exc)[:2000], environment_id))
                 raise LabError(str(exc)) from exc
 
-    def exec(self, environment_id, script, user="root", timeout=15):
+    def exec(self, environment_id, script, user="root", timeout=15, limit_files=True):
         container = self.container(environment_id)
         # Bound duration AND output size. Preserve stdout/stderr and original status.
+        file_limit = "ulimit -f 1024; " if limit_files else ""
         wrapper = (
             'work=$(mktemp -d); trap \'rm -rf -- "$work"\' EXIT; '
-            f'(ulimit -f 1024; timeout --kill-after=2s {int(timeout)}s bash -lc {shlex.quote(script)}) '
+            f'({file_limit}timeout --kill-after=2s {int(timeout)}s bash -lc {shlex.quote(script)}) '
             '>"$work/out" 2>"$work/err"; status=$?; '
             'head -c 32768 "$work/out"; head -c 32768 "$work/err" >&2; exit "$status"'
         )

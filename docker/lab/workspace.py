@@ -31,8 +31,8 @@ OPENBOX = '''<?xml version="1.0" encoding="UTF-8"?>
   </applications>
 </openbox_config>
 '''
-# GNOME Terminal keeps Fedora's stock look (Adwaita theme colours, menu bar, scrollbar);
-# only the font is enlarged so the command line reads clearly through VNC.
+# GNOME Terminal keeps Fedora's stock look (Adwaita theme colours, scrollbar) but hides its
+# menu bar; only the font is enlarged so the command line reads clearly through VNC.
 PROFILE = "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/"
 TERMINAL_PROFILE = {"use-system-font": "false", "font": "'Adwaita Mono 15'", "audible-bell": "false"}
 # Fedora's stock bash prompt, e.g. [learner@fedora ~]$
@@ -69,6 +69,7 @@ def configure():
     for key, value in TERMINAL_PROFILE.items():
         run(["gsettings", "set", PROFILE, key, value], check=False)
     run(["gsettings", "set", "org.gnome.Terminal.Legacy.Settings", "confirm-close", "false"], check=False)
+    run(["gsettings", "set", "org.gnome.Terminal.Legacy.Settings", "default-show-menubar", "false"], check=False)
     profile = home / ".bashrc"
     marker = "# Linux Lab tabbed terminal"
     if profile.exists():

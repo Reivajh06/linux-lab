@@ -1,0 +1,13 @@
+[Unit]
+Description=Linux Lab desktop (VNC, window manager and noVNC bridge)
+After=dbus.service network.target
+
+[Service]
+# Under systemd stdout is a journal socket that supervisord cannot reopen; log via syslog.
+Environment=LAB_LOG=syslog
+ExecStart=/usr/bin/supervisord -n -c /etc/supervisord.conf
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

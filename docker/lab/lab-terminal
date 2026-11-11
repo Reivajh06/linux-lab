@@ -9,7 +9,7 @@ fi
 cd /home/learner
 # Fedora's GNOME Terminal; --wait keeps this launcher alive while the window is open.
 if command -v gnome-terminal >/dev/null; then
-    exec gnome-terminal --wait --window --working-directory=/home/learner
+    exec gnome-terminal --wait --window --hide-menubar --working-directory=/home/learner
 fi
 # Environments from older lab images only have xfce4-terminal.
-exec xfce4-terminal --disable-server --show-menubar --hide-borders --show-scrollbar --title=Terminal --working-directory=/home/learner --command="bash -l"
+exec xfce4-terminal --disable-server --hide-menubar --hide-borders --show-scrollbar --title=Terminal --working-directory=/home/learner --command="bash -l"
