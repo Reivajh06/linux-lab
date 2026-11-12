@@ -144,6 +144,11 @@ solutions score everything, and captures examples), then rebuild with
 > Rebuild the lab image and recreate older environments to get this. To allow it,
 > containers get `CAP_SYS_ADMIN` and `CAP_NET_ADMIN`, scoped to their own cgroup and
 > network namespaces. Environments created from older images keep running without systemd.
+>
+> `sysctl` can read every key and write the ones each container owns: `net.*`,
+> System V IPC (`kernel.shm*`, `kernel.msg*`, `kernel.sem`) and `fs.mqueue.*`, including
+> `sysctl -p` and files in `/etc/sysctl.d`. Global keys such as `vm.swappiness` stay
+> read-only ("permission denied"), because they would change the shared Docker kernel.
 
 ## Configuration
 
@@ -267,6 +272,10 @@ pnpm install
 pnpm build:frontend
 pnpm desktop          # run the Electron app
 ```
+
+Backend only, without Docker Compose: run `start-server.cmd [port]`. On first run it
+creates `.venv` (Python 3.12+), installs the backend requirements and builds the UI;
+the port defaults to `LAB_PORT` from `.env`, or 8080.
 
 Backend only, with hot-reloading UI:
 

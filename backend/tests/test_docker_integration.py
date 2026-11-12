@@ -70,3 +70,27 @@ async def test_all_course_solutions_and_lifecycle(db, course_file):
         for row in [runtime.get(env['id']), runtime.get(free['id'])]:
             if row['container_id']:
                 runtime.client.containers.get(row['container_id']).remove(force=True)
+
+
+async def test_systemctl_and_sysctl(db):
+    runtime = Runtime(db)
+    env = runtime.environment()
+    other = runtime.create('Second')
+    try:
+        await runtime.start(env['id'])
+        assert runtime.exec(env['id'], 'systemctl is-system-running').stdout.strip() == 'running'
+        assert runtime.exec(env['id'], 'systemctl start httpd && systemctl is-active httpd', timeout=60).code == 0
+        # Namespaced keys are writable and persist through /etc/sysctl.d.
+        script = ('sysctl -w net.ipv4.icmp_echo_ignore_all=1 kernel.msgmax=16384 && '
+                  'echo "net.ipv4.ip_forward = 0" > /etc/sysctl.d/99-lab.conf && sysctl -p /etc/sysctl.d/99-lab.conf')
+        assert runtime.exec(env['id'], script).code == 0, runtime.exec(env['id'], script).stderr
+        assert runtime.exec(env['id'], 'sysctl -n net.ipv4.ip_forward').stdout.strip() == '0'
+        assert runtime.exec(env['id'], 'sysctl -n net.ipv4.icmp_echo_ignore_all', 'learner').stdout.strip() == '1'
+        # Global kernel keys stay read-only, and other environments keep their own values.
+        assert runtime.exec(env['id'], 'sysctl -w vm.swappiness=10').code != 0
+        await runtime.start(other['id'])
+        assert runtime.exec(other['id'], 'sysctl -n net.ipv4.icmp_echo_ignore_all').stdout.strip() == '0'
+    finally:
+        for row in [runtime.get(env['id']), runtime.get(other['id'])]:
+            if row['container_id']:
+                runtime.client.containers.get(row['container_id']).remove(force=True)

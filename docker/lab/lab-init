@@ -1,6 +1,18 @@
 #!/bin/bash
 # Container entrypoint: boot systemd as PID 1 so learners can practise systemctl,
-# journalctl, crond, httpd and firewalld like on a real Fedora machine.
+# journalctl, sysctl, crond, httpd and firewalld like on a real Fedora machine.
+
+# Docker mounts /proc/sys read-only. Make the keys that are namespaced per container
+# writable (network, System V IPC, POSIX message queues), so `sysctl -w`, `sysctl -p`
+# and /etc/sysctl.d work for them without touching other containers. Global keys such
+# as vm.* stay read-only: writing them would change the shared Docker VM kernel.
+for key in net kernel/shmmax kernel/shmall kernel/shmmni kernel/shm_rmid_forced \
+           kernel/msgmax kernel/msgmnb kernel/msgmni kernel/sem fs/mqueue; do
+    [ -e "/proc/sys/$key" ] || continue
+    mount --bind "/proc/sys/$key" "/proc/sys/$key" 2>/dev/null &&
+        mount -o remount,bind,rw "/proc/sys/$key" 2>/dev/null
+done
+
 # Docker mounts the container's private cgroup tree read-only; systemd needs it
 # writable (the container must be started with --cgroupns=private and CAP_SYS_ADMIN).
 if mount -o remount,rw /sys/fs/cgroup 2>/dev/null; then
